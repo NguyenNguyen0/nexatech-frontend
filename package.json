@@ -1,3 +1,9 @@
 {
-  "private": true
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix host-app run dev",
+    "build": "npm --prefix host-app run build",
+    "start": "npm --prefix host-app run start",
+    "lint": "npm --prefix host-app run lint"
+  }
 }
