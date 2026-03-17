@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import StoreProvider from './StoreProvider';
 import { Toaster } from 'sonner';
+import NProgressWrapper from '@/lib/nprogress-wrapper';
 
 const geistSans = Geist({
     variable: '--font-geist-sans',
@@ -27,7 +28,9 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
-                    <StoreProvider>{children}</StoreProvider>
+                    <StoreProvider>
+                        <NProgressWrapper>{children}</NProgressWrapper>
+                    </StoreProvider>
                 <Toaster richColors position="top-center" />
             </body>
         </html>
