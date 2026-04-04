@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
-const { BLOG_URL } = process.env;
 const { AUTH_URL } = process.env;
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: process.cwd(),
+  },
   async rewrites() {
     return [
       // ========================================
@@ -30,20 +32,9 @@ const nextConfig: NextConfig = {
         destination: `${AUTH_URL}/mocks/:path+`,
       },
       // ========================================
-      // PRODUCT MODULE
+      // xxx
       // ========================================
-      {
-        source: "/blog",
-        destination: `${BLOG_URL}/blog`,
-      },
-      {
-        source: "/blog/:path+",
-        destination: `${BLOG_URL}/blog/:path+`,
-      },
-      {
-        source: "/blog-static/_next/:path+",
-        destination: `${BLOG_URL}/blog-static/_next/:path+`,
-      },
+      
     ];
   },
 };
