@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-const { AUTH_URL } = process.env;
+const { AUTH_URL, API_GATEWAY_URL } = process.env;
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   async rewrites() {
-    return [
+    const rules = [
       // ========================================
       // AUTH MODULE
       // ========================================
@@ -31,11 +31,17 @@ const nextConfig: NextConfig = {
         source: "/mocks/:path+",
         destination: `${AUTH_URL}/mocks/:path+`,
       },
-      // ========================================
-      // xxx
-      // ========================================
-      
     ];
+
+    const gw = API_GATEWAY_URL?.replace(/\/$/, "");
+    if (gw) {
+      rules.push({
+        source: "/api/v1/:path*",
+        destination: `${gw}/api/v1/:path*`,
+      });
+    }
+
+    return rules;
   },
 };
 

@@ -1,13 +1,35 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Chrome, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
+import { getApiErrorMessage, login, persistTokensFromExchange } from '@/lib/authApi';
+import { goToHostHomeAfterLogin } from '@/lib/postLoginNavigation';
 
 export function LoginForm() {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const result = await login({ username: username.trim(), password });
+            persistTokensFromExchange(result);
+            toast.success('Đăng nhập thành công');
+            goToHostHomeAfterLogin();
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, 'Đăng nhập thất bại'));
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
     return (
         <Card className="w-full max-w-[450px] shadow-2xl border-none overflow-hidden rounded-[20px]">
             <CardContent className="p-8 sm:p-10 space-y-6 relative">
@@ -15,7 +37,7 @@ export function LoginForm() {
                     <h2 className="text-2xl font-semibold text-foreground">Đăng nhập NexaTech</h2>
                 </div>
 
-                <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                <form className="space-y-4" onSubmit={handleSubmit}>
                     <div className="space-y-1">
                         <label htmlFor="auth-identifier" className="sr-only">
                             Email/Số điện thoại/Tên đăng nhập
@@ -26,6 +48,10 @@ export function LoginForm() {
                             placeholder="Email/Số điện thoại/Tên đăng nhập"
                             className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
                             required
+                            value={username}
+                            onChange={(ev) => setUsername(ev.target.value)}
+                            autoComplete="username"
+                            disabled={submitting}
                         />
                     </div>
                     <div className="space-y-1">
@@ -38,13 +64,18 @@ export function LoginForm() {
                             placeholder="Mật khẩu"
                             className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
                             required
+                            value={password}
+                            onChange={(ev) => setPassword(ev.target.value)}
+                            autoComplete="current-password"
+                            disabled={submitting}
                         />
                     </div>
                     <Button
                         type="submit"
                         className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl transition-all active:scale-[0.98]"
+                        disabled={submitting}
                     >
-                        Đăng nhập
+                        {submitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
                     </Button>
 
                     <div className="flex justify-between text-xs text-primary font-medium">
@@ -75,6 +106,7 @@ export function LoginForm() {
                         variant="outline"
                         className="h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
                         aria-label="Đăng nhập với Facebook"
+                        type="button"
                     >
                         <Facebook className="h-5 w-5 text-[#1877F2] fill-current" />
                         Facebook
@@ -84,6 +116,7 @@ export function LoginForm() {
                         variant="outline"
                         className="h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
                         aria-label="Đăng nhập với Google"
+                        type="button"
                     >
                         <Chrome className="h-5 w-5 text-destructive" />
                         Google
