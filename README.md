@@ -2,14 +2,15 @@
 
 # change dir
 ```
-cd host-app or 'root project'
+cd host-app
 cd auth
+... tương tự các service khác ...
 ```
 # run dev
 ```
 host-app> npm run dev
 auth> npm run dev
-...
+... tương tự các service khác ...
 ```
 
 # run build & run
@@ -20,7 +21,10 @@ auth> npm run build & npm run start
 ```
 
 # Port
-Host-App: 3000
-blog: 4000 (Delete for test)
-Auth: 4001
+AUTH_URL="http://localhost:3001"
+PRODUCT_URL="http://localhost:3002"
+CART_URL="http://localhost:3003"
+ORDER_URL="http://localhost:3004"
+USER_URL="http://localhost:3005"
+MARKETING_URL="http://localhost:3006"
 ...

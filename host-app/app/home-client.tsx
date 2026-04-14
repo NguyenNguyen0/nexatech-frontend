@@ -80,9 +80,7 @@ export function HomeClient() {
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Demo</p>
             <h1 className="text-2xl font-semibold">Welcome to The Challenger Wibu</h1>
 
-            {!hasToken && (
-                <p className="text-muted-foreground">Trang này landing page (Summary product & search)</p>
-            )}
+            {!hasToken && <p className="text-muted-foreground">Trang này landing page (Summary product & search)</p>}
 
             {hasToken && loadingProfile && !loadError && (
                 <p className="text-sm text-muted-foreground">Đang tải hồ sơ…</p>
@@ -111,6 +109,8 @@ export function HomeClient() {
                     </Button>
                 )}
             </div>
+            <hr />
+            <h1 className="text-2xl font-semibold">Micro frontend - NextJS</h1>
             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <Button type="button" asChild variant="default">
                     <a href="/product">Product</a>
@@ -126,6 +126,25 @@ export function HomeClient() {
                 </Button>
                 <Button type="button" asChild variant="default">
                     <a href="/marketing">Marketing</a>
+                </Button>
+            </div>
+            <hr />
+            <h1 className="text-2xl font-semibold">Internal manage - Vite</h1>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button type="button" asChild variant="default">
+                    <a href="http://localhost:4001">Admin (http://localhost:4001)</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="http://localhost:4002">Manager (http://localhost:4002)</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="http://localhost:4003">Staff (http://localhost:4003)</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="http://localhost:4004">Warehouse (http://localhost:4004)</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="http://localhost:4005">Accountant (http://localhost:4005)</a>
                 </Button>
             </div>
         </div>
