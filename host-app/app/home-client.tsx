@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { authStorage } from '@/lib/authStorage';
@@ -78,12 +78,10 @@ export function HomeClient() {
     return (
         <div className="max-w-md w-full space-y-4 text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Demo</p>
-            <h1 className="text-2xl font-semibold">Chào mừng đến Nexatech</h1>
+            <h1 className="text-2xl font-semibold">Welcome to The Challenger Wibu</h1>
 
             {!hasToken && (
-                <p className="text-muted-foreground">
-                    Xin chào! Bạn chưa đăng nhập — đây là trang chủ demo.
-                </p>
+                <p className="text-muted-foreground">Trang này landing page (Summary product & search)</p>
             )}
 
             {hasToken && loadingProfile && !loadError && (
@@ -109,9 +107,26 @@ export function HomeClient() {
                     </Button>
                 ) : (
                     <Button type="button" asChild variant="default">
-                        <Link href="/auth/login">Đăng nhập</Link>
+                        <a href="/auth/login">Đăng nhập</a>
                     </Button>
                 )}
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <Button type="button" asChild variant="default">
+                    <a href="/product">Product</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="/cart">Cart</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="/order">Order</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="/user">User</a>
+                </Button>
+                <Button type="button" asChild variant="default">
+                    <a href="/marketing">Marketing</a>
+                </Button>
             </div>
         </div>
     );
