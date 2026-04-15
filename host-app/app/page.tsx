@@ -8,7 +8,7 @@ import { Footer } from '@/components/home/Footer';
 
 export const metadata: Metadata = {
     title: 'Didongviet Clone - Thiết Bị Thông Minh',
-    description: 'Bản sao trang chủ Di Động Việt',
+    description: 'Bản sao trang chủ Nexatech',
 };
 
 export default function Home() {
