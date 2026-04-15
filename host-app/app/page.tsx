@@ -1,15 +1,10 @@
 import type { Metadata } from 'next';
-import { HomeClient } from './home-client';
 
 export const metadata: Metadata = {
-    title: 'Trang chủ - Nexatech',
-    description: 'Nexatech host — trang chủ sau đăng nhập',
+    title: 'Nexatech - Trang Chủ Mua Sắm',
+    description: 'Nền tảng thương mại điện tử hàng đầu - Nexatech',
 };
 
 export default function Home() {
-    return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-8">
-            <HomeClient />
-        </div>
-    );
+    return <div className="min-h-screen flex flex-col font-sans"></div>;
 }
