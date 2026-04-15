@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
+import { Navbar } from "@/components/navbar";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,8 +22,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#f5f5f7]">
-        {children}
+      <body suppressHydrationWarning className="min-h-screen flex flex-col bg-[#f5f5f7]">
+        <Navbar />
+        <main className="flex-1">
+          {children}
+        </main>
         <Toaster richColors position="top-center" />
       </body>
     </html>
