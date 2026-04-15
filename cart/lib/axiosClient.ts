@@ -26,9 +26,10 @@ const performRefreshToken = async (): Promise<string> => {
       timeout: 10000,
     });
 
-    const payload = res.data.result;
-    if (res.data.code !== 1000 || !payload?.access_token || !payload.refresh_token) {
-      throw new Error(res.data.message || 'Refresh failed');
+    const body = res.data;
+    const payload = body.result;
+    if (body.code !== 1000 || !payload?.access_token || !payload.refresh_token) {
+      throw new Error(body.message || 'Refresh failed');
     }
 
     authStorage.setTokens(payload.access_token, payload.refresh_token);

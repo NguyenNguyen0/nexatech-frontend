@@ -8,16 +8,17 @@ export interface ApiResponse<T> {
 export interface CartItem {
   productId: string;
   productName: string;
-  price: number;
-  quantity: number;
   imageUrl?: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
 }
 
 export interface Cart {
-  customerId: string;
   items: CartItem[];
   totalItems: number;
-  totalPrice: number;
+  totalAmount: number;
+  updatedAt?: string;
 }
 
 export interface AddToCartRequest {
