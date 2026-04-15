@@ -15,6 +15,7 @@ import {
   Smartphone,
   Building2,
   Lock,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -420,7 +421,7 @@ export default function CheckoutPage() {
 
                   {note && (
                     <div className="flex items-start gap-3 p-3 rounded-xl bg-secondary/50">
-                      <div className="size-4 mt-0.5 shrink-0 text-primary text-xs font-bold">📝</div>
+                      <FileText className="size-4 mt-0.5 shrink-0 text-primary" />
                       <div>
                         <p className="text-xs text-muted-foreground">Ghi chú</p>
                         <p className="text-sm mt-0.5">{note}</p>

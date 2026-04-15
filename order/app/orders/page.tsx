@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, Package, ChevronRight, ShoppingBag, ArrowRight } from 'lucide-react';
+import { Loader2, Package, ChevronRight, ShoppingBag, ArrowRight, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { getMyOrders, getApiErrorMessage } from '@/lib/orderApi';
 import { formatCurrency } from '@/lib/format';
@@ -45,16 +45,25 @@ export default function OrdersPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Package className="size-5 text-primary" />
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Package className="size-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Đơn hàng của tôi</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {orders?.totalElements ?? 0} đơn hàng
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Đơn hàng của tôi</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {orders?.totalElements ?? 0} đơn hàng
-          </p>
-        </div>
+        <Link
+          href="/orders/payments"
+          className="btn-pill bg-secondary text-foreground hover:bg-secondary/80 flex items-center gap-2 text-sm cursor-pointer"
+        >
+          <Wallet className="size-4" />
+          <span className="hidden sm:inline">Lịch sử thanh toán</span>
+        </Link>
       </div>
 
       {/* Order List */}

@@ -15,20 +15,16 @@ import {
   CheckCircle,
   CircleDot,
   Copy,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getOrderById, cancelOrder, getApiErrorMessage } from '@/lib/orderApi';
+import { getPaymentByOrderId } from '@/lib/paymentApi';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Order } from '@/types/order';
 import { OrderStatus, ORDER_STATUS_CONFIG } from '@/types/order';
-
-const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  COD: 'Thanh toán khi nhận hàng',
-  VNPAY: 'VNPay',
-  BANK_TRANSFER: 'Chuyển khoản ngân hàng',
-  MOMO: 'MoMo',
-  CREDIT_CARD: 'Thẻ tín dụng',
-};
+import type { Payment } from '@/types/payment';
+import { PAYMENT_STATUS_CONFIG, PAYMENT_METHOD_LABELS } from '@/types/payment';
 
 const STATUS_TIMELINE = [
   OrderStatus.PENDING,
@@ -52,6 +48,7 @@ export default function OrderDetailPage() {
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
 
@@ -59,6 +56,14 @@ export default function OrderDetailPage() {
     try {
       const data = await getOrderById(orderId);
       setOrder(data);
+
+      // Fetch payment info (non-blocking — COD orders may not have payment yet)
+      try {
+        const paymentData = await getPaymentByOrderId(orderId);
+        setPayment(paymentData);
+      } catch {
+        // Payment not found is expected for some order states
+      }
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Không tìm thấy đơn hàng'));
       router.replace('/orders');
@@ -268,7 +273,7 @@ export default function OrderDetailPage() {
             </div>
             {order.note && (
               <div className="flex items-start gap-3">
-                <span className="text-primary mt-0.5 shrink-0 text-sm">📝</span>
+                <FileText className="size-4 text-primary mt-0.5 shrink-0" />
                 <div>
                   <p className="text-xs text-muted-foreground">Ghi chú</p>
                   <p className="text-sm mt-0.5">{order.note}</p>
@@ -276,6 +281,47 @@ export default function OrderDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Payment Status */}
+          {payment && (
+            <div className="card-nexatech p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-lg">Thanh toán</h2>
+                {(() => {
+                  const pConfig = PAYMENT_STATUS_CONFIG[payment.status];
+                  return (
+                    <span className={`text-xs font-medium px-3 py-1.5 rounded-full ${pConfig.bgColor} ${pConfig.color}`}>
+                      {pConfig.label}
+                    </span>
+                  );
+                })()}
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Phương thức</span>
+                  <span className="font-medium">
+                    {PAYMENT_METHOD_LABELS[payment.method] || payment.method}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Số tiền</span>
+                  <span className="font-medium">{formatCurrency(payment.amount)}</span>
+                </div>
+                {payment.transactionId && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mã giao dịch</span>
+                    <span className="font-mono text-xs bg-secondary px-2 py-1 rounded-lg">
+                      {payment.transactionId}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Thời gian</span>
+                  <span>{formatDate(payment.createdAt)}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right: Summary */}
