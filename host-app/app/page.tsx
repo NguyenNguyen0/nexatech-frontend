@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Header } from '@/components/home/Header';
 import { HeroSection } from '@/components/home/HeroSection';
 import { QuickLinks } from '@/components/home/QuickLinks';
-import { PromotedBanner } from '@/components/home/PromotedBanner';
 import { FlashSale } from '@/components/home/FlashSale';
 import { ProductSection } from '@/components/home/ProductSection';
 import { Footer } from '@/components/home/Footer';
@@ -21,7 +20,6 @@ export default function Home() {
                 <QuickLinks />
                 <FlashSale />
                 <ProductSection />
-                <PromotedBanner />
             </main>
             <Footer />
         </div>
