@@ -1,8 +1,9 @@
 /** Shared backend response wrapper */
 export interface ApiResponse<T> {
-  code: number;
-  result?: T;
+  success: boolean;
+  data?: T;
   message?: string;
+  timestamp?: string;
 }
 
 export interface PageResponse<T> {
@@ -10,7 +11,6 @@ export interface PageResponse<T> {
   totalPages: number;
   totalElements: number;
   size: number;
-  number: number;
-  first: boolean;
+  page: number;
   last: boolean;
 }

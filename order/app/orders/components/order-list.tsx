@@ -126,13 +126,13 @@ export function OrderList() {
             <div className="flex items-center justify-center gap-3 pt-6">
               <button
                 onClick={() => setPage(Math.max(0, page - 1))}
-                disabled={orders.first || loading}
+                disabled={page === 0 || loading}
                 className="btn-pill bg-secondary text-foreground text-sm px-5 py-2.5 disabled:opacity-40"
               >
                 Trước
               </button>
               <span className="text-sm text-muted-foreground">
-                Trang {orders.number + 1} / {orders.totalPages}
+                Trang {orders.page + 1} / {orders.totalPages}
               </span>
               <button
                 onClick={() => setPage(page + 1)}

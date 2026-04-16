@@ -191,13 +191,13 @@ export function PaymentDashboard() {
             <div className="flex items-center justify-center gap-3 mt-8">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={data.first}
+                disabled={page === 0}
                 className="btn-pill bg-secondary text-foreground hover:bg-secondary/80 disabled:opacity-40 disabled:pointer-events-none text-sm cursor-pointer"
               >
                 Trước
               </button>
               <span className="text-sm text-muted-foreground px-3">
-                {data.number + 1} / {data.totalPages}
+                {data.page + 1} / {data.totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => p + 1)}

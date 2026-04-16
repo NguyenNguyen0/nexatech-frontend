@@ -19,10 +19,10 @@ export function getApiErrorMessage(error: unknown, fallback = 'Có lỗi xảy r
 }
 
 function unwrap<T>(res: ApiResponse<T>, errorMsg: string): T {
-  if (res.code !== 1000 || res.result === undefined) {
+  if (!res.success || res.data === undefined) {
     throw new Error(res.message || errorMsg);
   }
-  return res.result;
+  return res.data;
 }
 
 export async function getMyOrders(page = 0, size = 10): Promise<PageResponse<Order>> {

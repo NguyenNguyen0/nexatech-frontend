@@ -58,7 +58,7 @@ const orderSlice = createSlice({
         state.orders = action.payload.content;
         state.totalPages = action.payload.totalPages;
         state.totalElements = action.payload.totalElements;
-        state.currentPage = action.payload.number;
+        state.currentPage = action.payload.page;
       })
       .addCase(fetchMyOrders.rejected, (state, action) => {
         state.loading = false;

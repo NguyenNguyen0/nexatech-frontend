@@ -1,17 +1,17 @@
-/** Matches backend ApiResponse<T> — same wrapper used by all services. */
+/** Matches backend ApiResponse<T> — same wrapper used by order/payment services. */
 export interface ApiResponse<T> {
-  code: number;
+  success: boolean;
   message?: string;
-  result?: T;
+  data?: T;
+  timestamp?: string;
 }
 
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  number: number;
+  page: number;
   size: number;
-  first: boolean;
   last: boolean;
 }
 
