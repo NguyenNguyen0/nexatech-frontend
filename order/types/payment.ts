@@ -1,5 +1,6 @@
 export enum PaymentStatus {
   PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   REFUNDED = 'REFUNDED',
@@ -12,6 +13,24 @@ export enum PaymentMethod {
   MOMO = 'MOMO',
   VNPAY = 'VNPAY',
   CREDIT_CARD = 'CREDIT_CARD',
+}
+
+export interface CreatePaymentRequest {
+  orderId: string;
+  amount: number;
+  method: PaymentMethod;
+}
+
+export interface VNPayPaymentRequest {
+  orderId: string;
+  amount: number;
+  orderInfo: string;
+  ipAddress?: string;
+}
+
+export interface VNPayResponse {
+  paymentId: string;
+  paymentUrl: string;
 }
 
 export interface Payment {
@@ -30,6 +49,7 @@ export const PAYMENT_STATUS_CONFIG: Record<
   { label: string; color: string; bgColor: string }
 > = {
   [PaymentStatus.PENDING]: { label: 'Chờ thanh toán', color: 'text-amber-700', bgColor: 'bg-amber-50' },
+  [PaymentStatus.PROCESSING]: { label: 'Đang xử lý', color: 'text-blue-700', bgColor: 'bg-blue-50' },
   [PaymentStatus.COMPLETED]: { label: 'Đã thanh toán', color: 'text-green-700', bgColor: 'bg-green-50' },
   [PaymentStatus.FAILED]: { label: 'Thất bại', color: 'text-red-700', bgColor: 'bg-red-50' },
   [PaymentStatus.REFUNDED]: { label: 'Hoàn tiền', color: 'text-indigo-700', bgColor: 'bg-indigo-50' },

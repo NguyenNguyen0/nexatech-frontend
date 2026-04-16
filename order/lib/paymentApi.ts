@@ -1,9 +1,8 @@
 import { isAxiosError } from 'axios';
 import axiosClient from '@/lib/axiosClient';
+import { paymentPaths } from '@/lib/paymentPaths';
 import type { ApiResponse, PageResponse } from '@/types/order';
-import type { Payment } from '@/types/payment';
-
-const PAYMENTS_BASE = '/api/v1/payments';
+import type { Payment, CreatePaymentRequest, VNPayPaymentRequest, VNPayResponse } from '@/types/payment';
 
 export function getPaymentErrorMessage(
   error: unknown,
@@ -15,12 +14,18 @@ export function getPaymentErrorMessage(
   return error.message || fallback;
 }
 
+function unwrap<T>(res: ApiResponse<T>, errorMsg: string): T {
+  if (res.code !== 1000 || res.result === undefined) {
+    throw new Error(res.message || errorMsg);
+  }
+  return res.result;
+}
+
 export async function getPaymentByOrderId(orderId: string): Promise<Payment> {
   const { data } = await axiosClient.get<ApiResponse<Payment>>(
-    `${PAYMENTS_BASE}/order/${orderId}`,
+    paymentPaths.paymentByOrderId(orderId),
   );
-  if (!data.success) throw new Error(data.message || 'Không tìm thấy thanh toán');
-  return data.data;
+  return unwrap(data, 'Không tìm thấy thanh toán');
 }
 
 export async function getMyPayments(
@@ -28,9 +33,23 @@ export async function getMyPayments(
   size = 10,
 ): Promise<PageResponse<Payment>> {
   const { data } = await axiosClient.get<ApiResponse<PageResponse<Payment>>>(
-    `${PAYMENTS_BASE}/my?page=${page}&size=${size}&sort=createdAt,desc`,
+    `${paymentPaths.myPayments}?page=${page}&size=${size}&sort=createdAt,desc`,
   );
-  if (!data.success)
-    throw new Error(data.message || 'Không lấy được lịch sử thanh toán');
-  return data.data;
+  return unwrap(data, 'Không lấy được lịch sử thanh toán');
+}
+
+export async function createPayment(request: CreatePaymentRequest): Promise<Payment> {
+  const { data } = await axiosClient.post<ApiResponse<Payment>>(
+    paymentPaths.payments,
+    request,
+  );
+  return unwrap(data, 'Tạo thanh toán thất bại');
+}
+
+export async function createVNPayPayment(request: VNPayPaymentRequest): Promise<VNPayResponse> {
+  const { data } = await axiosClient.post<ApiResponse<VNPayResponse>>(
+    paymentPaths.createVNPay,
+    request,
+  );
+  return unwrap(data, 'Tạo thanh toán VNPay thất bại');
 }
