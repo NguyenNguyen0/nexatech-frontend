@@ -7,7 +7,7 @@ import { ProductSection } from '@/components/home/ProductSection';
 import { Footer } from '@/components/home/Footer';
 
 export const metadata: Metadata = {
-    title: 'Didongviet Clone - Thiết Bị Thông Minh',
+    title: 'Nexatech',
     description: 'Bản sao trang chủ Nexatech',
 };
 
