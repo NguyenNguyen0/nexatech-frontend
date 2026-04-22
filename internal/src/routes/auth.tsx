@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import { Navigate, type RouteObject } from "react-router-dom";
-import { LazyWrapper } from "@/components/customize/LazyWrapper";
-import { GuestRoute } from "@/components/customize/GuestRoute";
+import { LazyWrapper } from "@/components/custom/LazyWrapper";
+import { GuestRoute } from "@/components/custom/GuestRoute";
 import PublicLayout from "@/layouts/public";
 
 const LoginPage = lazy(() => import("@/pages/auth/login"));

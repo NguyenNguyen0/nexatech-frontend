@@ -1,7 +1,7 @@
 import type { RouteObject } from 'react-router-dom';
 import { Navigate, Outlet } from 'react-router-dom';
-import { ProtectedRoute } from '@/components/customize/ProtectedRoute';
-import { LazyWrapper } from '@/components/customize/LazyWrapper';
+import { ProtectedRoute } from '@/components/custom/ProtectedRoute';
+import { LazyWrapper } from '@/components/custom/LazyWrapper';
 import DashboardPage from '@/pages/admin/DashboardPage';
 
 export const admin: RouteObject[] = [
