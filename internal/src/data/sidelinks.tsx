@@ -1,0 +1,130 @@
+import type { ReactNode } from 'react';
+import {
+    IconBrandProducthunt,
+    IconCalendarWeek,
+    IconChecklist,
+    IconHelpHexagon,
+    IconHexagonNumber1,
+    IconHome,
+    IconLayoutDashboard,
+    IconLayoutKanban,
+    IconMessages,
+    IconSettings,
+    IconShoppingCart,
+    IconMail,
+    IconUsers,
+} from '@tabler/icons-react';
+
+export interface NavLink {
+    title: string;
+    label?: string;
+    href: string;
+    icon: ReactNode;
+}
+
+export interface SideLink extends NavLink {
+    sub?: NavLink[];
+}
+
+export const sidelinks: SideLink[] = [
+    {
+        title: 'Home',
+        label: '',
+        href: '/admin',
+        icon: <IconHome size={18} />,
+    },
+    {
+        title: 'Dashboard',
+        label: '',
+        href: '/admin/dashboard',
+        icon: <IconLayoutDashboard size={18} />,
+    },
+    {
+        title: 'Kanban',
+        label: '',
+        href: '/admin/kanban',
+        icon: <IconLayoutKanban size={18} />,
+    },
+    {
+        title: 'Products',
+        label: '',
+        href: '',
+        icon: <IconChecklist size={18} />,
+        sub: [
+            {
+                title: 'Product List',
+                label: '',
+                href: '/admin/product',
+                icon: <IconBrandProducthunt size={18} />,
+            },
+            {
+                title: 'Add Product',
+                label: '',
+                href: '/admin/product/add-product',
+                icon: <IconHexagonNumber1 size={18} />,
+            },
+        ],
+    },
+    {
+        title: 'Chats',
+        label: '',
+        href: '/admin/chats',
+        icon: <IconMessages size={18} />,
+    },
+    {
+        title: 'Order',
+        label: '',
+        href: '/admin/order',
+        icon: <IconShoppingCart size={18} />,
+    },
+    {
+        title: 'Calendar',
+        label: '',
+        href: '/admin/calendar',
+        icon: <IconCalendarWeek size={18} />,
+    },
+    {
+        title: 'Email',
+        label: '',
+        href: '/admin/emails',
+        icon: <IconMail size={18} />,
+        sub: [
+            {
+                title: 'Inbox',
+                label: '',
+                href: '/admin/emails',
+                icon: <IconBrandProducthunt size={18} />,
+            },
+            {
+                title: 'Send Email',
+                label: '',
+                href: '/admin/emails/send',
+                icon: <IconHexagonNumber1 size={18} />,
+            },
+        ],
+    },
+    {
+        title: 'Tasks',
+        label: '',
+        href: '/admin/tasks',
+        icon: <IconChecklist size={18} />,
+    },
+    {
+        title: 'Supports',
+        label: '',
+        href: '/admin/supports',
+        icon: <IconHelpHexagon size={18} />,
+    },
+    {
+        title: 'Users',
+        label: '',
+        href: '/admin/users',
+        icon: <IconUsers size={18} />,
+    },
+    {
+        title: 'Settings',
+        label: '',
+        href: '/admin/settings',
+        icon: <IconSettings size={18} />,
+    },
+];
