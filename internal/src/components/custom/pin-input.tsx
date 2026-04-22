@@ -143,7 +143,7 @@ const PinInput = React.forwardRef<HTMLDivElement, PinInputProps>(
       if (child.type === PinInputField) {
         const pinIndex = counter
         counter = counter + 1
-        return React.cloneElement(child, {
+        return React.cloneElement(child as React.ReactElement<any>, {
           name,
           inputKey: `input-${pinIndex}`,
           value: length > pinIndex ? pins[pinIndex] : '',
@@ -251,7 +251,7 @@ const PinInputField = React.forwardRef(PinInputFieldNoRef) as <
     ...props
   }: PinInputFieldProps<T> & React.ComponentProps<T>,
   ref: React.ForwardedRef<HTMLInputElement>
-) => JSX.Element
+) => React.ReactElement
 
 /* ========== usePinInput custom hook ========== */
 
