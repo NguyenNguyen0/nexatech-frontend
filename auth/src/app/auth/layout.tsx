@@ -1,3 +1,4 @@
+// import { Header } from 'host-app/components/home/Header';
 import { AuthHeader } from '@/components/custom/auth/auth-header';
 import { AuthFooter } from '@/components/custom/auth/auth-footer';
 

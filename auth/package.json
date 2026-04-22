@@ -9,6 +9,7 @@
         "lint": "eslint"
     },
     "dependencies": {
+        "host-app": "file:../host-app",
         "@reduxjs/toolkit": "^2.11.2",
         "axios": "^1.14.0",
         "class-variance-authority": "^0.7.1",
