@@ -1,11 +1,9 @@
 import { lazy } from "react";
-import { Navigate, type RouteObject } from "react-router-dom";
+import { Navigate, type RouteObject, Outlet } from "react-router-dom";
 import { LazyWrapper } from "@/components/custom/LazyWrapper";
 import { GuestRoute } from "@/components/custom/GuestRoute";
-import PublicLayout from "@/layouts/public";
 
-const LoginPage = lazy(() => import("@/pages/auth/login"));
-const RegisterPage = lazy(() => import("@/pages/auth/register"));
+const AuthPage = lazy(() => import("@/pages/auth/index"));
 
 export const authRoutes: RouteObject[] = [
     {
@@ -13,17 +11,17 @@ export const authRoutes: RouteObject[] = [
         element: (
             <GuestRoute>
                 <LazyWrapper>
-                    <PublicLayout />
+                    <Outlet />
                 </LazyWrapper>
             </GuestRoute>
         ),
         children: [
-            { index: true, element: <Navigate to="login" replace /> },
-            { path: "login", element: <LoginPage /> },
-            { path: "register", element: <RegisterPage /> },
+            { index: true, element: <AuthPage /> },
+            { path: "login", element: <Navigate to="/auth?mode=login" replace /> },
+            { path: "register", element: <Navigate to="/auth?mode=register" replace /> },
         ],
     },
     // fallback routes
-    { path: "login", element: <Navigate to="/auth/login" replace /> },
-    { path: "register", element: <Navigate to="/auth/register" replace /> },
+    { path: "login", element: <Navigate to="/auth?mode=login" replace /> },
+    { path: "register", element: <Navigate to="/auth?mode=register" replace /> },
 ];
