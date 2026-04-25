@@ -157,6 +157,20 @@ export function RegisterForm() {
                         />
                     </div>
                     <div className="space-y-2">
+                        <Label htmlFor="reg-confirm-password">Nhập lại mật khẩu</Label>
+                        <Input
+                            id="reg-confirm-password"
+                            type="password"
+                            placeholder="Nhập lại mật khẩu"
+                            className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
+                            required
+                            value={confirmPassword}
+                            onChange={(ev) => setConfirmPassword(ev.target.value)}
+                            autoComplete="new-password"
+                            disabled={submitting}
+                        />
+                    </div>
+                    <div className="space-y-2">
                         <Label htmlFor="reg-phone">Số điện thoại</Label>
                         <Input
                             id="reg-phone"
@@ -196,20 +210,6 @@ export function RegisterForm() {
                                 <option value="OTHER">Khác</option>
                             </select>
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="reg-confirm-password">Nhập lại mật khẩu</Label>
-                        <Input
-                            id="reg-confirm-password"
-                            type="password"
-                            placeholder="Nhập lại mật khẩu"
-                            className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
-                            required
-                            value={confirmPassword}
-                            onChange={(ev) => setConfirmPassword(ev.target.value)}
-                            autoComplete="new-password"
-                            disabled={submitting}
-                        />
                     </div>
 
                     <Button

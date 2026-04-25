@@ -1,7 +1,7 @@
 import { isAxiosError } from "axios";
 import axiosClient from "@/lib/axiosClient";
-import { authPaths } from "@/lib/authPaths";
-import { authStorage } from "@/lib/authStorage";
+import { authPaths } from "@/services/authPaths";
+import { authStorage } from "@/services/authStorage";
 import type {
     ApiResponse,
     IntrospectResult,

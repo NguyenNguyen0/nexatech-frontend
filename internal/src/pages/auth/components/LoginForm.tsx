@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { IconBrandGithub } from "@tabler/icons-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { getApiErrorMessage, login, persistTokensFromExchange } from "@/lib/authApi";
+import { getApiErrorMessage, login, persistTokensFromExchange } from "@/services/authApi";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
 interface LoginFormProps {
