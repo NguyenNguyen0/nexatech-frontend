@@ -4,6 +4,7 @@ import { authPaths } from '@/lib/authPaths';
 import { authStorage } from '@/lib/authStorage';
 import type {
     ApiResponse,
+    IntrospectResult,
     IntrospectTokenRequestBody,
     LoginRequestBody,
     LogoutRequestBody,
@@ -53,9 +54,9 @@ export async function fetchUserInfo(): Promise<UserInfoResult> {
     return data.result;
 }
 
-export async function introspectToken(token: string): Promise<UserInfoResult> {
+export async function introspectToken(token: string): Promise<IntrospectResult> {
     const body: IntrospectTokenRequestBody = { token };
-    const { data } = await axiosClient.post<ApiResponse<UserInfoResult>>(authPaths.introspect, body);
+    const { data } = await axiosClient.post<ApiResponse<IntrospectResult>>(authPaths.introspect, body);
     if (data.code !== 1000 || !data.result) {
         throw new Error(data.message || 'Introspect thất bại');
     }

@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconBrandGithub } from "@tabler/icons-react";
+import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
+import { getApiErrorMessage, login, persistTokensFromExchange } from "@/lib/authApi";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 
 interface LoginFormProps {
@@ -9,22 +12,64 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ toggleMode }: LoginFormProps) {
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const result = await login({
+                username: username.trim(),
+                password,
+            });
+            persistTokensFromExchange(result);
+            toast.success("Dang nhap thanh cong");
+            window.location.href = "/";
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, "Dang nhap that bai"));
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
     return (
         <div className="grid gap-6">
-            <form onSubmit={(e) => e.preventDefault()}>
+            <form onSubmit={handleSubmit}>
                 <div className="grid gap-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" placeholder="name@example.com" type="email" autoCapitalize="none" autoComplete="email" autoCorrect="off" />
+                        <Label htmlFor="username">Username / Email</Label>
+                        <Input
+                            id="username"
+                            placeholder="name@example.com"
+                            type="text"
+                            autoCapitalize="none"
+                            autoComplete="username"
+                            autoCorrect="off"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            disabled={submitting}
+                            required
+                        />
                     </div>
                     <div className="grid gap-2">
                         <div className="flex items-center">
                             <Label htmlFor="password">Password</Label>
                             <ForgotPasswordModal />
                         </div>
-                        <Input id="password" type="password" required />
+                        <Input
+                            id="password"
+                            type="password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={submitting}
+                        />
                     </div>
-                    <Button className="w-full" type="submit">Sign In</Button>
+                    <Button className="w-full" type="submit" disabled={submitting}>
+                        {submitting ? "Signing in..." : "Sign In"}
+                    </Button>
                 </div>
             </form>
             <div className="relative">

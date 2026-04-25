@@ -41,7 +41,7 @@ export function BrandPanel({ isLogin }: { isLogin: boolean }) {
                             transition={{ duration: 0.3 }}
                             className="text-3xl font-bold tracking-tight drop-shadow-lg"
                         >
-                            Internal Dashboard
+                            {isLogin ? "Internal Dashboard" : "Join our Internal Dashboard"}
                         </motion.h2>
                     </AnimatePresence>
                 </div>
