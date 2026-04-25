@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { IconBrandGithub } from "@tabler/icons-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { getApiErrorMessage, register } from "@/lib/authApi";
+import { getApiErrorMessage, register } from "@/services/authApi";
 import type { RegisterRequestInput, UserGender } from "@/types/auth";
 
 interface RegisterFormProps {
