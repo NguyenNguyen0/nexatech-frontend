@@ -40,6 +40,12 @@ export const sidelinks: SideLink[] = [
         icon: <IconLayoutDashboard size={18} />,
     },
     {
+        title: 'Users',
+        label: '',
+        href: '/admin/users',
+        icon: <IconUsers size={18} />,
+    },
+    {
         title: 'Kanban',
         label: '',
         href: '/admin/kanban',
@@ -114,12 +120,6 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/supports',
         icon: <IconHelpHexagon size={18} />,
-    },
-    {
-        title: 'Users',
-        label: '',
-        href: '/admin/users',
-        icon: <IconUsers size={18} />,
     },
     {
         title: 'Settings',
