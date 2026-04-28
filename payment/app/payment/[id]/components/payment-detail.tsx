@@ -13,6 +13,9 @@ import {
   Receipt,
   Copy,
   Package,
+  AlertTriangle,
+  CalendarCheck,
+  RefreshCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPaymentById, getPaymentErrorMessage } from '@/lib/paymentApi';
@@ -22,12 +25,12 @@ import { PaymentStatus, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_CONFIG } from '@/t
 import { PaymentStatusBadge } from '@/components/custom/payment/status-badge';
 
 const STATUS_ICONS: Record<PaymentStatus, React.ReactNode> = {
-  [PaymentStatus.PENDING]: <Clock className="size-5 text-amber-600" />,
-  [PaymentStatus.PROCESSING]: <Loader2 className="size-5 text-blue-600 animate-spin" />,
-  [PaymentStatus.COMPLETED]: <CheckCircle className="size-5 text-green-600" />,
-  [PaymentStatus.FAILED]: <XCircle className="size-5 text-red-500" />,
-  [PaymentStatus.REFUNDED]: <Receipt className="size-5 text-indigo-600" />,
-  [PaymentStatus.CANCELLED]: <XCircle className="size-5 text-gray-500" />,
+  [PaymentStatus.PENDING]: <Clock className="size-6 text-amber-600" />,
+  [PaymentStatus.PROCESSING]: <Loader2 className="size-6 text-blue-600 animate-spin" />,
+  [PaymentStatus.COMPLETED]: <CheckCircle className="size-6 text-green-600" />,
+  [PaymentStatus.FAILED]: <XCircle className="size-6 text-red-500" />,
+  [PaymentStatus.REFUNDED]: <RefreshCcw className="size-6 text-indigo-600" />,
+  [PaymentStatus.CANCELLED]: <XCircle className="size-6 text-gray-500" />,
 };
 
 interface PaymentDetailViewProps {
@@ -38,6 +41,7 @@ export function PaymentDetailView({ paymentId }: PaymentDetailViewProps) {
   const router = useRouter();
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copying, setCopying] = useState(false);
 
   const fetchPayment = useCallback(async () => {
     try {
@@ -55,10 +59,14 @@ export function PaymentDetailView({ paymentId }: PaymentDetailViewProps) {
     fetchPayment();
   }, [fetchPayment]);
 
-  const copyTransactionId = () => {
-    if (payment?.transactionId) {
-      navigator.clipboard.writeText(payment.transactionId);
+  const copyTransactionId = async () => {
+    if (!payment?.transactionId) return;
+    setCopying(true);
+    try {
+      await navigator.clipboard.writeText(payment.transactionId);
       toast.success('Đã sao chép mã giao dịch');
+    } finally {
+      setTimeout(() => setCopying(false), 1000);
     }
   };
 
@@ -98,12 +106,36 @@ export function PaymentDetailView({ paymentId }: PaymentDetailViewProps) {
         <p className="text-sm text-muted-foreground mt-2">{formatDate(payment.createdAt)}</p>
       </div>
 
+      {/* Failure reason alert */}
+      {payment.status === PaymentStatus.FAILED && payment.failureReason && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+          <AlertTriangle className="size-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-700">Lý do thất bại</p>
+            <p className="text-sm text-red-600 mt-0.5">{payment.failureReason}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Refunded notice */}
+      {payment.status === PaymentStatus.REFUNDED && (
+        <div className="flex items-start gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-6">
+          <RefreshCcw className="size-5 text-indigo-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-indigo-700">Giao dịch đã được hoàn tiền</p>
+            <p className="text-sm text-indigo-600 mt-0.5">
+              Số tiền {formatCurrency(payment.amount)} đã được hoàn trả về tài khoản của bạn.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Details */}
-      <div className="card-nexatech p-6 space-y-5">
+      <div className="card-nexatech p-6 space-y-5 mb-6">
         <h2 className="font-semibold text-lg">Chi tiết giao dịch</h2>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-border/50">
+        <div className="divide-y divide-border/50">
+          <div className="flex items-center justify-between py-3.5">
             <span className="text-sm text-muted-foreground">Phương thức</span>
             <div className="flex items-center gap-2">
               <CreditCard className="size-4 text-primary" />
@@ -113,22 +145,22 @@ export function PaymentDetailView({ paymentId }: PaymentDetailViewProps) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between py-3 border-b border-border/50">
+          <div className="flex items-center justify-between py-3.5">
             <span className="text-sm text-muted-foreground">Trạng thái</span>
             <PaymentStatusBadge status={payment.status} />
           </div>
 
-          <div className="flex items-center justify-between py-3 border-b border-border/50">
+          <div className="flex items-center justify-between py-3.5">
             <span className="text-sm text-muted-foreground">Số tiền</span>
             <span className="font-bold text-primary">{formatCurrency(payment.amount)}</span>
           </div>
 
           {payment.transactionId && (
-            <div className="flex items-center justify-between py-3 border-b border-border/50">
+            <div className="flex items-center justify-between py-3.5">
               <span className="text-sm text-muted-foreground">Mã giao dịch</span>
               <button
                 onClick={copyTransactionId}
-                className="flex items-center gap-1.5 font-mono text-xs bg-secondary px-3 py-1.5 rounded-xl hover:bg-secondary/80 transition-colors cursor-pointer"
+                className={`flex items-center gap-1.5 font-mono text-xs bg-secondary px-3 py-1.5 rounded-xl hover:bg-secondary/80 transition-colors cursor-pointer ${copying ? 'opacity-60' : ''}`}
               >
                 {payment.transactionId}
                 <Copy className="size-3" />
@@ -136,23 +168,63 @@ export function PaymentDetailView({ paymentId }: PaymentDetailViewProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-between py-3 border-b border-border/50">
-            <span className="text-sm text-muted-foreground">Thời gian</span>
+          <div className="flex items-center justify-between py-3.5">
+            <span className="text-sm text-muted-foreground">Thời gian tạo</span>
             <span className="text-sm">{formatDate(payment.createdAt)}</span>
           </div>
 
-          <div className="flex items-center justify-between py-3">
-            <span className="text-sm text-muted-foreground">Đơn hàng</span>
-            <Link
-              href={`/orders/${payment.orderId}`}
-              className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors font-medium cursor-pointer"
-            >
-              <Package className="size-4" />
-              Xem đơn hàng
-            </Link>
-          </div>
+          {payment.completedAt && (
+            <div className="flex items-center justify-between py-3.5">
+              <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                <CalendarCheck className="size-3.5" />
+                Hoàn thành lúc
+              </span>
+              <span className="text-sm text-green-600 font-medium">{formatDate(payment.completedAt)}</span>
+            </div>
+          )}
+
+          {payment.updatedAt && payment.updatedAt !== payment.createdAt && !payment.completedAt && (
+            <div className="flex items-center justify-between py-3.5">
+              <span className="text-sm text-muted-foreground">Cập nhật lần cuối</span>
+              <span className="text-sm">{formatDate(payment.updatedAt)}</span>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Order link */}
+      <div className="card-nexatech p-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center">
+            <Package className="size-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Đơn hàng liên quan</p>
+            <p className="text-xs text-muted-foreground">ID: {payment.orderId}</p>
+          </div>
+        </div>
+        <Link
+          href={`/orders/${payment.orderId}`}
+          className="btn-pill bg-secondary text-foreground hover:bg-secondary/80 text-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <Package className="size-4" />
+          Xem đơn hàng
+        </Link>
+      </div>
+
+      {/* Retry payment if failed */}
+      {payment.status === PaymentStatus.FAILED && (
+        <div className="mt-4">
+          <Link
+            href={`/payment/initiate?orderId=${payment.orderId}&amount=${payment.amount}`}
+            className="btn-pill w-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 text-sm cursor-pointer py-3"
+          >
+            <CreditCard className="size-4" />
+            Thử thanh toán lại
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
+
