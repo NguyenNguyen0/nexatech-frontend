@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
     const authUrl = process.env.IDENTITY_SERVICE_URL || 'http://localhost:8080';
     return [
       {
+        source: '/api/v1/admin/payments/:path*',
+        destination: `${paymentUrl}/api/v1/admin/payments/:path*`,
+      },
+      {
         source: '/api/v1/payments/:path*',
         destination: `${paymentUrl}/api/v1/payments/:path*`,
       },
