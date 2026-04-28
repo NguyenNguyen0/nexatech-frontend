@@ -37,14 +37,10 @@
     "w:dev:order": "npm run dev -w order",
     "w:dev:user": "npm run dev -w user",
     "w:dev:marketing": "npm run dev -w marketing",
-    "w:dev:admin": "npm run dev -w nexatech-admin",
-    "w:dev:manager": "npm run dev -w nexatech-manager",
-    "w:dev:staff": "npm run dev -w nexatech-staff",
-    "w:dev:accountant": "npm run dev -w nexatech-accountant",
-    "w:dev:warehouse": "npm run dev -w nexatech-warehouse",
+    "w:dev:internal": "npm run dev -w internal",
     "w:build:host": "npm run build -w host-app",
     "w:build:auth": "npm run build -w auth",
-    "w:build:admin": "npm run build -w nexatech-admin"
+    "w:build:internal": "npm run build -w internal"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
