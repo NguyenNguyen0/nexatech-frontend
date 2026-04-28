@@ -31,6 +31,7 @@ export function Navbar() {
   const [orderDropdown, setOrderDropdown] = useState(false);
 
   const isCart = !!pathname?.startsWith('/cart');
+  const isProducts = !!pathname?.startsWith('/products');
   const isOrder =
     !!pathname?.startsWith('/order') || !!pathname?.startsWith('/orders');
 
@@ -57,8 +58,12 @@ export function Navbar() {
         <nav className="hidden sm:flex items-center gap-0.5" aria-label="Điều hướng">
           {/* Cửa hàng */}
           <Link
-            href="/product"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/5 transition-all duration-200 cursor-pointer"
+            href="/products"
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
+              isProducts
+                ? 'text-[#0071e3] bg-[#0071e3]/8'
+                : 'text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/5'
+            }`}
           >
             <Store className="size-4" />
             Cửa hàng
@@ -154,7 +159,7 @@ export function Navbar() {
       {/* Mobile dropdown */}
       {mobileOpen && (
         <div className="sm:hidden border-t border-black/6 bg-white/92 backdrop-blur-[20px] px-4 py-3 space-y-1">
-          <MobileLink href="/product" label="Cửa hàng" icon={<Store className="size-4" />} active={false} onClose={() => setMobileOpen(false)} />
+          <MobileLink href="/products" label="Cửa hàng" icon={<Store className="size-4" />} active={isProducts} onClose={() => setMobileOpen(false)} />
           <MobileLink href="/cart" label="Giỏ hàng" icon={<ShoppingBag className="size-4" />} active={isCart} onClose={() => setMobileOpen(false)} />
           <div className="pt-1 pb-1">
             <p className="text-[11px] uppercase tracking-wider text-[#6e6e73] px-4 pb-1">Đơn hàng</p>

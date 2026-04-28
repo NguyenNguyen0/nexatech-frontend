@@ -27,8 +27,8 @@ const performRefreshToken = async (): Promise<string> => {
     });
 
     const body = res.data;
-    const payload = body.result;
-    if (body.code !== 1000 || !payload?.access_token || !payload.refresh_token) {
+    const payload = body.result ?? body.data;
+    if ((body.code !== undefined ? body.code !== 1000 : !body.success) || !payload?.access_token || !payload.refresh_token) {
       throw new Error(body.message || 'Refresh failed');
     }
 
@@ -40,11 +40,24 @@ const performRefreshToken = async (): Promise<string> => {
   }
 };
 
+function getUserIdFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 axiosClient.interceptors.request.use((config) => {
   const token = authStorage.getAccessToken();
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
+    const userId = getUserIdFromToken(token);
+    if (userId) {
+      config.headers['X-User-Id'] = userId;
+    }
   }
   return config;
 });
