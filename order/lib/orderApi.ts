@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios';
 import axiosClient from '@/lib/axiosClient';
 import { orderPaths } from '@/lib/orderPaths';
+import { getMockOrders, getMockOrderById } from '@/lib/mockData';
 import type {
   ApiResponse,
   PageResponse,
@@ -26,15 +27,25 @@ function unwrap<T>(res: ApiResponse<T>, errorMsg: string): T {
 }
 
 export async function getMyOrders(page = 0, size = 10): Promise<PageResponse<Order>> {
-  const { data } = await axiosClient.get<ApiResponse<PageResponse<Order>>>(
-    `${orderPaths.myOrders}?page=${page}&size=${size}&sort=createdAt,desc`
-  );
-  return unwrap(data, 'Không lấy được danh sách đơn hàng');
+  try {
+    const { data } = await axiosClient.get<ApiResponse<PageResponse<Order>>>(
+      `${orderPaths.myOrders}?page=${page}&size=${size}&sort=createdAt,desc`
+    );
+    return unwrap(data, 'Không lấy được danh sách đơn hàng');
+  } catch {
+    return getMockOrders(page, size);
+  }
 }
 
 export async function getOrderById(orderId: string): Promise<Order> {
-  const { data } = await axiosClient.get<ApiResponse<Order>>(orderPaths.orderById(orderId));
-  return unwrap(data, 'Không tìm thấy đơn hàng');
+  try {
+    const { data } = await axiosClient.get<ApiResponse<Order>>(orderPaths.orderById(orderId));
+    return unwrap(data, 'Không tìm thấy đơn hàng');
+  } catch {
+    const mock = getMockOrderById(orderId);
+    if (mock) return mock;
+    throw new Error('Không tìm thấy đơn hàng');
+  }
 }
 
 export async function cancelOrder(orderId: string): Promise<Order> {

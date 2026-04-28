@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios';
 import axiosClient from '@/lib/axiosClient';
 import { paymentPaths } from '@/lib/paymentPaths';
+import { getMockPayments, getMockPaymentByOrderId } from '@/lib/mockData';
 import type { ApiResponse, PageResponse } from '@/types/order';
 import type { Payment, CreatePaymentRequest, VNPayPaymentRequest, VNPayResponse } from '@/types/payment';
 
@@ -22,20 +23,30 @@ function unwrap<T>(res: ApiResponse<T>, errorMsg: string): T {
 }
 
 export async function getPaymentByOrderId(orderId: string): Promise<Payment> {
-  const { data } = await axiosClient.get<ApiResponse<Payment>>(
-    paymentPaths.paymentByOrderId(orderId),
-  );
-  return unwrap(data, 'Không tìm thấy thanh toán');
+  try {
+    const { data } = await axiosClient.get<ApiResponse<Payment>>(
+      paymentPaths.paymentByOrderId(orderId),
+    );
+    return unwrap(data, 'Không tìm thấy thanh toán');
+  } catch {
+    const mock = getMockPaymentByOrderId(orderId);
+    if (mock) return mock;
+    throw new Error('Không tìm thấy thanh toán');
+  }
 }
 
 export async function getMyPayments(
   page = 0,
   size = 10,
 ): Promise<PageResponse<Payment>> {
-  const { data } = await axiosClient.get<ApiResponse<PageResponse<Payment>>>(
-    `${paymentPaths.myPayments}?page=${page}&size=${size}&sort=createdAt,desc`,
-  );
-  return unwrap(data, 'Không lấy được lịch sử thanh toán');
+  try {
+    const { data } = await axiosClient.get<ApiResponse<PageResponse<Payment>>>(
+      `${paymentPaths.myPayments}?page=${page}&size=${size}&sort=createdAt,desc`,
+    );
+    return unwrap(data, 'Không lấy được lịch sử thanh toán');
+  } catch {
+    return getMockPayments(page, size);
+  }
 }
 
 export async function createPayment(request: CreatePaymentRequest): Promise<Payment> {
