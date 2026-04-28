@@ -16,6 +16,10 @@ import {
   TrendingUp,
   AlertCircle,
   Users,
+  Landmark,
+  Smartphone,
+  Banknote,
+  Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminPayments, getPaymentErrorMessage } from '@/lib/paymentApi';
@@ -37,12 +41,12 @@ const STATUS_TABS: { value: PaymentStatus | null; label: string; icon: React.Rea
   { value: PaymentStatus.CANCELLED, label: 'Đã hủy', icon: <AlertCircle className="size-3.5 text-gray-500" /> },
 ];
 
-const METHOD_ICONS: Record<string, string> = {
-  VNPAY: '🏦',
-  MOMO: '📱',
-  COD: '💵',
-  BANK_TRANSFER: '🏧',
-  CREDIT_CARD: '💳',
+const METHOD_ICONS: Record<string, React.ReactNode> = {
+  VNPAY: <Landmark className="size-5 text-blue-600" />,
+  MOMO: <Smartphone className="size-5 text-pink-600" />,
+  COD: <Banknote className="size-5 text-green-600" />,
+  BANK_TRANSFER: <Building2 className="size-5 text-indigo-600" />,
+  CREDIT_CARD: <CreditCard className="size-5 text-purple-600" />,
 };
 
 export function AdminPaymentList() {
@@ -236,7 +240,9 @@ export function AdminPaymentList() {
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{METHOD_ICONS[payment.method] ?? '💳'}</span>
+                          <div className="w-8 h-8 rounded-xl bg-secondary flex items-center justify-center">
+                            {METHOD_ICONS[payment.method] ?? <CreditCard className="size-4 text-muted-foreground" />}
+                          </div>
                           <span className="font-medium text-sm">{PAYMENT_METHOD_LABELS[payment.method] || payment.method}</span>
                         </div>
                       </td>

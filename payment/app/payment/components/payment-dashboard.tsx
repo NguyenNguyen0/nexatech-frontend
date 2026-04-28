@@ -14,6 +14,10 @@ import {
   RefreshCw,
   TrendingUp,
   AlertCircle,
+  Landmark,
+  Smartphone,
+  Banknote,
+  Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getMyPayments, getPaymentErrorMessage } from '@/lib/paymentApi';
@@ -35,12 +39,12 @@ const STATUS_TABS: { value: PaymentStatus | null; label: string; icon: React.Rea
   { value: PaymentStatus.CANCELLED, label: 'Đã hủy', icon: <AlertCircle className="size-3.5 text-gray-500" /> },
 ];
 
-const METHOD_ICONS: Record<string, string> = {
-  VNPAY: '🏦',
-  MOMO: '📱',
-  COD: '💵',
-  BANK_TRANSFER: '🏧',
-  CREDIT_CARD: '💳',
+const METHOD_ICONS: Record<string, React.ReactNode> = {
+  VNPAY: <Landmark className="size-5 text-blue-600" />,
+  MOMO: <Smartphone className="size-5 text-pink-600" />,
+  COD: <Banknote className="size-5 text-green-600" />,
+  BANK_TRANSFER: <Building2 className="size-5 text-indigo-600" />,
+  CREDIT_CARD: <CreditCard className="size-5 text-purple-600" />,
 };
 
 export function PaymentDashboard() {
@@ -249,7 +253,7 @@ export function PaymentDashboard() {
                 href={`/payment/${payment.id}`}
                 className="card-nexatech p-5 flex items-center gap-4 group cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors text-xl">
+                <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center shrink-0 group-hover:bg-primary/10 transition-colors">
                   {METHOD_ICONS[payment.method] ?? <CreditCard className="size-5 text-muted-foreground" />}
                 </div>
                 <div className="flex-1 min-w-0">
