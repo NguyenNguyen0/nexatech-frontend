@@ -41,7 +41,26 @@ export interface Payment {
   method: PaymentMethod;
   status: PaymentStatus;
   transactionId: string;
+  failureReason?: string;
   createdAt: string;
+  completedAt?: string;
+  updatedAt?: string;
+}
+
+export interface DailyRevenue {
+  date: string;
+  count: number;
+  revenue: number;
+}
+
+export interface PaymentStatsResponse {
+  from?: string;
+  to?: string;
+  totalPayments: number;
+  totalRevenue: number;
+  byStatus: Record<string, number>;
+  byMethod: Record<string, number>;
+  dailyRevenue: DailyRevenue[];
 }
 
 export const PAYMENT_STATUS_CONFIG: Record<
