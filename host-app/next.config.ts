@@ -1,10 +1,14 @@
 import type { NextConfig } from "next";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 const { AUTH_URL, PRODUCT_URL, CART_URL, ORDER_URL, USER_URL, MARKETING_URL, API_GATEWAY_URL } = process.env;
+const appRoot = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   turbopack: {
-    root: process.cwd(),
+    // Keep Turbopack scoped to host-app even when started via `npm -w`.
+    root: appRoot,
   },
   async rewrites() {
     const rules = [
