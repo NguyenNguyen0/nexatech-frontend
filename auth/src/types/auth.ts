@@ -52,10 +52,51 @@ export interface RegisterRequestBody {
     emailVerified: boolean;
     firstName?: string;
     lastName?: string;
+    phone?: string;
+    dob?: string;
+    gender?: "MALE" | "FEMALE" | "OTHER";
+    onBoarded?: boolean;
     credentials: RegisterCredential[];
 }
 
 /** Dữ liệu từ form / client — không gồm emailVerified; API luôn gắn false (user xác minh sau). */
 export type RegisterRequestInput = Omit<RegisterRequestBody, 'emailVerified'>;
 
-export type UserInfoResult = Record<string, unknown>;
+export interface UserInfoResult {
+    sub: string;
+    email_verified?: boolean;
+    name?: string;
+    preferred_username?: string;
+    given_name?: string;
+    family_name?: string;
+    email?: string;
+}
+
+export interface RealmAccess {
+    roles: string[];
+}
+
+export interface ResourceAccessItem {
+    roles: string[];
+}
+
+export type ResourceAccess = Record<string, ResourceAccessItem>;
+
+export interface IntrospectResult extends UserInfoResult {
+    exp: number;
+    iat: number;
+    jti: string;
+    iss: string;
+    aud: string;
+    typ: string;
+    azp: string;
+    sid: string;
+    "allowed-origins"?: string[];
+    realm_access?: RealmAccess;
+    resource_access?: ResourceAccess;
+    scope?: string;
+    client_id?: string;
+    username?: string;
+    zone_info?: string;
+    active: boolean;
+}

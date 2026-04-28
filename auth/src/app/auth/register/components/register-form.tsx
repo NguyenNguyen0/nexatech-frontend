@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -22,9 +22,12 @@ export function RegisterForm() {
     const [lastName, setLastName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [phone, setPhone] = useState('');
+    const [dob, setDob] = useState('');
+    const [gender, setGender] = useState<'' | 'MALE' | 'FEMALE' | 'OTHER'>('');
     const [submitting, setSubmitting] = useState(false);
 
-    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const u = username.trim();
         const em = email.trim();
@@ -54,6 +57,10 @@ export function RegisterForm() {
             enabled: true,
             firstName: fn,
             lastName: ln,
+            phone: phone.trim() || undefined,
+            dob: dob || undefined,
+            gender: gender || undefined,
+            onBoarded: false,
             credentials: [{ type: 'password', value: password, temporary: false }],
         };
 
@@ -162,6 +169,47 @@ export function RegisterForm() {
                             autoComplete="new-password"
                             disabled={submitting}
                         />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="reg-phone">Số điện thoại</Label>
+                        <Input
+                            id="reg-phone"
+                            type="tel"
+                            placeholder="098xxxxxxx"
+                            className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
+                            value={phone}
+                            onChange={(ev) => setPhone(ev.target.value)}
+                            autoComplete="tel"
+                            disabled={submitting}
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="reg-dob">Ngày sinh</Label>
+                            <Input
+                                id="reg-dob"
+                                type="date"
+                                className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
+                                value={dob}
+                                onChange={(ev) => setDob(ev.target.value)}
+                                disabled={submitting}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="reg-gender">Giới tính</Label>
+                            <select
+                                id="reg-gender"
+                                className="h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                                value={gender}
+                                onChange={(ev) => setGender(ev.target.value as '' | 'MALE' | 'FEMALE' | 'OTHER')}
+                                disabled={submitting}
+                            >
+                                <option value="">Chọn giới tính</option>
+                                <option value="MALE">Nam</option>
+                                <option value="FEMALE">Nữ</option>
+                                <option value="OTHER">Khác</option>
+                            </select>
+                        </div>
                     </div>
 
                     <Button
