@@ -3,7 +3,11 @@ import { UsersActionDialog } from './users-action-dialog'
 import { UsersDeleteDialog } from './users-delete-dialog'
 import { UsersInviteDialog } from './users-invite-dialog'
 
-export function UsersDialogs() {
+interface UsersDialogsProps {
+  onDataChanged: () => Promise<void> | void
+}
+
+export function UsersDialogs({ onDataChanged }: UsersDialogsProps) {
   const { open, setOpen, currentRow, setCurrentRow } = useUsers()
   return (
     <>
@@ -11,6 +15,7 @@ export function UsersDialogs() {
         key='user-add'
         open={open === 'add'}
         onOpenChange={() => setOpen('add')}
+        onSuccess={onDataChanged}
       />
 
       <UsersInviteDialog
@@ -31,6 +36,7 @@ export function UsersDialogs() {
               }, 500)
             }}
             currentRow={currentRow}
+            onSuccess={onDataChanged}
           />
 
           <UsersDeleteDialog
@@ -43,6 +49,7 @@ export function UsersDialogs() {
               }, 500)
             }}
             currentRow={currentRow}
+            onSuccess={onDataChanged}
           />
         </>
       )}

@@ -1,6 +1,6 @@
 import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { Row } from '@tanstack/react-table'
-import { IconEdit, IconTrash } from '@tabler/icons-react'
+import { IconEdit, IconLock, IconLockOpen, IconTrash } from '@tabler/icons-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,9 @@ import {
 import { useUsers } from '../context/users-context'
 import { User } from '../data/schema'
 import { Button } from '@/components/custom/button'
+import { disableUser, enableUser } from '@/services/userApi'
+import { toast } from 'sonner'
+import { getApiErrorMessage } from '@/services/authApi'
 
 interface DataTableRowActionsProps {
   row: Row<User>
@@ -19,6 +22,23 @@ interface DataTableRowActionsProps {
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const { setOpen, setCurrentRow } = useUsers()
+  const isActive = row.original.active ?? row.original.status === 'active'
+
+  const handleToggleActive = async () => {
+    try {
+      if (isActive) {
+        await disableUser(row.original.id)
+        toast.success('User disabled')
+      } else {
+        await enableUser(row.original.id)
+        toast.success('User enabled')
+      }
+      window.location.reload()
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Update user status failed'))
+    }
+  }
+
   return (
     <>
       <DropdownMenu modal={false}>
@@ -41,6 +61,12 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             Edit
             <DropdownMenuShortcut>
               <IconEdit size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleToggleActive}>
+            {isActive ? 'Disable' : 'Enable'}
+            <DropdownMenuShortcut>
+              {isActive ? <IconLock size={16} /> : <IconLockOpen size={16} />}
             </DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

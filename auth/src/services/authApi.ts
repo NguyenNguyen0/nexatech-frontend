@@ -17,6 +17,11 @@ import type {
 export function getApiErrorMessage(error: unknown, fallback = 'Có lỗi xảy ra. Vui lòng thử lại.'): string {
     if (!isAxiosError(error)) return fallback;
     const data = error.response?.data as ApiResponse<unknown> | undefined;
+    const message = data?.message || error.message || '';
+    const normalized = message.toLowerCase();
+    if (normalized.includes('invalid_grant')) {
+        return 'Your account is locked or the login information is incorrect.';
+    }
     if (data?.message) return data.message;
     return error.message || fallback;
 }
