@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingBag, Package, Store, User, LogIn, Menu, X, CreditCard, LayoutDashboard, List } from 'lucide-react';
+import { ShoppingBag, Package, Store, User, LogIn, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 export function Navbar() {
@@ -28,17 +28,15 @@ export function Navbar() {
     return null;
   });
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [orderDropdown, setOrderDropdown] = useState(false);
 
   const isCart = !!pathname?.startsWith('/cart');
-  const isProducts = !!pathname?.startsWith('/products');
   const isOrder =
-    !!pathname?.startsWith('/order') || !!pathname?.startsWith('/orders');
+    !!pathname?.startsWith('/order') || !!pathname?.startsWith('/orders') || !!pathname?.startsWith('/products');
 
-  const orderSubLinks = [
-    { href: '/order', label: 'Tổng quan', icon: <LayoutDashboard className="size-4" /> },
-    { href: '/orders', label: 'Đơn hàng của tôi', icon: <List className="size-4" /> },
-    { href: '/orders/payments', label: 'Lịch sử thanh toán', icon: <CreditCard className="size-4" /> },
+  const navLinks = [
+    { href: '/product', label: 'Cửa hàng', icon: <Store className="size-4" />, active: false },
+    { href: '/cart', label: 'Giỏ hàng', icon: <ShoppingBag className="size-4" />, active: isCart },
+    { href: '/order', label: 'Đơn hàng', icon: <Package className="size-4" />, active: isOrder },
   ];
 
   return (
@@ -54,73 +52,22 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav — center */}
+        {/* Desktop nav links — center */}
         <nav className="hidden sm:flex items-center gap-0.5" aria-label="Điều hướng">
-          {/* Cửa hàng */}
-          <Link
-            href="/products"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
-              isProducts
-                ? 'text-[#0071e3] bg-[#0071e3]/8'
-                : 'text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/5'
-            }`}
-          >
-            <Store className="size-4" />
-            Cửa hàng
-          </Link>
-
-          {/* Giỏ hàng */}
-          <Link
-            href="/cart"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
-              isCart
-                ? 'text-[#0071e3] bg-[#0071e3]/8'
-                : 'text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/5'
-            }`}
-          >
-            <ShoppingBag className="size-4" />
-            Giỏ hàng
-          </Link>
-
-          {/* Đơn hàng — with dropdown */}
-          <div className="relative">
-            <button
-              onMouseEnter={() => setOrderDropdown(true)}
-              onMouseLeave={() => setOrderDropdown(false)}
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer ${
-                isOrder
+                link.active
                   ? 'text-[#0071e3] bg-[#0071e3]/8'
                   : 'text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/5'
               }`}
             >
-              <Package className="size-4" />
-              Đơn hàng
-            </button>
-
-            {/* Dropdown menu */}
-            {orderDropdown && (
-              <div
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-white/95 backdrop-blur-[20px] border border-black/10 rounded-2xl shadow-lg py-2"
-                onMouseEnter={() => setOrderDropdown(true)}
-                onMouseLeave={() => setOrderDropdown(false)}
-              >
-                {orderSubLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
-                      pathname === link.href
-                        ? 'text-[#0071e3] bg-[#0071e3]/6'
-                        : 'text-[#1d1d1f]/80 hover:text-[#0071e3] hover:bg-[#0071e3]/4'
-                    }`}
-                  >
-                    {link.icon}
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
+              {link.icon}
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
         {/* Right side */}
@@ -156,24 +103,24 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Mobile menu dropdown */}
       {mobileOpen && (
         <div className="sm:hidden border-t border-black/6 bg-white/92 backdrop-blur-[20px] px-4 py-3 space-y-1">
-          <MobileLink href="/products" label="Cửa hàng" icon={<Store className="size-4" />} active={isProducts} onClose={() => setMobileOpen(false)} />
-          <MobileLink href="/cart" label="Giỏ hàng" icon={<ShoppingBag className="size-4" />} active={isCart} onClose={() => setMobileOpen(false)} />
-          <div className="pt-1 pb-1">
-            <p className="text-[11px] uppercase tracking-wider text-[#6e6e73] px-4 pb-1">Đơn hàng</p>
-            {orderSubLinks.map((link) => (
-              <MobileLink
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                icon={link.icon}
-                active={pathname === link.href}
-                onClose={() => setMobileOpen(false)}
-              />
-            ))}
-          </div>
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
+                link.active
+                  ? 'text-[#0071e3] bg-[#0071e3]/8'
+                  : 'text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/4'
+              }`}
+            >
+              {link.icon}
+              {link.label}
+            </Link>
+          ))}
           {!username && (
             <Link
               href="/auth"
@@ -187,34 +134,5 @@ export function Navbar() {
         </div>
       )}
     </header>
-  );
-}
-
-function MobileLink({
-  href,
-  label,
-  icon,
-  active,
-  onClose,
-}: {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClose}
-      className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
-        active
-          ? 'text-[#0071e3] bg-[#0071e3]/8'
-          : 'text-[#1d1d1f]/70 hover:text-[#1d1d1f] hover:bg-black/4'
-      }`}
-    >
-      {icon}
-      {label}
-    </Link>
   );
 }
