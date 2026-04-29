@@ -21,10 +21,12 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { userTypes } from '../data/data'
 import { User } from '../data/schema'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { SelectDropdown } from '@/components/select-dropdown'
 import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/custom/button'
+import { createAdminUser, updateUser } from '@/services/userApi'
+import { getApiErrorMessage } from '@/services/authApi'
 
 const formSchema = z
   .object({
@@ -90,9 +92,10 @@ interface Props {
   currentRow?: User
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => Promise<void> | void
 }
 
-export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
+export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }: Props) {
   const isEdit = !!currentRow
   const form = useForm<UserForm>({
     resolver: zodResolver(formSchema),
@@ -116,17 +119,42 @@ export function UsersActionDialog({ currentRow, open, onOpenChange }: Props) {
         },
   })
 
-  const onSubmit = (values: UserForm) => {
-    form.reset()
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>{JSON.stringify(values, null, 2)}</code>
-        </pre>
-      ),
-    })
-    onOpenChange(false)
+  const onSubmit = async (values: UserForm) => {
+    try {
+      if (isEdit && currentRow) {
+        await updateUser(currentRow.id, {
+          email: values.email,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          avatarUrl: currentRow.avatarUrl,
+          phone: values.phoneNumber,
+          role: values.role?.toUpperCase(),
+          onBoarded: currentRow.onBoarded,
+        })
+        toast.success('User updated successfully')
+      } else {
+        await createAdminUser({
+          email: values.email,
+          username: values.username,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          avatarUrl: '',
+          phone: values.phoneNumber,
+          role: values.role?.toUpperCase(),
+          password: values.password,
+          temporaryPassword: false,
+          enabled: true,
+          emailVerified: true,
+          onBoarded: true,
+        })
+        toast.success('User created successfully')
+      }
+      await onSuccess?.()
+      form.reset()
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, isEdit ? 'Update user failed' : 'Create user failed'))
+    }
   }
 
   const isPasswordTouched = !!form.formState.dirtyFields.password

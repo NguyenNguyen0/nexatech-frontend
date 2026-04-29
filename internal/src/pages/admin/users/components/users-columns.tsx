@@ -7,6 +7,7 @@ import { User } from '../data/schema'
 import { DataTableColumnHeader } from './data-table-column-header'
 import { DataTableRowActions } from './data-table-row-actions'
 import LongText from '@/components/long-text'
+import dayjs from 'dayjs'
 
 export const columns: ColumnDef<User>[] = [
   {
@@ -104,7 +105,7 @@ export const columns: ColumnDef<User>[] = [
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    enableHiding: false,
+    enableHiding: true,
     enableSorting: false,
   },
   {
@@ -133,7 +134,57 @@ export const columns: ColumnDef<User>[] = [
       return value.includes(row.getValue(id))
     },
     enableSorting: false,
-    enableHiding: false,
+    enableHiding: true,
+  },
+  {
+    accessorKey: 'onBoarded',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='OnBoarded' />
+    ),
+    cell: ({ row }) => (
+      <span>{row.original.onBoarded ? 'Yes' : 'No'}</span>
+    ),
+    enableSorting: false,
+  },
+  {
+    accessorKey: 'dob',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='DOB' />
+    ),
+    cell: ({ row }) => <span>{row.original.dob || '-'}</span>,
+    enableSorting: false,
+  },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Created At' />
+    ),
+    cell: ({ row }) => <span>{dayjs(row.original.createdAt).format('YYYY-MM-DD HH:mm')}</span>,
+  },
+  {
+    accessorKey: 'createdBy',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Created By' />
+    ),
+    cell: ({ row }) => (
+      <LongText className='max-w-36'>{row.original.createdBy || '-'}</LongText>
+    ),
+  },
+  {
+    accessorKey: 'updatedAt',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Updated At' />
+    ),
+    cell: ({ row }) => <span>{dayjs(row.original.updatedAt).format('YYYY-MM-DD HH:mm')}</span>,
+  },
+  {
+    accessorKey: 'updatedBy',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Updated By' />
+    ),
+    cell: ({ row }) => (
+      <LongText className='max-w-36'>{row.original.updatedBy || '-'}</LongText>
+    ),
   },
   {
     id: 'actions',

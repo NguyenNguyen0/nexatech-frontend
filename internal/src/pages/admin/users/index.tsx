@@ -14,6 +14,17 @@ export default function Users() {
   const [data, setData] = useState<UsersPageResult | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
 
+  const loadUsers = async () => {
+    try {
+      const result = await getUsers(1, 100)
+      setData(result)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Load users failed'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     let mounted = true
     ;(async () => {
@@ -49,6 +60,8 @@ export default function Users() {
         gender: user.gender,
         onBoarded: user.onBoarded,
         active: user.active,
+        createdBy: user.createdBy,
+        updatedBy: user.updatedBy,
         createdAt: new Date(user.createdAt),
         updatedAt: new Date(user.updatedAt),
       })),
@@ -73,7 +86,7 @@ export default function Users() {
           <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0'>
             <UsersTable data={userList} columns={columns} />
           </div>
-          <UsersDialogs />
+          <UsersDialogs onDataChanged={loadUsers} />
         </Layout.Body>
       </Layout>
     </UsersProvider>

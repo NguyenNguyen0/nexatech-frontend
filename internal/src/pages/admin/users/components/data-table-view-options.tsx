@@ -12,11 +12,23 @@ import { Button } from '@/components/custom/button'
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>
+  maxVisibleColumns?: number
 }
 
 export function DataTableViewOptions<TData>({
   table,
+  maxVisibleColumns = 5,
 }: DataTableViewOptionsProps<TData>) {
+  const managedColumns = table
+    .getAllColumns()
+    .filter(
+      (column) =>
+        typeof column.accessorFn !== 'undefined' && column.getCanHide()
+    )
+  const visibleManagedCount = managedColumns.filter((column) =>
+    column.getIsVisible()
+  ).length
+
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -32,18 +44,15 @@ export function DataTableViewOptions<TData>({
       <DropdownMenuContent align='end' className='w-[150px]'>
         <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {table
-          .getAllColumns()
-          .filter(
-            (column) =>
-              typeof column.accessorFn !== 'undefined' && column.getCanHide()
-          )
-          .map((column) => {
+        {managedColumns.map((column) => {
+            const checked = column.getIsVisible()
+            const disabled = !checked && visibleManagedCount >= maxVisibleColumns
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
                 className='capitalize'
-                checked={column.getIsVisible()}
+                checked={checked}
+                disabled={disabled}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
                 {column.id}
