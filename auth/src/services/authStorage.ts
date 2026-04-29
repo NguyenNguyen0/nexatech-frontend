@@ -19,3 +19,4 @@ export const authStorage = {
         localStorage.removeItem(REFRESH);
     },
 };
+

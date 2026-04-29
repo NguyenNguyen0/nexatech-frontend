@@ -21,6 +21,10 @@ export interface LoginRequestBody {
     password: string;
 }
 
+export interface LogoutRequestBody {
+    refreshToken: string;
+}
+
 export type UserGender = "MALE" | "FEMALE" | "OTHER";
 
 export interface RegisterCredential {
@@ -40,6 +44,12 @@ export interface RegisterRequestBody {
     dob?: string;
     gender?: UserGender;
     onBoarded?: boolean;
+    /**
+     * Keycloak realm role name to assign at registration time.
+     * - client register defaults to `customer`
+     * - internal register chooses a role excluding `customer`
+     */
+    role?: string;
     credentials: RegisterCredential[];
 }
 

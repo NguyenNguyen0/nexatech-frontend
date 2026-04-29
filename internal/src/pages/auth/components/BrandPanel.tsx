@@ -42,6 +42,9 @@ export function BrandPanel({ isLogin }: { isLogin: boolean }) {
                             className="text-3xl font-bold tracking-tight drop-shadow-lg"
                         >
                             {isLogin ? "Internal Dashboard" : "Join our Internal Dashboard"}
+                            <p className="text-sm text-muted-foreground italic tracking-tight drop-shadow-lg">
+                                {isLogin ? "" : "Trang này không publish khi triển khai!!"}
+                            </p>
                         </motion.h2>
                     </AnimatePresence>
                 </div>

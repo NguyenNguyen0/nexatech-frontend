@@ -8,24 +8,12 @@ import {
   IconUser,
 } from '@tabler/icons-react'
 import { Layout } from '@/components/custom/layout'
-import { Search } from '@/components/search'
 import { Separator } from '@/components/ui/separator'
-import ThemeSwitch from '@/components/theme-switch'
-import { UserNav } from '@/components/user-nav'
 import SidebarNav from './components/sidebar-nav'
 
 export default function Settings() {
   return (
     <Layout fixed>
-      {/* ===== Top Heading ===== */}
-      <Layout.Header>
-        <Search />
-        <div className='ml-auto flex items-center space-x-4'>
-          <ThemeSwitch />
-          <UserNav />
-        </div>
-      </Layout.Header>
-
       <Layout.Body className='flex flex-col'>
         <div className='space-y-0.5'>
           <h1 className='text-2xl font-bold tracking-tight md:text-3xl'>
