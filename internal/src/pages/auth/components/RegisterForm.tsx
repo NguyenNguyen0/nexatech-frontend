@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IconBrandGithub } from "@tabler/icons-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { getApiErrorMessage, register } from "@/services/authApi";
@@ -19,6 +19,9 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
     const [phone, setPhone] = useState("");
     const [dob, setDob] = useState("");
     const [gender, setGender] = useState<UserGender | "">("");
+    // Hardcoded temporary role picker for internal testing (admin/manager/staff/warehouse/accountant).
+    // Keycloak realm roles are CAPLOCK: ADMIN, MANAGER, ...
+    const [role, setRole] = useState<"ADMIN" | "MANAGER" | "STAFF" | "WAREHOUSE" | "ACCOUNTANT">("ADMIN");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -27,7 +30,7 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
         e.preventDefault();
 
         if (password !== confirmPassword) {
-            toast.error("Mat khau nhap lai khong khop");
+            toast.error("Confirm password does not match");
             return;
         }
 
@@ -41,16 +44,17 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
             dob: dob || undefined,
             gender: gender || undefined,
             onBoarded: false,
+            role,
             credentials: [{ type: "password", value: password, temporary: false }],
         };
 
         setSubmitting(true);
         try {
             await register(body);
-            toast.success("Dang ky thanh cong");
+            toast.success("Register successful");
             toggleMode();
         } catch (err) {
-            toast.error(getApiErrorMessage(err, "Dang ky that bai"));
+            toast.error(getApiErrorMessage(err, "Register failed"));
         } finally {
             setSubmitting(false);
         }
@@ -157,6 +161,23 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
                         </div>
                     </div>
                     <div className="grid gap-2">
+                        <Label htmlFor="role">Role</Label>
+                        <select
+                            id="role"
+                            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={role}
+                            onChange={(e) => setRole(e.target.value as typeof role)}
+                            disabled={submitting}
+                            required
+                        >
+                            <option value="ADMIN">Admin</option>
+                            <option value="MANAGER">Manager</option>
+                            <option value="STAFF">Staff</option>
+                            <option value="WAREHOUSE">Warehouse</option>
+                            <option value="ACCOUNTANT">Accountant</option>
+                        </select>
+                    </div>
+                    <div className="grid gap-2">
                         <Label htmlFor="password">Password</Label>
                         <Input
                             id="password"
@@ -187,8 +208,8 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div>
             </div>
-            <Button variant="outline" type="button" className="w-full">
-                <IconBrandGithub className="mr-2 h-4 w-4" /> GitHub
+            <Button onClick={() => toast.info('This feature is not implemented yet')} variant="outline" type="button" className="w-full">
+                <IconBrandGoogle className="mr-2 h-4 w-4" /> Google
             </Button>
             <p className="px-8 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}

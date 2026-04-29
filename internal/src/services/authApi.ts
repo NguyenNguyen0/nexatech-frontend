@@ -6,6 +6,7 @@ import type {
     ApiResponse,
     IntrospectResult,
     LoginRequestBody,
+    LogoutRequestBody,
     RegisterRequestBody,
     RegisterRequestInput,
     TokenExchangeResult,
@@ -46,6 +47,11 @@ export async function fetchUserInfo(): Promise<UserInfoResult> {
         throw new Error(data.message || "Khong lay duoc thong tin nguoi dung");
     }
     return data.result;
+}
+
+export async function logout(refreshToken: string): Promise<void> {
+    const body: LogoutRequestBody = { refreshToken };
+    await axiosClient.post<ApiResponse<void>>(authPaths.logout, body);
 }
 
 export async function introspectToken(token: string): Promise<IntrospectResult> {

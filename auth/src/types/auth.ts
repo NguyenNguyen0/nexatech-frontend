@@ -56,6 +56,11 @@ export interface RegisterRequestBody {
     dob?: string;
     gender?: "MALE" | "FEMALE" | "OTHER";
     onBoarded?: boolean;
+    /**
+     * Keycloak realm role name to assign at registration time.
+     * Client register defaults to `customer`.
+     */
+    role?: string;
     credentials: RegisterCredential[];
 }
 

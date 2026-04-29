@@ -117,7 +117,7 @@ export const columns: ColumnDef<User>[] = [
       const userType = userTypes.find(({ value }) => value === role)
 
       if (!userType) {
-        return null
+        return <span className='text-sm'>{role}</span>
       }
 
       return (
@@ -125,7 +125,7 @@ export const columns: ColumnDef<User>[] = [
           {userType.icon && (
             <userType.icon size={16} className='text-muted-foreground' />
           )}
-          <span className='capitalize text-sm'>{row.getValue('role')}</span>
+          <span className='text-sm'>{row.getValue('role')}</span>
         </div>
       )
     },

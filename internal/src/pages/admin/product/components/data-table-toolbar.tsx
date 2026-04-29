@@ -6,7 +6,7 @@ import { DataTableViewOptions } from './data-table-view-options'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { Download, FileBraces as FileJson, FileSpreadsheet as FileSpreadsheetIcon, FileText, GitCompare, CirclePlus as PlusCircle, RefreshCw, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { importExcel } from '@/lib/exportExcel'
+import { importExcel } from '@/services/excelService'
 import { Product } from '../data/schema'
 import { useState } from 'react'
 import {

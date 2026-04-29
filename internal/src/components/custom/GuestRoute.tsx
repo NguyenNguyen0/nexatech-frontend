@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isAccessTokenExpired } from '@/services/authSession';
 
 interface GuestRouteProps {
     children: ReactNode;
@@ -13,11 +14,17 @@ interface GuestRouteProps {
  * If authenticated, redirects to dashboard (default /admin/dashboard).
  */
 export const GuestRoute = ({ children, to = '/staff/dashboard' }: GuestRouteProps) => {
-    // Replace with real auth logic
-    const isAuthenticated = false;
+    const token = getAccessToken();
+    const isAuthenticated = !!token && !isAccessTokenExpired(token);
 
     if (isAuthenticated) {
-        return <Navigate to={to} replace />;
+        const roles = getRolesFromAccessToken(token);
+        if (roles.includes("CUSTOMER")) {
+            // CUSTOMER không được phép dùng internal.
+            clearAuthTokens();
+            return <>{children}</>;
+        }
+        return <Navigate to={getDefaultPathByRole(roles)} replace />;
     }
 
     return <>{children}</>;

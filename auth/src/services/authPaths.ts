@@ -18,3 +18,4 @@ export function isPublicAuthRequestUrl(url: string | undefined): boolean {
         url.includes(authPaths.refresh)
     );
 }
+
