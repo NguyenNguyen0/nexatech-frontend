@@ -9,4 +9,5 @@
 | `order`               | Next.js   | http://localhost:3004   |
 | `user`                | Next.js   | http://localhost:3005   |
 | `marketing`           | Next.js   | http://localhost:3006   |
+| `payment`             | Next.js   | http://localhost:3007   |
 | `internal`            | Vite      | http://localhost:4000   |
