@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IconBrandGithub } from "@tabler/icons-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { getApiErrorMessage, login, persistTokensFromExchange } from "@/services/authApi";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
+import { useNavigate } from "react-router-dom";
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken } from "@/lib/authRouting";
 
 interface LoginFormProps {
     toggleMode: () => void;
@@ -15,6 +17,7 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const navigate = useNavigate();
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -25,10 +28,20 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                 password,
             });
             persistTokensFromExchange(result);
-            toast.success("Dang nhap thanh cong");
-            window.location.href = "/";
+            toast.success("Login successful");
+            const token = getAccessToken();
+            const roles = getRolesFromAccessToken(token);
+            if (roles.includes("CUSTOMER")) {
+                clearAuthTokens();
+                toast.error("Your action is not allowed with role CUSTOMER");
+                navigate("/auth", { replace: true });
+                return;
+            }
+
+            const path = getDefaultPathByRole(roles);
+            navigate(path, { replace: true });
         } catch (err) {
-            toast.error(getApiErrorMessage(err, "Dang nhap that bai"));
+            toast.error(getApiErrorMessage(err, "Login failed"));
         } finally {
             setSubmitting(false);
         }
@@ -76,8 +89,8 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div>
             </div>
-            <Button variant="outline" type="button" className="w-full">
-                <IconBrandGithub className="mr-2 h-4 w-4" /> GitHub
+            <Button onClick={() => toast.info('This feature is not implemented yet')} variant="outline" type="button" className="w-full">
+                <IconBrandGoogle className="mr-2 h-4 w-4" /> Google
             </Button>
             <p className="px-8 text-center text-sm text-muted-foreground">
                 Don't have an account?{" "}

@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Chrome, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage, login, persistTokensFromExchange } from '@/lib/authApi';
-import { goToHostHomeAfterLogin } from '@/lib/postLoginNavigation';
 
 export function LoginForm() {
     const [username, setUsername] = useState('');
@@ -22,7 +21,8 @@ export function LoginForm() {
             const result = await login({ username: username.trim(), password });
             persistTokensFromExchange(result);
             toast.success('Đăng nhập thành công');
-            goToHostHomeAfterLogin();
+            // Full page reload is required so the host shell remounts the correct micro frontend.
+            window.location.href = '/';
         } catch (err) {
             toast.error(getApiErrorMessage(err, 'Đăng nhập thất bại'));
         } finally {

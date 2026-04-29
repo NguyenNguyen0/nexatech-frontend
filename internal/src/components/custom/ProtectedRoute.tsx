@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { canAccessByPath, clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isAccessTokenExpired } from '@/lib/authRouting';
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -13,11 +14,21 @@ interface ProtectedRouteProps {
  * If not authenticated, redirects to login page (default /auth/login).
  */
 export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteProps) => {
-    // Replace with real auth logic
-    const isAuthenticated = true;
+    const location = useLocation();
+
+    const token = getAccessToken();
+    const isAuthenticated = !!token && !isAccessTokenExpired(token);
 
     if (!isAuthenticated) {
-        return <Navigate to={to} replace />;
+        clearAuthTokens();
+        return <Navigate to="/auth" replace />;
+    }
+
+    const roles = getRolesFromAccessToken(token);
+    const primaryPath = getDefaultPathByRole(roles);
+
+    if (!canAccessByPath(location.pathname, roles)) {
+        return <Navigate to={primaryPath} replace />;
     }
 
     return <>{children}</>;

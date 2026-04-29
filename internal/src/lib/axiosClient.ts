@@ -1,5 +1,6 @@
 import axios, { AxiosHeaders } from "axios";
 import { authPaths } from "@/services/authPaths";
+import { clearAuthTokens } from "@/lib/authRouting";
 
 const PUBLIC_AUTH_PATHS = [
     authPaths.login,
@@ -27,5 +28,18 @@ axiosClient.interceptors.request.use((config) => {
     }
     return config;
 });
+
+axiosClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error?.response?.status;
+        if (status === 401 || status === 403) {
+            clearAuthTokens();
+            // Hard redirect to keep router state consistent.
+            window.location.href = "/auth";
+        }
+        return Promise.reject(error);
+    },
+);
 
 export default axiosClient;

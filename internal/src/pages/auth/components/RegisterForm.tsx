@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IconBrandGithub } from "@tabler/icons-react";
+import { IconBrandGoogle } from "@tabler/icons-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { getApiErrorMessage, register } from "@/services/authApi";
@@ -30,7 +30,7 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
         e.preventDefault();
 
         if (password !== confirmPassword) {
-            toast.error("Mat khau nhap lai khong khop");
+            toast.error("Confirm password does not match");
             return;
         }
 
@@ -51,10 +51,10 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
         setSubmitting(true);
         try {
             await register(body);
-            toast.success("Dang ky thanh cong");
+            toast.success("Register successful");
             toggleMode();
         } catch (err) {
-            toast.error(getApiErrorMessage(err, "Dang ky that bai"));
+            toast.error(getApiErrorMessage(err, "Register failed"));
         } finally {
             setSubmitting(false);
         }
@@ -208,8 +208,8 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or continue with</span></div>
             </div>
-            <Button variant="outline" type="button" className="w-full">
-                <IconBrandGithub className="mr-2 h-4 w-4" /> GitHub
+            <Button onClick={() => toast.info('This feature is not implemented yet')} variant="outline" type="button" className="w-full">
+                <IconBrandGoogle className="mr-2 h-4 w-4" /> Google
             </Button>
             <p className="px-8 text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
