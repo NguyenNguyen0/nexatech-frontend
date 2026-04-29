@@ -32,6 +32,8 @@ const userSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
   onBoarded: z.boolean().optional(),
   active: z.boolean().optional(),
+  createdBy: z.string().optional(),
+  updatedBy: z.string().optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 })

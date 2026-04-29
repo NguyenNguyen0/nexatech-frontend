@@ -36,9 +36,9 @@ function refreshUrl(): string {
 const performRefreshToken = async (): Promise<string> => {
     const refreshToken = authStorage.getRefreshToken();
     if (!refreshToken) {
-        authStorage.clear();
-        onLogout?.();
-        throw new Error('No refresh token');
+        const err = new Error('No refresh token');
+        (err as Error & { code?: string }).code = 'NO_REFRESH_TOKEN';
+        throw err;
     }
 
     try {
@@ -58,11 +58,29 @@ const performRefreshToken = async (): Promise<string> => {
 
         return payload.access_token;
     } catch (error) {
-        authStorage.clear();
-        onLogout?.();
         throw error;
     }
 };
+
+function shouldLogoutAfterRefreshFailure(error: unknown): boolean {
+    const e = error as Error & { code?: string };
+    if (e?.code === 'NO_REFRESH_TOKEN') return true;
+
+    if (!axios.isAxiosError(error)) return false;
+    const status = error.response?.status;
+    const payload = error.response?.data as { message?: string; error?: string; error_description?: string } | undefined;
+    const reason = `${payload?.message ?? ''} ${payload?.error ?? ''} ${payload?.error_description ?? ''} ${error.message ?? ''}`
+        .toLowerCase();
+
+    if (status === 400 || status === 401) {
+        return reason.includes('invalid_grant')
+            || reason.includes('invalid_token')
+            || reason.includes('refresh token')
+            || reason.includes('session')
+            || reason.includes('token is not active');
+    }
+    return false;
+}
 
 axiosClient.interceptors.request.use(
     (config) => {
@@ -87,7 +105,7 @@ axiosClient.interceptors.response.use(
         };
 
         const status = error.response?.status;
-        const isUnauthorized = status === 401 || status === 403;
+        const isUnauthorized = status === 401;
 
         if (!isUnauthorized || !originalRequest || originalRequest._retry) {
             return Promise.reject(error);
@@ -114,6 +132,10 @@ axiosClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return axiosClient(originalRequest);
         } catch (e) {
+            if (shouldLogoutAfterRefreshFailure(e)) {
+                authStorage.clear();
+                onLogout?.();
+            }
             return Promise.reject(e);
         }
     },

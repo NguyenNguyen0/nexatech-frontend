@@ -23,8 +23,9 @@ let refreshPromise: Promise<string> | null = null;
 const refreshTokenRequest = async (): Promise<string> => {
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
-        clearAuthTokens();
-        throw new Error("No refresh token");
+        const err = new Error("No refresh token");
+        (err as Error & { code?: string }).code = "NO_REFRESH_TOKEN";
+        throw err;
     }
 
     const { data } = await axios.post<ApiResponse<TokenExchangeResult>>(
@@ -38,13 +39,32 @@ const refreshTokenRequest = async (): Promise<string> => {
     );
 
     if (data.code !== 1000 || !data.result?.access_token || !data.result?.refresh_token) {
-        clearAuthTokens();
         throw new Error(data.message || "Refresh token failed");
     }
 
     setAuthTokens(data.result.access_token, data.result.refresh_token);
     return data.result.access_token;
 };
+
+function shouldLogoutAfterRefreshFailure(error: unknown): boolean {
+    const e = error as Error & { code?: string };
+    if (e?.code === "NO_REFRESH_TOKEN") return true;
+
+    if (!axios.isAxiosError(error)) return false;
+    const status = error.response?.status;
+    const payload = error.response?.data as { message?: string; error?: string; error_description?: string } | undefined;
+    const reason = `${payload?.message ?? ""} ${payload?.error ?? ""} ${payload?.error_description ?? ""} ${error.message ?? ""}`
+        .toLowerCase();
+
+    if (status === 400 || status === 401) {
+        return reason.includes("invalid_grant")
+            || reason.includes("invalid_token")
+            || reason.includes("refresh token")
+            || reason.includes("session")
+            || reason.includes("token is not active");
+    }
+    return false;
+}
 
 axiosClient.interceptors.request.use((config) => {
     const token = localStorage.getItem("access_token");
@@ -63,7 +83,7 @@ axiosClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error?.config as { _retry?: boolean; url?: string; headers?: AxiosHeaders | Record<string, string> };
         const status = error?.response?.status;
-        const isUnauthorized = status === 401 || status === 403;
+        const isUnauthorized = status === 401;
 
         if (!isUnauthorized || !originalRequest) {
             return Promise.reject(error);
@@ -71,9 +91,8 @@ axiosClient.interceptors.response.use(
 
         const url = originalRequest.url ?? "";
         const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+        // Do not force logout for login/register/refresh errors or non-expiry retried failures.
         if (isPublicAuthRequest || originalRequest._retry) {
-            clearAuthTokens();
-            window.location.href = "/auth";
             return Promise.reject(error);
         }
 
@@ -99,8 +118,10 @@ axiosClient.interceptors.response.use(
             }
             return axiosClient(originalRequest);
         } catch (refreshError) {
-            clearAuthTokens();
-            window.location.href = "/auth";
+            if (shouldLogoutAfterRefreshFailure(refreshError)) {
+                clearAuthTokens();
+                window.location.href = "/auth";
+            }
             return Promise.reject(refreshError);
         }
     },

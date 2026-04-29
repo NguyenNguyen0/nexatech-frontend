@@ -3,33 +3,34 @@ import { IconAlertTriangle } from '@tabler/icons-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { User } from '../data/schema'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { AlertDialog, AlertDialogDescription, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { deleteUser } from '@/services/userApi'
+import { getApiErrorMessage } from '@/services/authApi'
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   currentRow: User
+  onSuccess?: () => Promise<void> | void
 }
 
-export function UsersDeleteDialog({ open, onOpenChange, currentRow }: Props) {
+export function UsersDeleteDialog({ open, onOpenChange, currentRow, onSuccess }: Props) {
   const [value, setValue] = useState('')
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (value.trim() !== currentRow.username) return
 
-    onOpenChange(false)
-    toast({
-      title: 'The following user has been deleted:',
-      description: (
-        <pre className='mt-2 w-[340px] rounded-md bg-slate-950 p-4'>
-          <code className='text-white'>
-            {JSON.stringify(currentRow, null, 2)}
-          </code>
-        </pre>
-      ),
-    })
+    try {
+      await deleteUser(currentRow.id)
+      await onSuccess?.()
+      onOpenChange(false)
+      setValue('')
+      toast.success('User deleted successfully')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Delete user failed'))
+    }
   }
 
   return (

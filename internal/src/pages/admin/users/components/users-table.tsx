@@ -40,7 +40,14 @@ interface DataTableProps {
 
 export function UsersTable({ columns, data }: DataTableProps) {
   const [rowSelection, setRowSelection] = useState({})
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+    onBoarded: false,
+    dob: false,
+    createdAt: false,
+    createdBy: false,
+    updatedAt: false,
+    updatedBy: false,
+  })
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [sorting, setSorting] = useState<SortingState>([])
 
