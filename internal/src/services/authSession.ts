@@ -6,12 +6,9 @@ type JwtPayload = {
 };
 
 function base64UrlDecodeToString(input: string): string {
-    // base64url => base64
     const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
     const pad = base64.length % 4 === 0 ? "" : "=".repeat(4 - (base64.length % 4));
-    const full = base64 + pad;
-    // atob works in browser
-    return atob(full);
+    return atob(base64 + pad);
 }
 
 function decodeJwtPayload(token: string): JwtPayload | null {
@@ -19,8 +16,7 @@ function decodeJwtPayload(token: string): JwtPayload | null {
     const parts = token.split(".");
     if (parts.length < 2) return null;
     try {
-        const json = base64UrlDecodeToString(parts[1]);
-        return JSON.parse(json) as JwtPayload;
+        return JSON.parse(base64UrlDecodeToString(parts[1])) as JwtPayload;
     } catch {
         return null;
     }
@@ -30,9 +26,18 @@ export function getAccessToken(): string | null {
     return localStorage.getItem("access_token");
 }
 
+export function getRefreshToken(): string | null {
+    return localStorage.getItem("refresh_token");
+}
+
 export function clearAuthTokens(): void {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+}
+
+export function setAuthTokens(accessToken: string, refreshToken: string): void {
+    localStorage.setItem("access_token", accessToken);
+    localStorage.setItem("refresh_token", refreshToken);
 }
 
 export function getRolesFromAccessToken(token: string | null): string[] {
@@ -44,11 +49,9 @@ export function getRolesFromAccessToken(token: string | null): string[] {
 
 export function isAccessTokenExpired(token: string | null): boolean {
     if (!token) return true;
-    const payload = decodeJwtPayload(token);
-    const exp = payload?.exp;
-    if (!exp) return false; // if no exp, don't block
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    return exp <= nowSeconds;
+    const exp = decodeJwtPayload(token)?.exp;
+    if (!exp) return false;
+    return exp <= Math.floor(Date.now() / 1000);
 }
 
 const ROLE_PRIORITY: string[] = ["ADMIN", "MANAGER", "STAFF", "WAREHOUSE", "ACCOUNTANT", "CUSTOMER"];
@@ -74,8 +77,6 @@ export function getDefaultPathByRole(roles: string[]): string {
         case "ACCOUNTANT":
             return "/accountant";
         case "CUSTOMER":
-            // CUSTOMER không được phép vào internal.
-            return "/auth";
         default:
             return "/auth";
     }
@@ -83,18 +84,13 @@ export function getDefaultPathByRole(roles: string[]): string {
 
 export function canAccessByPath(pathname: string, roles: string[]): boolean {
     if (!pathname) return false;
-
     const roleSet = new Set(roles);
-    // Block CUSTOMER completely from internal protected areas.
-    if (roleSet.has("CUSTOMER")) {
-        return pathname.startsWith("/auth");
-    }
+    if (roleSet.has("CUSTOMER")) return pathname.startsWith("/auth");
     if (pathname.startsWith("/admin")) return roleSet.has("ADMIN");
     if (pathname.startsWith("/manager")) return roleSet.has("MANAGER");
     if (pathname.startsWith("/staff")) return roleSet.has("STAFF");
     if (pathname.startsWith("/warehouse")) return roleSet.has("WAREHOUSE");
     if (pathname.startsWith("/accountant")) return roleSet.has("ACCOUNTANT");
-
     return true;
 }
 

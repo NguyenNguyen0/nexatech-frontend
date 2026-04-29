@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage, login, persistTokensFromExchange } from "@/services/authApi";
 import { ForgotPasswordModal } from "./ForgotPasswordModal";
 import { useNavigate } from "react-router-dom";
-import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken } from "@/lib/authRouting";
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken } from "@/services/authSession";
 
 interface LoginFormProps {
     toggleMode: () => void;

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Chrome, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
-import { getApiErrorMessage, login, persistTokensFromExchange } from '@/lib/authApi';
+import { getApiErrorMessage, login, persistTokensFromExchange } from '@/services/authApi';
 
 export function LoginForm() {
     const [username, setUsername] = useState('');

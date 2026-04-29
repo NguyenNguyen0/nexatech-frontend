@@ -1,7 +1,7 @@
 import axios, { type InternalAxiosRequestConfig, type AxiosError } from 'axios';
 import type { ApiResponse, AuthTokensPayload } from '@/types/auth';
-import { authPaths, isPublicAuthRequestUrl } from '@/lib/authPaths';
-import { authStorage } from '@/lib/authStorage';
+import { authPaths, isPublicAuthRequestUrl } from '@/services/authPaths';
+import { authStorage } from '@/services/authStorage';
 
 /**
  * Axios instance — baseURL = gateway (e.g. http://localhost:8080).

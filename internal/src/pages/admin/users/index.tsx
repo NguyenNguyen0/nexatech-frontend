@@ -3,10 +3,7 @@ import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
 import UsersProvider from './context/users-context'
-import { UserNav } from '@/components/user-nav'
 import { Layout } from '@/components/custom/layout'
-import { Search } from '@/components/search'
-import ThemeSwitch from '@/components/theme-switch'
 import { users } from './data/users'
 export default function Users() {
   const userList = users.map(user => ({
@@ -17,13 +14,6 @@ export default function Users() {
   return (
     <UsersProvider>
       <Layout fixed>
-        <Layout.Header>
-          <div className='ml-auto flex items-center space-x-4'>
-            <Search />
-            <ThemeSwitch />
-            <UserNav />
-          </div>
-        </Layout.Header>
         <Layout.Body className='flex flex-col'>
           <div className='mb-2 flex items-center justify-between space-y-2 flex-wrap'>
             <div>

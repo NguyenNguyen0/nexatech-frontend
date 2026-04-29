@@ -10,8 +10,26 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { logout } from '@/services/authApi'
+import { authStorage } from '@/services/authStorage'
+import { toast } from 'sonner'
 
 export function UserNav() {
+  const handleLogout = async () => {
+    const refreshToken = authStorage.getRefreshToken()
+    try {
+      if (refreshToken) {
+        await logout(refreshToken)
+      }
+    } catch {
+      // Even if backend logout fails, we clear local tokens to end session.
+    } finally {
+      authStorage.clear()
+      toast.success('Logged out')
+      window.location.href = '/auth'
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -48,7 +66,7 @@ export function UserNav() {
           <DropdownMenuItem>New Team</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleLogout}>
           Log out
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>

@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 import axiosClient from '@/lib/axiosClient';
-import { authPaths } from '@/lib/authPaths';
-import { authStorage } from '@/lib/authStorage';
+import { authPaths } from '@/services/authPaths';
+import { authStorage } from '@/services/authStorage';
 import type {
     ApiResponse,
     IntrospectResult,
@@ -66,3 +66,4 @@ export async function introspectToken(token: string): Promise<IntrospectResult> 
 export function persistTokensFromExchange(result: TokenExchangeResult): void {
     authStorage.setTokens(result.access_token, result.refresh_token);
 }
+

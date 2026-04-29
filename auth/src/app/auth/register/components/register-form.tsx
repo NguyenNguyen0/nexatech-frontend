@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Chrome, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
-import { getApiErrorMessage, register } from '@/lib/authApi';
+import { getApiErrorMessage, register } from '@/services/authApi';
 import type { RegisterRequestInput } from '@/types/auth';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

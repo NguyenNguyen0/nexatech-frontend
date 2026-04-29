@@ -19,9 +19,6 @@ import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Layout } from '@/components/custom/layout'
-import { Search } from '@/components/search'
-import ThemeSwitch from '@/components/theme-switch'
-import { UserNav } from '@/components/user-nav'
 import { Button } from '@/components/custom/button'
 import { initialChats } from './data/chats'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -119,15 +116,6 @@ export default function Chats() {
   console.log("currentMessage", currentMessage)
   return (
     <Layout fixed>
-      {/* ===== Top Heading ===== */}
-      <Layout.Header>
-        <Search />
-        <div className='ml-auto flex items-center space-x-4'>
-          <ThemeSwitch />
-          <UserNav />
-        </div>
-      </Layout.Header>
-
       <Layout.Body className='overflow-hidden'>
         <section className='flex h-full min-h-0 gap-6'>
           {/* Left Side */}

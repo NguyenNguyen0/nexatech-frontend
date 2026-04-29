@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isAccessTokenExpired } from '@/lib/authRouting';
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isAccessTokenExpired } from '@/services/authSession';
 
 interface GuestRouteProps {
     children: ReactNode;

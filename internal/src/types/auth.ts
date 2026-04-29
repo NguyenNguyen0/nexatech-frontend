@@ -21,6 +21,10 @@ export interface LoginRequestBody {
     password: string;
 }
 
+export interface LogoutRequestBody {
+    refreshToken: string;
+}
+
 export type UserGender = "MALE" | "FEMALE" | "OTHER";
 
 export interface RegisterCredential {
