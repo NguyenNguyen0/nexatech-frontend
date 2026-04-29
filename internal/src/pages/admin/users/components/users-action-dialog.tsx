@@ -122,6 +122,10 @@ export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }:
   const onSubmit = async (values: UserForm) => {
     try {
       if (isEdit && currentRow) {
+        if (currentRow.active === false || currentRow.status === 'inactive') {
+          toast.error('Tài khoản đang bị khóa, không thể cập nhật.')
+          return
+        }
         await updateUser(currentRow.id, {
           email: values.email,
           firstName: values.firstName,
@@ -234,6 +238,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }:
                       <Input
                         placeholder='john_doe'
                         className='col-span-4'
+                        disabled={isEdit}
                         {...field}
                       />
                     </FormControl>
@@ -253,6 +258,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }:
                       <Input
                         placeholder='john.doe@gmail.com'
                         className='col-span-4'
+                        disabled={isEdit}
                         {...field}
                       />
                     </FormControl>
