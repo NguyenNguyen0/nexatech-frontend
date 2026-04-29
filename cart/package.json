@@ -12,6 +12,7 @@
     "axios": "^1.15.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "host-app": "file:../host-app",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "radix-ui": "^1.4.3",
