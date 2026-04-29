@@ -1,23 +1,19 @@
 {
-  "name": "nexatech-monorepo",
+  "name": "nexatech",
   "version": "1.0.0",
   "private": true,
-  "description": "NexaTech Micro-frontends Monorepo",
+  "description": "NexaTech Micro-frontends",
   "author": "NexaTech Team",
   "license": "ISC",
   "workspaces": [
-    "auth",
-    "cart",
     "host-app",
+    "cart",
+    "auth",
     "marketing",
-    "nexatech-accountant",
-    "nexatech-admin",
-    "nexatech-manager",
-    "nexatech-staff",
-    "nexatech-warehouse",
     "order",
     "product",
-    "user"
+    "user",
+    "internal"
   ],
   "scripts": {
     "install:all": "npm install",
