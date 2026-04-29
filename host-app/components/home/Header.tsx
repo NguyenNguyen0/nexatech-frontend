@@ -1,7 +1,7 @@
 'use client';
 
 import { Search, MapPin, Phone, Truck, Gift, ShoppingCart, Menu } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Input } from '../ui/input';
 
 export function Header() {
     return (
