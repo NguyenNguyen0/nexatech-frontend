@@ -1,16 +1,60 @@
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { columns } from './components/users-columns'
 import { UsersDialogs } from './components/users-dialogs'
 import { UsersPrimaryButtons } from './components/users-primary-buttons'
 import { UsersTable } from './components/users-table'
 import UsersProvider from './context/users-context'
 import { Layout } from '@/components/custom/layout'
-import { users } from './data/users'
+import { getApiErrorMessage } from '@/services/authApi'
+import { getUsers, type UsersPageResult } from '@/services/userApi'
+import type { User } from './data/schema'
+
 export default function Users() {
-  const userList = users.map(user => ({
-    ...user,
-    createdAt: new Date(user.createdAt),
-    updatedAt: new Date(user.updatedAt),
-  }))
+  const [data, setData] = useState<UsersPageResult | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const result = await getUsers(1, 100)
+        if (!mounted) return
+        setData(result)
+      } catch (err) {
+        if (!mounted) return
+        toast.error(getApiErrorMessage(err, 'Load users failed'))
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const userList: User[] = useMemo(
+    () =>
+      (data?.content ?? []).map((user) => ({
+        id: user.id,
+        firstName: user.firstName ?? '',
+        lastName: user.lastName ?? '',
+        username: user.username ?? '',
+        email: user.email ?? '',
+        phoneNumber: user.phone ?? '',
+        status: user.active ? 'active' : 'inactive',
+        role: (user.role ?? 'UNASSIGNED').toUpperCase() as User['role'],
+        avatarUrl: user.avatarUrl,
+        dob: user.dob,
+        gender: user.gender,
+        onBoarded: user.onBoarded,
+        active: user.active,
+        createdAt: new Date(user.createdAt),
+        updatedAt: new Date(user.updatedAt),
+      })),
+    [data]
+  )
+
   return (
     <UsersProvider>
       <Layout fixed>
@@ -19,7 +63,9 @@ export default function Users() {
             <div>
               <h2 className='text-2xl font-bold tracking-tight'>User List</h2>
               <p className='text-muted-foreground'>
-                Manage your users and their roles here.
+                {loading
+                  ? 'Loading users...'
+                  : `Manage your users and their roles here. Total records: ${data?.totalElements ?? 0}`}
               </p>
             </div>
             <UsersPrimaryButtons />
