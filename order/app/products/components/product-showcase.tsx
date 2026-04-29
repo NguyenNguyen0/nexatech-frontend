@@ -198,7 +198,9 @@ export function ProductShowcase() {
               <div className="flex items-center gap-1 mb-3">
                 <Star className="size-3.5 text-amber-500 fill-amber-500" />
                 <span className="text-xs font-medium">{product.rating}</span>
-                <span className="text-xs text-muted-foreground">· Đã bán {product.soldCount.toLocaleString()}</span>
+                <span className="text-xs text-muted-foreground">
+                  · Đã bán {new Intl.NumberFormat('vi-VN').format(product.soldCount)}
+                </span>
               </div>
 
               {/* Price */}
