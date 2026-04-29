@@ -61,6 +61,7 @@ export function RegisterForm() {
             dob: dob || undefined,
             gender: gender || undefined,
             onBoarded: false,
+            role: "CUSTOMER",
             credentials: [{ type: 'password', value: password, temporary: false }],
         };
 

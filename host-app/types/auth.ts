@@ -52,6 +52,11 @@ export interface RegisterRequestBody {
     emailVerified: boolean;
     firstName?: string;
     lastName?: string;
+    /**
+     * Keycloak realm role name to assign at registration time.
+     * Client register defaults to `customer`.
+     */
+    role?: string;
     credentials: RegisterCredential[];
 }
 

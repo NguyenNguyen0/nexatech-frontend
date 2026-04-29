@@ -19,6 +19,9 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
     const [phone, setPhone] = useState("");
     const [dob, setDob] = useState("");
     const [gender, setGender] = useState<UserGender | "">("");
+    // Hardcoded temporary role picker for internal testing (admin/manager/staff/warehouse/accountant).
+    // Keycloak realm roles are CAPLOCK: ADMIN, MANAGER, ...
+    const [role, setRole] = useState<"ADMIN" | "MANAGER" | "STAFF" | "WAREHOUSE" | "ACCOUNTANT">("ADMIN");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
@@ -41,6 +44,7 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
             dob: dob || undefined,
             gender: gender || undefined,
             onBoarded: false,
+            role,
             credentials: [{ type: "password", value: password, temporary: false }],
         };
 
@@ -155,6 +159,23 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
                                 <option value="OTHER">Other</option>
                             </select>
                         </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="role">Role</Label>
+                        <select
+                            id="role"
+                            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={role}
+                            onChange={(e) => setRole(e.target.value as typeof role)}
+                            disabled={submitting}
+                            required
+                        >
+                            <option value="ADMIN">Admin</option>
+                            <option value="MANAGER">Manager</option>
+                            <option value="STAFF">Staff</option>
+                            <option value="WAREHOUSE">Warehouse</option>
+                            <option value="ACCOUNTANT">Accountant</option>
+                        </select>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="password">Password</Label>
