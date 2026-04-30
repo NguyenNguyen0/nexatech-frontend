@@ -63,7 +63,7 @@ export function Footer() {
             <img
               src="/logo/nexatech.png"
               alt="NexaTech"
-              className="h-8 w-auto object-contain mb-4"
+              className="h-12 w-auto object-contain mb-4"
             />
             <div className="flex gap-2 mb-6">
               <span className="w-8 h-8 rounded-full bg-[#0068ff] text-white flex items-center justify-center text-xs font-bold font-serif italic">Zalo</span>

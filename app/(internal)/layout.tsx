@@ -12,7 +12,7 @@ export default function InternalLayout({
           <img
             src="/logo/nexatech.png"
             alt="NexaTech"
-            className="h-7 w-auto object-contain"
+            className="h-12 w-auto object-contain"
           />
         </div>
         <nav className="flex-1 p-3 space-y-1 text-sm">

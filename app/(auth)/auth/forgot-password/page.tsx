@@ -18,9 +18,9 @@ export default function ForgotPasswordPage() {
           <Image
             src="/logo/nexatech.png"
             alt="NexaTech"
-            width={280}
-            height={80}
-            className="h-16 w-auto object-contain brightness-0 invert mb-6"
+            width={400}
+            height={120}
+            className="h-24 w-auto object-contain brightness-0 invert mb-8"
             priority
           />
           <p className="text-xl text-white/80 max-w-md">
@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
             <img
               src="/logo/nexatech.png"
               alt="NexaTech"
-              className="h-10 w-auto object-contain mx-auto mb-4 lg:hidden"
+              className="h-14 w-auto object-contain mx-auto mb-5 lg:hidden"
             />
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">Quên mật khẩu</h2>
             <p className="text-sm text-gray-500 text-center mb-6">Nhập email để nhận hướng dẫn</p>

@@ -15,9 +15,9 @@ export function Header() {
             <Image
               src="/logo/nexatech.png"
               alt="NexaTech"
-              width={140}
-              height={40}
-              className="h-8 w-auto object-contain brightness-0 invert"
+              width={280}
+              height={100}
+              className="h-10 w-auto object-contain brightness-0 invert"
               priority
             />
           </Link>

@@ -48,7 +48,7 @@ export function LoginForm() {
         <img
           src="/logo/nexatech.png"
           alt="NexaTech"
-          className="h-10 w-auto object-contain mx-auto mb-4 lg:hidden"
+          className="h-14 w-auto object-contain mx-auto mb-5 lg:hidden"
         />
         <h2 className="text-2xl font-bold text-gray-900">Đăng nhập</h2>
         <p className="text-sm text-gray-500 mt-1">Chào mừng bạn trở lại NexaTech</p>
