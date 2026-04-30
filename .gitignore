@@ -3,13 +3,15 @@ node_modules/
 .pnp
 .pnp.*
 
-# next.js
+# next.js (client)
 .next/
 out/
 
+# vite (admin)
+dist/
+
 # production
 build/
-dist/
 
 # env
 .env
