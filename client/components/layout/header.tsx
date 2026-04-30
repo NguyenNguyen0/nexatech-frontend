@@ -55,7 +55,7 @@ export function Header() {
               <span className="font-bold">gần bạn</span>
             </div>
           </a>
-          <a href="#" className="flex items-center gap-1.5 hover:text-white/80 transition-colors group">
+          <Link href="/user" className="flex items-center gap-1.5 hover:text-white/80 transition-colors group">
             <div className="p-1.5 bg-white/10 rounded-full group-hover:bg-white/20">
               <Truck className="w-4 h-4" />
             </div>
@@ -63,8 +63,8 @@ export function Header() {
               <span className="text-white/90">Tra cứu</span>
               <span className="font-bold">đơn hàng</span>
             </div>
-          </a>
-          <a href="#" className="flex items-center gap-1.5 hover:text-white/80 transition-colors group">
+          </Link>
+          <Link href="/marketing" className="flex items-center gap-1.5 hover:text-white/80 transition-colors group">
             <div className="p-1.5 bg-white/10 rounded-full group-hover:bg-white/20">
               <Gift className="w-4 h-4" />
             </div>
@@ -72,7 +72,7 @@ export function Header() {
               <span className="text-white/90">Khuyến</span>
               <span className="font-bold">mãi</span>
             </div>
-          </a>
+          </Link>
           <Link href="/cart" className="flex items-center gap-1.5 hover:text-white/80 transition-colors group">
             <div className="p-1.5 bg-white/10 rounded-full group-hover:bg-white/20">
               <ShoppingCart className="w-4 h-4" />
