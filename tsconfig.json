@@ -33,12 +33,6 @@
   ],
   "exclude": [
     "node_modules",
-    "host-app",
-    "auth",
-    "product",
-    "cart",
-    "user",
-    "marketing",
-    "internal"
+    "admin"
   ]
 }

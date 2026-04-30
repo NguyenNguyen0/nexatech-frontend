@@ -2,52 +2,36 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Next.js Edge Middleware — runs on every matched request.
+ * Next.js Edge Middleware — Client (storefront) only.
  *
- * Replaces 3+ client-side ProtectedRoute wrappers with a single server-side
- * redirect check. Checks for the `access_token` cookie (not localStorage,
- * since middleware runs on the edge). For client-side flows that use
- * localStorage, auth state is checked in provider/component code.
+ * Admin panel is a separate Vite+React SPA (in admin/),
+ * so this middleware only handles client-side route protection.
  *
- * Note: full JWT validation (expiry/roles) is NOT done here because:
- *   1. Edge Runtime doesn't support most crypto libs needed for JWT verify
- *   2. The backend API already validates tokens on every request
- *   3. Role-based access is enforced at the API layer
- *
- * This middleware only checks for the PRESENCE of a token as a UX guard.
+ * Checks for the `access_token` cookie as a UX guard.
+ * Full JWT validation is done by the backend API.
  */
 
-const ADMIN_PREFIXES = [
-  '/admin',
-  '/manager',
-  '/staff',
-  '/warehouse',
-  '/accountant',
-];
-
+const PROTECTED_CLIENT_ROUTES = ['/user', '/cart/checkout'];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if accessing a protected admin route
-  const isAdminRoute = ADMIN_PREFIXES.some((prefix) =>
-    pathname.startsWith(prefix),
+  const isProtectedRoute = PROTECTED_CLIENT_ROUTES.some((route) =>
+    pathname.startsWith(route),
   );
-
   const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
 
-  // We check the cookie `access_token` for server-side redirect.
-  // For localStorage-based auth, client-side AuthProvider handles it.
   const accessToken = request.cookies.get('access_token')?.value;
 
-  if (isAdminRoute && !accessToken) {
+  // Redirect to login if accessing protected routes without auth
+  if (isProtectedRoute && !accessToken) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // If user is authenticated and visiting auth pages, redirect to home
+  // Redirect away from auth pages if already logged in
   if (isAuthPage && accessToken) {
     return NextResponse.redirect(new URL('/', request.url));
   }
@@ -57,12 +41,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static, _next/image (Next.js internals)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - public files (images, etc.)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|logo|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
