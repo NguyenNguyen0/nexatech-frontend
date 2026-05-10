@@ -29,6 +29,8 @@ export interface ProductCategory {
   name: string;
   slug?: string;
   parentId?: string;
+  description?: string;
+  imageUrl?: string;
 }
 
 export interface ProductBrand {

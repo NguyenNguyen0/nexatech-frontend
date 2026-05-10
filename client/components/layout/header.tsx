@@ -182,7 +182,7 @@ export function Header() {
               aria-haspopup="true"
             >
               <Menu className="h-4 w-4" />
-              Danh muc
+              Danh mục sản phẩm
               <ChevronDown className={`h-4 w-4 transition ${categoryMenuOpen ? 'rotate-180 text-primary' : ''}`} />
             </button>
 
