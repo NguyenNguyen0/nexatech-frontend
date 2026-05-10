@@ -1,89 +1,153 @@
 'use client';
 
+import { Mail, MapPin, Phone as PhoneIcon } from 'lucide-react';
+
 export function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="w-full bg-white pt-10 pb-6 border-t mt-8">
-      <div className="max-w-[1200px] mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8 text-sm">
-          <div>
-            <h4 className="font-bold text-gray-800 mb-4 tracking-tight">Về chúng tôi</h4>
-            <ul className="space-y-2.5 text-black">
-              <li><a href="#" className="hover:text-primary">Giới thiệu công ty</a></li>
-              <li><a href="#" className="hover:text-primary">Khách hàng Doanh nghiệp (B2B)</a></li>
-              <li><a href="#" className="hover:text-primary text-[#cb1c22]">Ưu đãi dành cho giáo dục</a></li>
-              <li><a href="#" className="hover:text-primary">Danh sách cửa hàng</a></li>
-              <li><a href="#" className="hover:text-primary">Tuyển dụng mới nhất</a></li>
-              <li><a href="#" className="hover:text-primary">Hướng dẫn mua hàng Online</a></li>
-              <li><a href="#" className="hover:text-primary">Hướng dẫn mua hàng trả góp</a></li>
-              <li><a href="#" className="hover:text-primary">Hướng dẫn thanh toán VNPAY</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-gray-800 mb-4 tracking-tight">Chính sách</h4>
-            <ul className="space-y-2.5 text-black">
-              <li><a href="#" className="hover:text-primary">Chính sách bảo hành</a></li>
-              <li><a href="#" className="hover:text-primary">Chính sách bán hàng</a></li>
-              <li><a href="#" className="hover:text-primary">Chính sách bảo mật</a></li>
-              <li><a href="#" className="hover:text-primary">Chính sách kiểm hàng</a></li>
-              <li><a href="#" className="hover:text-primary">Trung tâm bảo hành Apple tại Việt Nam</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-gray-800 mb-4 tracking-tight">Tổng đài hỗ trợ (Miễn phí)</h4>
-            <div className="space-y-3 mb-6">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-800 font-medium">Mua ngay:</span>
-                <div className="text-right">
-                  <span className="text-[#cb1c22] font-bold text-base">1800.6018</span>
-                  <span className="text-xs text-gray-500 block">07:30 - 21:30</span>
-                </div>
+    <footer className="bg-bg-elevated dark:bg-bg-elevated border-t border-border dark:border-border/50 mt-12 transition-smooth">
+      {/* Main Footer */}
+      <div className="max-w-[1200px] mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {/* Company Info */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-2">
+                <span className="text-white font-display font-bold">NT</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-800 font-medium pr-2">Bảo hành:</span>
-                <div className="text-right">
-                  <span className="text-[#cb1c22] font-bold text-base">1800.6729</span>
-                  <span className="text-xs text-gray-500 block">08:00 - 21:00</span>
-                </div>
+              <div>
+                <h3 className="font-display font-bold text-text-primary dark:text-text-inverse">NexaTech</h3>
+                <p className="text-xs text-text-tertiary">Tech Retail Platform</p>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-800 font-medium">Góp ý:</span>
-                <div className="text-right">
-                  <span className="text-[#cb1c22] font-bold text-base">1800.6306</span>
-                  <span className="text-xs text-gray-500 block">08:30 - 21:30</span>
-                </div>
-              </div>
+            </div>
+            <p className="text-sm text-text-secondary dark:text-text-tertiary leading-relaxed">
+              Nền tảng thương mại điện tử hàng đầu Việt Nam, cung cấp các sản phẩm công nghệ chính hãng với giá tốt nhất.
+            </p>
+            <div className="flex gap-2">
+              {['f', 'In', '𝕏', 'Y'].map((icon) => (
+                <a
+                  key={icon}
+                  href="#"
+                  className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-primary/5 text-primary hover:bg-primary hover:text-white dark:hover:text-white transition-smooth flex items-center justify-center font-bold"
+                >
+                  {icon}
+                </a>
+              ))}
             </div>
           </div>
 
+          {/* Support Links */}
           <div>
-            <h4 className="font-bold text-gray-800 mb-3 tracking-tight">Kết nối với NexaTech</h4>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo/nexatech.png"
-              alt="NexaTech"
-              className="h-12 w-auto object-contain mb-4"
-            />
-            <div className="flex gap-2 mb-6">
-              <span className="w-8 h-8 rounded-full bg-[#0068ff] text-white flex items-center justify-center text-xs font-bold font-serif italic">Zalo</span>
-              <span className="w-8 h-8 rounded-full bg-[#1877f2] text-white flex items-center justify-center font-bold font-serif text-lg">f</span>
-              <span className="w-8 h-8 rounded-full bg-[#ff0000] text-white flex items-center justify-center">▶</span>
-              <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center font-bold italic">d</span>
+            <h4 className="font-display font-bold text-text-primary dark:text-text-inverse mb-4">
+              Hỗ Trợ Khách Hàng
+            </h4>
+            <ul className="space-y-2">
+              {[
+                'Giới thiệu công ty',
+                'Chính sách bảo hành',
+                'Chính sách bảo mật',
+                'Hướng dẫn mua hàng',
+                'Hướng dẫn thanh toán',
+                'Trung tâm trợ giúp',
+              ].map((link) => (
+                <li key={link}>
+                  <a
+                    href="#"
+                    className="text-sm text-text-secondary dark:text-text-tertiary hover:text-primary dark:hover:text-primary transition-smooth"
+                  >
+                    {link}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Products */}
+          <div>
+            <h4 className="font-display font-bold text-text-primary dark:text-text-inverse mb-4">
+              Danh Mục Sản Phẩm
+            </h4>
+            <ul className="space-y-2">
+              {['Điện thoại', 'Tablet & Laptop', 'Phụ kiện', 'Gia dụng', 'Khuyến mãi', 'Outlet'].map((link) => (
+                <li key={link}>
+                  <a
+                    href="#"
+                    className="text-sm text-text-secondary dark:text-text-tertiary hover:text-primary dark:hover:text-primary transition-smooth"
+                  >
+                    {link}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h4 className="font-display font-bold text-text-primary dark:text-text-inverse mb-4">
+              Liên Hệ Chúng Tôi
+            </h4>
+            <div className="space-y-3">
+              <a href="tel:1800.6018" className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth">
+                <PhoneIcon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-text-tertiary">Gọi mua hàng</p>
+                  <p className="font-bold text-primary">1800.6018</p>
+                </div>
+              </a>
+              <a href="mailto:support@nexatech.vn" className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth">
+                <Mail className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-text-tertiary">Email</p>
+                  <p className="font-bold text-text-primary dark:text-text-inverse text-sm">support@nexatech.vn</p>
+                </div>
+              </a>
+              <a href="#" className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth">
+                <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-text-tertiary">Văn phòng</p>
+                  <p className="font-bold text-text-primary dark:text-text-inverse text-sm">77 Trần Quang Khải, TP.HCM</p>
+                </div>
+              </a>
             </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-border dark:border-border/50 my-8" />
+
+        {/* Bottom Footer */}
+        <div className="space-y-4">
+          {/* Links */}
+          <div className="flex flex-wrap gap-4 justify-center text-sm text-text-tertiary">
+            <a href="#" className="hover:text-primary transition-smooth">Điều khoản sử dụng</a>
+            <span>•</span>
+            <a href="#" className="hover:text-primary transition-smooth">Chính sách bảo mật</a>
+            <span>•</span>
+            <a href="#" className="hover:text-primary transition-smooth">Khiếu nại, tố cáo</a>
+            <span>•</span>
+            <a href="#" className="hover:text-primary transition-smooth">Sitemap</a>
+          </div>
+
+          {/* Copyright */}
+          <div className="text-center text-xs text-text-tertiary space-y-1">
+            <p>
+              © {currentYear} NexaTech. Tất cả quyền được bảo lưu. Công ty Cổ Phần Công Nghệ NexaTech
+            </p>
+            <p>
+              Mã số doanh nghiệp: 0123456789 | Địa chỉ: 77 Trần Quang Khải, Phường Tân Định, TP.HCM
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Bottom */}
-      <div className="bg-[#f5f5f5] w-full pt-6 pb-20">
-        <div className="max-w-[1200px] mx-auto px-4">
-          <div className="text-[10px] text-gray-500 leading-relaxed max-w-4xl space-y-1">
-            <p>Công Ty Cổ Phần Công Nghệ Nexatech - 77 Trần Quang Khải, P. Tân Định, TP. Hồ Chí Minh.</p>
-            <p>SĐT: 0312192244 - Email: lienhe@nexatech.vn - Bản quyền thuộc về Nexatech.</p>
-          </div>
-        </div>
-      </div>
+      {/* Scroll to Top Button */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-6 right-6 w-10 h-10 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-smooth flex items-center justify-center z-40 hidden lg:flex"
+      >
+        ↑
+      </button>
     </footer>
   );
 }

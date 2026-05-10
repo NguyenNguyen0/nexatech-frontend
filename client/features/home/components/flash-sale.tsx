@@ -1,47 +1,106 @@
 'use client';
 
+import Autoplay from 'embla-carousel-autoplay';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Clock } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+
 export function FlashSale() {
+  const autoplay = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
   const products = [
-    { name: 'Nồi chiên không dầu 5L 1500W Bear AF-4H15L', price: '1.090.000', oldPrice: '1.900.000', discount: '54%' },
-    { name: 'Máy vắt cam 0.4L 30W Bear JU-4H04X', price: '346.000', oldPrice: '500.000', discount: '30%' },
-    { name: 'Máy xay kéo tay 200ml Bear FCH-5N02R35', price: '189.000', oldPrice: '190.000', discount: '1%' },
-    { name: 'Nồi chiên không dầu 5L Bear QZG-J15M1', price: '854.000', oldPrice: '2.150.000', discount: '60%' },
-    { name: 'Máy xay thực phẩm đa năng 600ml Bear', price: '448.000', oldPrice: '700.000', discount: '36%' },
-    { name: 'Bếp nướng điện đa năng Bear', price: '550.000', oldPrice: '990.000', discount: '44%' },
+    { name: 'Nồi chiên không dầu 5L 1500W', price: '1.090.000', oldPrice: '1.900.000', discount: '54%', stockLeft: 5, stockPercent: 32 },
+    { name: 'Máy vắt cam 0.4L 30W', price: '346.000', oldPrice: '500.000', discount: '30%', stockLeft: 2, stockPercent: 58 },
+    { name: 'Máy xay kéo tay 200ml', price: '189.000', oldPrice: '190.000', discount: '1%', stockLeft: 4, stockPercent: 41 },
+    { name: 'Nồi chiên không dầu 5L', price: '854.000', oldPrice: '2.150.000', discount: '60%', stockLeft: 1, stockPercent: 24 },
+    { name: 'Máy xay thực phẩm đa năng', price: '448.000', oldPrice: '700.000', discount: '36%', stockLeft: 1, stockPercent: 49 },
+    { name: 'Bếp nướng điện đa năng', price: '550.000', oldPrice: '990.000', discount: '44%', stockLeft: 4, stockPercent: 44 },
   ];
 
+  const [timeLeft, setTimeLeft] = useState('02:45:30');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        const [h, m, s] = prev.split(':').map(Number);
+        const total = h * 3600 + m * 60 + s - 1;
+        const hours = Math.floor(total / 3600) % 24;
+        const minutes = Math.floor((total % 3600) / 60);
+        const seconds = total % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <section className="max-w-[1200px] mx-auto px-4 py-4 mb-4">
-      <div className="rounded-lg overflow-hidden relative shadow-sm" style={{ background: 'linear-gradient(180deg, #b00005 0%, #680000 100%)', padding: '4px' }}>
-        <div className="bg-white rounded overflow-hidden">
+    <section className="max-w-[1200px] mx-auto px-4 py-6">
+      <div className="bg-gradient-to-r from-danger to-warning/80 rounded-xl overflow-hidden shadow-md border border-danger/20 transition-smooth">
+        <div className="bg-bg-elevated dark:bg-bg-elevated rounded-t-xl">
           {/* Header */}
-          <div className="flex border-b overflow-x-auto">
-            <div className="px-6 py-3 font-bold text-[#cb1c22] border-b-[3px] border-[#cb1c22] whitespace-nowrap cursor-pointer">
-              FLASH SALE GIA DỤNG BEAR
+          <div className="flex items-center justify-between border-b border-border dark:border-border/50 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">⚡</div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-text-primary dark:text-text-inverse">
+                  Flash Sale - Giá Sốc
+                </h3>
+                <p className="text-xs text-text-tertiary">Giảm giá tới 60%</p>
+              </div>
             </div>
-            <div className="px-6 py-3 font-medium text-gray-600 hover:text-black hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer">
-              FLASH SALE MEGA SALE THÁNG 04
+            <div className="flex items-center gap-2 bg-danger/10 dark:bg-danger/5 text-danger px-4 py-2 rounded-lg font-bold">
+              <Clock className="w-4 h-4" />
+              {timeLeft}
             </div>
           </div>
+
           {/* Products */}
-          <div className="flex overflow-x-auto gap-4 p-4 items-stretch" style={{ scrollbarWidth: 'none' }}>
-            {products.map((item, i) => (
-              <div key={i} className="min-w-[210px] w-[210px] flex flex-col p-3 border border-transparent hover:border-gray-200 hover:shadow-lg rounded-lg transition-all cursor-pointer bg-white group shrink-0">
-                <div className="relative aspect-square bg-[#f9f9f9] rounded mb-3">
-                  <span className="absolute top-2 right-2 bg-[#cb1c22] text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">↓ {item.discount}</span>
-                  <span className="absolute top-2 left-2 border border-gray-300 bg-white text-gray-500 text-[9px] font-medium px-1 rounded">Trả góp 0%</span>
-                  <img src={`https://picsum.photos/seed/bear${i}/150/150`} className="w-full h-full object-contain mix-blend-multiply p-4 group-hover:-translate-y-1 transition-transform" alt="Product" />
-                  <div className="absolute bottom-0 left-0 right-0 h-4 bg-gray-200 rounded-full overflow-hidden text-[9px] text-white font-bold flex items-center">
-                    <div className="bg-gradient-to-r from-orange-400 to-[#cb1c22] h-full flex items-center justify-center pl-4 pr-2" style={{ width: `${80 - i * 10}%` }}>
-                      <span className="absolute left-1">🔥</span> Còn {10 - i}/10 suất
+          <div className="px-6 py-6">
+            <Carousel
+              opts={{ align: 'start', loop: true }}
+              plugins={[autoplay.current as never]}
+              className="w-full"
+            >
+              <CarouselContent className="-ml-4">
+                {products.map((item, i) => (
+                  <CarouselItem key={i} className="pl-4 basis-[85%] sm:basis-1/2 lg:basis-1/3 xl:basis-1/5">
+                    <div className="h-full bg-bg-sunken dark:bg-gray-800 rounded-lg p-3 hover:shadow-lg dark:hover:shadow-lg dark:hover:shadow-primary/20 transition-smooth group cursor-pointer border border-border dark:border-border/50">
+                      <div className="relative w-full aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-3 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+                        <span className="absolute top-2 right-2 bg-danger text-white text-xs font-bold px-2 py-1 rounded-lg">
+                          -{item.discount}
+                        </span>
+                        <span className="text-4xl">📦</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-text-primary dark:text-text-inverse line-clamp-2 leading-snug">
+                          {item.name}
+                        </h4>
+                        <div className="flex items-baseline gap-2">
+                          <div className="text-lg font-bold text-danger">
+                            {item.price}₫
+                          </div>
+                          <div className="text-xs text-text-tertiary line-through">
+                            {item.oldPrice}₫
+                          </div>
+                        </div>
+
+                        <div className="w-full h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-warning to-danger transition-all"
+                            style={{ width: `${item.stockPercent}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-text-tertiary">
+                          Còn {item.stockLeft}/10 suất
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div className="mt-1 text-sm text-gray-800 line-clamp-2 min-h-[40px] font-medium leading-tight group-hover:text-primary">{item.name}</div>
-                <div className="text-[#cb1c22] font-black text-lg mt-1">{item.price} ₫</div>
-                <div className="text-gray-400 line-through text-xs">{item.oldPrice} ₫</div>
-              </div>
-            ))}
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-2 border-border/60 bg-bg-elevated/90 dark:bg-gray-800/90 dark:border-border/50" />
+              <CarouselNext className="right-2 border-border/60 bg-bg-elevated/90 dark:bg-gray-800/90 dark:border-border/50" />
+            </Carousel>
           </div>
         </div>
       </div>
