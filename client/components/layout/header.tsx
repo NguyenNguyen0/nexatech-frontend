@@ -1,13 +1,13 @@
 'use client';
 
-import { ChevronDown, Heart, Menu, Moon, Search, ShoppingCart, Sparkles, Sun, UserRound, X } from 'lucide-react';
+import { ChevronDown, Heart, Menu, Moon, ShoppingCart, Sparkles, Sun, UserRound, X } from 'lucide-react';
 import { Armchair, Boxes, Gamepad2, HardDrive, Headphones, Keyboard, Laptop, Mic, Monitor, Mouse } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Input } from '@/components/ui/input';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ProductSearch } from '@/components/layout/product-search';
 
 type CategorySection = {
   heading: string;
@@ -242,18 +242,11 @@ export function Header() {
                 </div>
               </div>
             ) : null}
-          </div>
+          </div> 
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="hidden items-center rounded-full border border-border bg-bg-base px-3 py-2 md:flex md:w-64 lg:w-80">
-            <Search className="h-4 w-4 text-text-tertiary" />
-            <Input
-              type="search"
-              placeholder="Search premium devices"
-              className="h-auto border-0 bg-transparent px-3 py-0 text-sm shadow-none focus-visible:ring-0"
-            />
-          </div>
+          <ProductSearch className="hidden md:block md:w-80 lg:w-md" placeholder="Search premium devices" />
 
           <button type="button" className="hidden rounded-full p-2 text-text-secondary transition hover:bg-primary/10 hover:text-primary sm:inline-flex">
             <Heart className="h-5 w-5" />
@@ -295,13 +288,8 @@ export function Header() {
       </div>
 
       <div className="border-t border-border/70 px-4 py-3 md:hidden sm:px-6">
-        <div className="relative mx-auto max-w-[1280px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-          <Input
-            type="search"
-            placeholder="Search premium devices"
-            className="h-11 rounded-full border-border bg-bg-base pl-9 pr-4"
-          />
+        <div className="mx-auto max-w-7xl">
+          <ProductSearch placeholder="Search premium devices" />
         </div>
       </div>
 
