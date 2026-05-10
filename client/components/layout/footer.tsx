@@ -1,150 +1,134 @@
 'use client';
 
-import { Mail, MapPin, Phone as PhoneIcon } from 'lucide-react';
+import { Globe, Mail, MapPin, Phone as PhoneIcon, SendHorizonal } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const quickLinks = ['Privacy Policy', 'Terms of Service', 'Support Center', 'Global Shipping', 'Affiliate Program'];
+  const helpLinks = ['Setup Guides', 'Driver Downloads', 'Service Centers', 'Order Status'];
 
   return (
-    <footer className="bg-bg-elevated dark:bg-bg-elevated border-t border-border dark:border-border/50 mt-12 transition-smooth">
-      {/* Main Footer */}
-      <div className="max-w-[1200px] mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-2">
-                <span className="text-white font-display font-bold">NT</span>
+    <footer className="mt-20 border-t border-border/70 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-bg-elevated)_92%,white),var(--color-primary-subtle))] transition-smooth">
+      <div className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <Link href="/" className="inline-flex items-center gap-3">
+              <div className="rounded-2xl bg-[image:var(--gradient-brand)] px-3 py-2 text-sm font-black tracking-[0.24em] text-white shadow-lg shadow-primary/20">
+                NT
               </div>
               <div>
-                <h3 className="font-display font-bold text-text-primary dark:text-text-inverse">NexaTech</h3>
-                <p className="text-xs text-text-tertiary">Tech Retail Platform</p>
+                <p className="font-display text-xl font-bold text-text-primary">NexaTech</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Precision for the digital frontier</p>
               </div>
-            </div>
-            <p className="text-sm text-text-secondary dark:text-text-tertiary leading-relaxed">
-              Nền tảng thương mại điện tử hàng đầu Việt Nam, cung cấp các sản phẩm công nghệ chính hãng với giá tốt nhất.
+            </Link>
+            <p className="mt-5 max-w-sm text-sm leading-7 text-text-secondary">
+              Premium hardware for work, play and creative focus. Built around trusted support,
+              fast fulfilment and a cleaner buying experience.
             </p>
-            <div className="flex gap-2">
-              {['f', 'In', '𝕏', 'Y'].map((icon) => (
-                <a
-                  key={icon}
-                  href="#"
-                  className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-primary/5 text-primary hover:bg-primary hover:text-white dark:hover:text-white transition-smooth flex items-center justify-center font-bold"
-                >
-                  {icon}
-                </a>
-              ))}
+            <div className="mt-6 flex gap-3">
+              {[
+                { label: 'Web', icon: Globe },
+                { label: 'Mail', icon: Mail },
+                { label: 'Share', icon: SendHorizonal },
+              ].map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <a
+                    key={item.label}
+                    href="#"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-bg-elevated text-primary transition hover:border-primary hover:bg-primary hover:text-white"
+                    aria-label={item.label}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
-          {/* Support Links */}
           <div>
-            <h4 className="font-display font-bold text-text-primary dark:text-text-inverse mb-4">
-              Hỗ Trợ Khách Hàng
-            </h4>
-            <ul className="space-y-2">
-              {[
-                'Giới thiệu công ty',
-                'Chính sách bảo hành',
-                'Chính sách bảo mật',
-                'Hướng dẫn mua hàng',
-                'Hướng dẫn thanh toán',
-                'Trung tâm trợ giúp',
-              ].map((link) => (
+            <h3 className="text-lg font-semibold text-text-primary">Quick Links</h3>
+            <ul className="mt-5 space-y-3 text-sm text-text-secondary">
+              {quickLinks.map((link) => (
                 <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-text-secondary dark:text-text-tertiary hover:text-primary dark:hover:text-primary transition-smooth"
-                  >
+                  <Link href="/product" className="transition hover:text-primary">
                     {link}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Products */}
           <div>
-            <h4 className="font-display font-bold text-text-primary dark:text-text-inverse mb-4">
-              Danh Mục Sản Phẩm
-            </h4>
-            <ul className="space-y-2">
-              {['Điện thoại', 'Tablet & Laptop', 'Phụ kiện', 'Gia dụng', 'Khuyến mãi', 'Outlet'].map((link) => (
+            <h3 className="text-lg font-semibold text-text-primary">Product Help</h3>
+            <ul className="mt-5 space-y-3 text-sm text-text-secondary">
+              {helpLinks.map((link) => (
                 <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-text-secondary dark:text-text-tertiary hover:text-primary dark:hover:text-primary transition-smooth"
-                  >
+                  <Link href="/product" className="transition hover:text-primary">
                     {link}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
-            <h4 className="font-display font-bold text-text-primary dark:text-text-inverse mb-4">
-              Liên Hệ Chúng Tôi
-            </h4>
-            <div className="space-y-3">
-              <a href="tel:1800.6018" className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth">
-                <PhoneIcon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <h3 className="text-lg font-semibold text-text-primary">Join the Pulse</h3>
+            <p className="mt-5 text-sm leading-7 text-text-secondary">
+              Get launch drops, weekly tech edits and early access to flagship deals.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <Input
+                type="email"
+                placeholder="Email address"
+                className="h-11 rounded-xl border-border bg-bg-elevated"
+              />
+              <Button className="h-11 rounded-xl px-4">
+                Join
+              </Button>
+            </div>
+            <div className="mt-6 space-y-3">
+              <a href="tel:1800.6018" className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg-elevated/70 p-4 transition hover:border-primary/25 hover:bg-bg-elevated">
+                <PhoneIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                 <div>
-                  <p className="text-xs text-text-tertiary">Gọi mua hàng</p>
-                  <p className="font-bold text-primary">1800.6018</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-text-tertiary">Call sales</p>
+                  <p className="font-semibold text-text-primary">1800.6018</p>
                 </div>
               </a>
-              <a href="mailto:support@nexatech.vn" className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth">
-                <Mail className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <a href="mailto:support@nexatech.vn" className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg-elevated/70 p-4 transition hover:border-primary/25 hover:bg-bg-elevated">
+                <Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                 <div>
-                  <p className="text-xs text-text-tertiary">Email</p>
-                  <p className="font-bold text-text-primary dark:text-text-inverse text-sm">support@nexatech.vn</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-text-tertiary">Email</p>
+                  <p className="font-semibold text-text-primary">support@nexatech.vn</p>
                 </div>
               </a>
-              <a href="#" className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth">
-                <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <a href="#" className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg-elevated/70 p-4 transition hover:border-primary/25 hover:bg-bg-elevated">
+                <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                 <div>
-                  <p className="text-xs text-text-tertiary">Văn phòng</p>
-                  <p className="font-bold text-text-primary dark:text-text-inverse text-sm">77 Trần Quang Khải, TP.HCM</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-text-tertiary">Studio</p>
+                  <p className="font-semibold text-text-primary">77 Tran Quang Khai, Ho Chi Minh City</p>
                 </div>
               </a>
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-border dark:border-border/50 my-8" />
-
-        {/* Bottom Footer */}
-        <div className="space-y-4">
-          {/* Links */}
-          <div className="flex flex-wrap gap-4 justify-center text-sm text-text-tertiary">
-            <a href="#" className="hover:text-primary transition-smooth">Điều khoản sử dụng</a>
-            <span>•</span>
-            <a href="#" className="hover:text-primary transition-smooth">Chính sách bảo mật</a>
-            <span>•</span>
-            <a href="#" className="hover:text-primary transition-smooth">Khiếu nại, tố cáo</a>
-            <span>•</span>
-            <a href="#" className="hover:text-primary transition-smooth">Sitemap</a>
-          </div>
-
-          {/* Copyright */}
-          <div className="text-center text-xs text-text-tertiary space-y-1">
-            <p>
-              © {currentYear} NexaTech. Tất cả quyền được bảo lưu. Công ty Cổ Phần Công Nghệ NexaTech
-            </p>
-            <p>
-              Mã số doanh nghiệp: 0123456789 | Địa chỉ: 77 Trần Quang Khải, Phường Tân Định, TP.HCM
-            </p>
-          </div>
+        <div className="mt-12 border-t border-border/70 pt-6 text-center text-sm text-text-tertiary">
+          <p>© {currentYear} NexaTech. Precision engineering for the digital frontier.</p>
+          <p className="mt-1">Business registration 0123456789 · 77 Tran Quang Khai, Ho Chi Minh City</p>
+          <p className="mt-3 text-xs uppercase tracking-[0.2em]">Built for the client storefront experience</p>
         </div>
       </div>
 
-      {/* Scroll to Top Button */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 w-10 h-10 bg-primary text-white rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-smooth flex items-center justify-center z-40 hidden lg:flex"
+        className="fixed bottom-6 right-6 max-lg:hidden lg:flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 transition hover:scale-105 hover:bg-primary-dark"
+        type="button"
+        aria-label="Scroll to top"
       >
         ↑
       </button>
