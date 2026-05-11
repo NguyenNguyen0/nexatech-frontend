@@ -4,6 +4,7 @@ import type { ProductBrand, ProductCategory } from '@/features/products/types';
 type CatalogSidebarFiltersProps = {
   categories: ProductCategory[];
   brands: ProductBrand[];
+  basePath?: string;
   current: {
     categorySlug?: string;
     subcategorySlug?: string;
@@ -18,6 +19,6 @@ type CatalogSidebarFiltersProps = {
   };
 };
 
-export function CatalogSidebarFilters({ categories, brands, current }: CatalogSidebarFiltersProps) {
-  return <CatalogFiltersForm action="/product" categories={categories} brands={brands} current={current} />;
+export function CatalogSidebarFilters({ categories, brands, current, basePath = '/product' }: CatalogSidebarFiltersProps) {
+  return <CatalogFiltersForm action={basePath} categories={categories} brands={brands} current={current} />;
 }

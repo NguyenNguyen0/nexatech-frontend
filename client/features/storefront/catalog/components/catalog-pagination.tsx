@@ -9,6 +9,7 @@ type CatalogPaginationProps = {
   hasPrevious: boolean;
   hasNext: boolean;
   searchParams: SearchParams;
+  basePath?: string;
 };
 
 function buildQuery(current: SearchParams, updates: Record<string, string | undefined>): string {
@@ -36,7 +37,7 @@ function getPageRange(current: number, total: number): (number | '...')[] {
   return [1, '...', current - 1, current, current + 1, '...', total];
 }
 
-export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNext, searchParams }: CatalogPaginationProps) {
+export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNext, searchParams, basePath = '/product' }: CatalogPaginationProps) {
   if (totalPages <= 1) return null;
 
   const pageRange = getPageRange(currentPage, totalPages);
@@ -46,7 +47,7 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
       <nav className="flex items-center gap-1.5" aria-label="Phân trang">
         {hasPrevious ? (
           <Link
-            href={`/product?${buildQuery(searchParams, { page: String(currentPage - 1) })}`}
+            href={`${basePath}?${buildQuery(searchParams, { page: String(currentPage - 1) })}`}
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-secondary transition hover:border-primary hover:text-primary"
             aria-label="Trang trước"
           >
@@ -70,7 +71,7 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
           ) : (
             <Link
               key={p}
-              href={`/product?${buildQuery(searchParams, { page: String(p) })}`}
+              href={`${basePath}?${buildQuery(searchParams, { page: String(p) })}`}
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-sm text-text-secondary transition hover:border-primary hover:text-primary"
             >
               {p}
@@ -80,7 +81,7 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
 
         {hasNext ? (
           <Link
-            href={`/product?${buildQuery(searchParams, { page: String(currentPage + 1) })}`}
+            href={`${basePath}?${buildQuery(searchParams, { page: String(currentPage + 1) })}`}
             className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-secondary transition hover:border-primary hover:text-primary"
             aria-label="Trang sau"
           >

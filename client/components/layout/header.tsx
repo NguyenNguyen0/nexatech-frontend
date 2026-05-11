@@ -5,11 +5,13 @@ import { Armchair, Boxes, Gamepad2, HardDrive, Headphones, Keyboard, Laptop, Mic
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ProductSearch } from '@/components/layout/product-search';
 import { getApiErrorMessage, getCart } from '@/features/cart/services/cart-api';
+import { fetchCategories } from '@/features/products/services/products-api';
+import type { ProductCategory } from '@/features/products/types';
 import type { Cart } from '@/types/cart';
 import { formatCurrency } from '@/lib/utils';
 
@@ -135,6 +137,17 @@ const categoryGroups: CategoryGroup[] = [
   },
 ];
 
+function normalizeCategoryToken(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -144,9 +157,33 @@ export function Header() {
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
   const [cart, setCart] = useState<Cart | null>(null);
+  const [apiCategories, setApiCategories] = useState<ProductCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState(categoryGroups[0].name);
   const currentCategory = categoryGroups.find((category) => category.name === activeCategory) ?? categoryGroups[0];
   const cartCount = cart?.totalItems ?? 0;
+
+  const categoryHrefByName = useMemo(() => {
+    const hrefMap = new Map<string, string>();
+
+    for (const group of categoryGroups) {
+      const normalizedGroup = normalizeCategoryToken(group.name);
+      const matched = apiCategories.find((category) => {
+        const normalizedName = normalizeCategoryToken(category.name ?? '');
+        const normalizedSlug = normalizeCategoryToken(category.slug ?? '');
+        return normalizedGroup === normalizedName || normalizedGroup === normalizedSlug;
+      });
+
+      const routeSlug = matched?.slug ?? normalizeCategoryToken(group.name).replace(/\s+/g, '-');
+      hrefMap.set(group.name, `/product/collection/${encodeURIComponent(routeSlug)}`);
+    }
+
+    return hrefMap;
+  }, [apiCategories]);
+
+  const resolveCategoryHref = useCallback(
+    (categoryName: string) => categoryHrefByName.get(categoryName) ?? '/product',
+    [categoryHrefByName],
+  );
 
   const loadCartPreview = useCallback(async () => {
     setCartLoading(true);
@@ -170,6 +207,26 @@ export function Header() {
     if (!cartOpen) return;
     loadCartPreview();
   }, [cartOpen, loadCartPreview]);
+
+  useEffect(() => {
+    let active = true;
+
+    void fetchCategories()
+      .then((categories) => {
+        if (active) {
+          setApiCategories(categories);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setApiCategories([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!cartOpen) return;
@@ -236,18 +293,19 @@ export function Header() {
                 <div className="grid grid-cols-[16rem_1fr]">
                   <div className="border-r border-border bg-bg-base/80 p-3">
                     {categoryGroups.map((group) => (
-                      <button
+                      <Link
                         key={group.name}
-                        type="button"
+                        href={resolveCategoryHref(group.name)}
                         onMouseEnter={() => setActiveCategory(group.name)}
                         onFocus={() => setActiveCategory(group.name)}
+                        onClick={() => setCategoryMenuOpen(false)}
                         className={`flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${group.name === currentCategory.name
                           ? 'bg-primary text-white shadow-lg shadow-primary/20'
                           : 'text-text-primary hover:bg-primary/8 hover:text-primary'}`}
                       >
                         <group.icon className="h-4 w-4 shrink-0" />
                         <span>{group.name}</span>
-                      </button>
+                      </Link>
                     ))}
                   </div>
 
@@ -261,7 +319,7 @@ export function Header() {
                         </h3>
                       </div>
                       <Button asChild className="h-10 rounded-xl px-4">
-                        <Link href="/product">View all</Link>
+                        <Link href={resolveCategoryHref(currentCategory.name)}>View all</Link>
                       </Button>
                     </div>
 
@@ -360,7 +418,7 @@ export function Header() {
               <div className="mt-4 space-y-4">
                 {categoryGroups.map((group) => (
                   <div key={group.name} className="rounded-2xl border border-border/80 bg-bg-elevated p-4">
-                    <Link href="/product" className="flex items-center justify-between text-sm font-semibold text-text-primary">
+                    <Link href={resolveCategoryHref(group.name)} className="flex items-center justify-between text-sm font-semibold text-text-primary">
                       <span className="inline-flex items-center gap-2">
                         <group.icon className="h-4 w-4" />
                         {group.name}

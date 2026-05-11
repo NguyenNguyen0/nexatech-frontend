@@ -96,7 +96,7 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
       <CatalogPageHeader pageTitle={pageTitle} pageDescription={pageDescription} hasContext={Boolean(activeCategory || activeBrand)} />
 
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
-        <CatalogSidebarFilters categories={categories} brands={brands} current={current} />
+        <CatalogSidebarFilters categories={categories} brands={brands} current={current} basePath="/product" />
 
         <div className="min-w-0 flex-1 space-y-6">
           <CatalogToolbar totalItems={totalItems} sort={current.sort} />
@@ -110,6 +110,7 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
                 hasPrevious={hasPrevious}
                 hasNext={hasNext}
                 searchParams={resolvedSearchParams}
+                basePath="/product"
               />
             </>
           ) : (
