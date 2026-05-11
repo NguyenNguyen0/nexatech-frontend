@@ -41,6 +41,7 @@ export interface ProductSubcategory {
   parentId?: string;
   description?: string;
   imageUrl?: string;
+  children?: ProductSubcategory[];
 }
 
 export interface ProductBrand {

@@ -7,7 +7,7 @@ import {
   CatalogSidebarFilters,
   CatalogToolbar,
 } from '@/features/storefront/catalog/components';
-import { fetchBrands, fetchCategories, fetchProducts, fetchSubcategories } from '@/features/products/services/products-api';
+import { fetchBrands, fetchCategories, fetchProductsByCategorySlug, fetchSubcategories } from '@/features/products/services/products-api';
 import type { PageResult, ProductSummary } from '@/features/products/types';
 import { toNumberParam, toStringParam } from '@/features/products/utils';
 
@@ -30,6 +30,7 @@ export default async function ProductCollectionPage({
   const resolvedSearchParams = (await searchParams) ?? {};
 
   const routeCategorySlug = toStringParam(resolvedParams.slug);
+  const collectionSlug = routeCategorySlug ?? '';
   const brandSlug = toStringParam(resolvedSearchParams.brandSlug) ?? toStringParam(resolvedSearchParams.brandId);
   const subcategorySlug = toStringParam(resolvedSearchParams.subcategorySlug) ?? toStringParam(resolvedSearchParams.subcategoryId);
 
@@ -64,7 +65,7 @@ export default async function ProductCollectionPage({
   const categoryId = activeCategory?.id;
   const brandId = activeBrand?.id;
 
-  if (routeCategorySlug && !activeCategory) {
+  if (!collectionSlug || !activeCategory) {
     return (
       <section className="mx-auto max-w-300 px-4 py-8 sm:px-6 lg:px-8">
         <CatalogPageHeader
@@ -86,11 +87,10 @@ export default async function ProductCollectionPage({
     subcategoryId = subcategories.find((subcategory) => subcategory.slug === current.subcategorySlug || subcategory.id === current.subcategorySlug)?.id;
   }
 
-  const productsPage = await fetchProducts({
+  const productsPage = await fetchProductsByCategorySlug(collectionSlug, {
     page: apiPage,
     size: Number(current.size) || 12,
     sort: current.sort,
-    categoryId,
     subcategoryId,
     brandId,
     minPrice: toNumberParam(resolvedSearchParams.minPrice),
@@ -113,7 +113,7 @@ export default async function ProductCollectionPage({
     activeCategory?.description ??
     `Khám phá bộ sưu tập ${activeCategory?.name ?? 'sản phẩm'} cùng bộ lọc và sắp xếp linh hoạt.`;
 
-  const basePath = routeCategorySlug ? `/product/collection/${encodeURIComponent(routeCategorySlug)}` : '/product';
+  const basePath = `/product/collection/${encodeURIComponent(collectionSlug)}`;
   const sidebarCategories = activeCategory ? [activeCategory] : categories;
 
   return (

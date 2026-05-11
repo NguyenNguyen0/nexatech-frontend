@@ -16,6 +16,15 @@ const CATEGORY_API_BASE = '/api/v1/categories';
 const BRAND_API_BASE = '/api/v1/brands';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
 
+type SubcategoryTreeNode = {
+  id?: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  imageUrl?: string;
+  children?: SubcategoryTreeNode[];
+};
+
 function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
   const seen = new Set<string>();
 
@@ -28,6 +37,49 @@ function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
     seen.add(identity);
     return true;
   });
+}
+
+function flattenSubcategoryTree(nodes: SubcategoryTreeNode[]): ProductSubcategory[] {
+  const leaves: ProductSubcategory[] = [];
+
+  const visit = (node: SubcategoryTreeNode): void => {
+    const children = Array.isArray(node.children) ? node.children : [];
+
+    if (children.length === 0 && node.id && node.name) {
+      leaves.push({
+        id: node.id,
+        name: node.name,
+        slug: node.slug,
+        description: node.description,
+        imageUrl: node.imageUrl,
+        children: [],
+      });
+      return;
+    }
+
+    for (const child of children) {
+      visit(child);
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  if (leaves.length > 0) {
+    return leaves;
+  }
+
+  return nodes
+    .filter((node): node is Required<Pick<SubcategoryTreeNode, 'id' | 'name'>> & SubcategoryTreeNode => Boolean(node.id && node.name))
+    .map((node) => ({
+      id: node.id,
+      name: node.name,
+      slug: node.slug,
+      description: node.description,
+      imageUrl: node.imageUrl,
+      children: Array.isArray(node.children) ? flattenSubcategoryTree(node.children) : [],
+    }));
 }
 
 function resolveApiPath(path: string): string {
@@ -63,6 +115,16 @@ async function requestProductApi<T>(path: string): Promise<T> {
 
 export async function fetchProducts(params?: ProductListParams): Promise<PageResult<ProductSummary>> {
   const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}${buildProductQuery(params)}`);
+  return normalizePageResult<ProductSummary>(payload);
+}
+
+export async function fetchProductsByCategorySlug(slug: string, params?: ProductListParams): Promise<PageResult<ProductSummary>> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    return { items: [], page: params?.page ?? 0, size: params?.size ?? 12, totalItems: 0, totalPages: 1, hasNext: false };
+  }
+
+  const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/category/slug/${encodeURIComponent(normalizedSlug)}${buildProductQuery(params)}`);
   return normalizePageResult<ProductSummary>(payload);
 }
 
@@ -161,7 +223,8 @@ export async function fetchSubcategories(categorySlugOrId: string): Promise<Prod
     const payload = await requestProductApi<unknown>(
       `${CATEGORY_API_BASE}/slug/${encodeURIComponent(normalized)}/subcategories`
     );
-    return normalizeCollection<ProductSubcategory>(payload);
+    const tree = normalizeCollection<SubcategoryTreeNode>(payload);
+    return flattenSubcategoryTree(tree);
   } catch {
     // Fallback for current backend implementations that still require category id.
     let categoryId = normalized;
@@ -179,6 +242,7 @@ export async function fetchSubcategories(categorySlugOrId: string): Promise<Prod
     const payload = await requestProductApi<unknown>(
       `${CATEGORY_API_BASE}/${encodeURIComponent(categoryId)}/subcategories`
     );
-    return normalizeCollection<ProductSubcategory>(payload);
+    const tree = normalizeCollection<SubcategoryTreeNode>(payload);
+    return flattenSubcategoryTree(tree);
   }
 }
