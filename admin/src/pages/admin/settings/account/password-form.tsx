@@ -5,8 +5,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/custom/button'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 import { changePassword } from '@/services/userApi'
-import { getApiErrorMessage } from '@/services/authApi'
+import { getApiErrorMessage, logout } from '@/services/authApi'
+import { clearAuthTokens, getRefreshToken } from '@/services/authSession'
 
 const passwordFormSchema = z
   .object({
@@ -26,6 +28,7 @@ const passwordFormSchema = z
 type PasswordFormValues = z.infer<typeof passwordFormSchema>
 
 export function PasswordForm() {
+  const navigate = useNavigate()
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: {
@@ -41,8 +44,18 @@ export function PasswordForm() {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
       })
-      toast.success('Password changed successfully')
-      form.reset()
+      
+      const refreshToken = getRefreshToken()
+      if (refreshToken) {
+        await logout(refreshToken).catch(err => console.error('Logout failed:', err))
+      }
+      
+      clearAuthTokens()
+      toast.success('Password changed successfully. Please login again.')
+      
+      setTimeout(() => {
+        navigate('/auth', { replace: true })
+      }, 1500)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to change password'))
     }

@@ -334,32 +334,36 @@ export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }:
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem className="grid grid-cols-6 items-center gap-x-4 gap-y-1 space-y-0">
-                                        <FormLabel className="col-span-2 text-right">Password</FormLabel>
-                                        <FormControl>
-                                            <PasswordInput placeholder="e.g., S3cur3P@ssw0rd" className="col-span-4" {...field} />
-                                        </FormControl>
-                                        <FormMessage className="col-span-4 col-start-3" />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="confirmPassword"
-                                render={({ field }) => (
-                                    <FormItem className="grid grid-cols-6 items-center gap-x-4 gap-y-1 space-y-0">
-                                        <FormLabel className="col-span-2 text-right">Confirm Password</FormLabel>
-                                        <FormControl>
-                                            <PasswordInput disabled={!isPasswordTouched} placeholder="e.g., S3cur3P@ssw0rd" className="col-span-4" {...field} />
-                                        </FormControl>
-                                        <FormMessage className="col-span-4 col-start-3" />
-                                    </FormItem>
-                                )}
-                            />
+                            {!isEdit && (
+                                <>
+                                    <FormField
+                                        control={form.control}
+                                        name="password"
+                                        render={({ field }) => (
+                                            <FormItem className="grid grid-cols-6 items-center gap-x-4 gap-y-1 space-y-0">
+                                                <FormLabel className="col-span-2 text-right">Password</FormLabel>
+                                                <FormControl>
+                                                    <PasswordInput placeholder="e.g., S3cur3P@ssw0rd" className="col-span-4" {...field} />
+                                                </FormControl>
+                                                <FormMessage className="col-span-4 col-start-3" />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="confirmPassword"
+                                        render={({ field }) => (
+                                            <FormItem className="grid grid-cols-6 items-center gap-x-4 gap-y-1 space-y-0">
+                                                <FormLabel className="col-span-2 text-right">Confirm Password</FormLabel>
+                                                <FormControl>
+                                                    <PasswordInput disabled={!isPasswordTouched} placeholder="e.g., S3cur3P@ssw0rd" className="col-span-4" {...field} />
+                                                </FormControl>
+                                                <FormMessage className="col-span-4 col-start-3" />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </>
+                            )}
                         </form>
                     </Form>
                 </ScrollArea>

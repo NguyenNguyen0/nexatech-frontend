@@ -7,4 +7,5 @@ export const authPaths = {
     logout: `${AUTH_API_BASE}/logout`,
     userinfo: `${AUTH_API_BASE}/userinfo`,
     introspect: `${AUTH_API_BASE}/introspect`,
+    changePassword: `${AUTH_API_BASE}/change-password`,
 } as const;

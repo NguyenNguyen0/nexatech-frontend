@@ -1,5 +1,6 @@
 import axiosClient from '@/lib/axiosClient'
 import type { ApiResponse } from '@/types/auth'
+import { authPaths } from './authPaths'
 
 const USERS_API_BASE = '/api/v1/users'
 
@@ -51,6 +52,8 @@ export interface AdminUserCreatePayload {
   enabled?: boolean
   emailVerified?: boolean
   onBoarded?: boolean
+  dob?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
 }
 
 export interface AdminUserUpdatePayload {
@@ -134,8 +137,9 @@ export interface ChangePasswordPayload {
   newPassword: string
 }
 
+
 export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
-  const { data } = await axiosClient.post<ApiResponse<void>>(`${USERS_API_BASE}/me/change-password`, payload)
+  const { data } = await axiosClient.post<ApiResponse<void>>(authPaths.changePassword, payload)
   if (data.code !== 1000) {
     throw new Error(data.message || 'Khong the doi mat khau')
   }
