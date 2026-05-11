@@ -11,24 +11,37 @@ import {
     DropdownMenuShortcut,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { fetchUserInfo, logout } from '@/services/authApi';
+import { logout } from '@/services/authApi';
 import { authStorage } from '@/services/authStorage';
+import { getUser, type UserRecord } from '@/services/userApi';
+import { getAccessToken } from '@/services/authSession';
 import { toast } from 'sonner';
-import type { UserInfoResult } from '@/types/auth';
 
 export function UserNav() {
-    const [userInfo, setUserInfo] = useState<UserInfoResult | null>(null);
+    const [user, setUser] = useState<UserRecord | null>(null);
 
     useEffect(() => {
-        const loadUserInfo = async () => {
-            try {
-                const info = await fetchUserInfo();
-                setUserInfo(info);
-            } catch (err) {
-                console.error('Failed to fetch user info', err);
-            }
-        };
-        loadUserInfo();
+        const token = getAccessToken();
+        if (!token) return;
+
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const payload = JSON.parse(window.atob(base64));
+            const sub = payload.sub;
+
+            const loadUser = async () => {
+                try {
+                    const data = await getUser(sub);
+                    setUser(data);
+                } catch (err) {
+                    console.error('Failed to fetch user info', err);
+                }
+            };
+            loadUser();
+        } catch (e) {
+            console.error('Failed to decode token', e);
+        }
     }, []);
 
     const handleLogout = async () => {
@@ -46,30 +59,25 @@ export function UserNav() {
         }
     };
 
-    const displayName = userInfo?.name || userInfo?.preferred_username || 'User';
-    const email = userInfo?.email || '';
-    const initials = displayName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
+    const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : '';
+    const displayName = fullName || user?.username || 'User';
+    const initials = (user?.firstName?.[0] || '') + (user?.lastName?.[0] || '');
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src="" alt={displayName} />
-                        <AvatarFallback>{initials || 'U'}</AvatarFallback>
+                    <Avatar className="h-8 w-8 border">
+                        <AvatarImage src={user?.avatarUrl || ''} alt={displayName} />
+                        <AvatarFallback>{initials || user?.username?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{displayName}</p>
-                        <p className="text-xs leading-none text-muted-foreground">{email}</p>
+                        <p className="text-sm font-medium leading-none">{fullName || user?.username}</p>
+                        <p className="text-xs leading-none text-muted-foreground">@{user?.username}</p>
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
