@@ -38,7 +38,8 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
     size: toStringParam(resolvedSearchParams.size) ?? '12',
   };
 
-  const page = toNumberParam(resolvedSearchParams.page, 1) ?? 1;
+  const requestedPage = Math.max(1, toNumberParam(resolvedSearchParams.page, 1) ?? 1);
+  const apiPage = requestedPage - 1;
 
   const [categories, brands] = await Promise.all([
     fetchCategories().catch(() => []),
@@ -62,7 +63,7 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
   }
 
   const productsPage = await fetchProducts({
-    page,
+    page: apiPage,
     size: Number(current.size) || 12,
     sort: current.sort,
     categoryId,
@@ -79,8 +80,9 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
 
   const totalItems = productsPage.totalItems ?? productsPage.items.length;
   const totalPages = productsPage.totalPages ?? (productsPage.size > 0 ? Math.max(1, Math.ceil(totalItems / productsPage.size)) : 1);
-  const hasPrevious = productsPage.page > 1;
-  const hasNext = productsPage.hasNext ?? productsPage.page < totalPages;
+  const currentPage = Math.min(totalPages, Math.max(1, (productsPage.page ?? apiPage) + 1));
+  const hasPrevious = currentPage > 1;
+  const hasNext = productsPage.hasNext ?? currentPage < totalPages;
 
   const pageTitle = activeCategory?.name ?? activeBrand?.name ?? 'Sản phẩm';
   const pageDescription =
@@ -103,7 +105,7 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
             <>
               <CatalogGrid items={productsPage.items} />
               <CatalogPagination
-                currentPage={productsPage.page}
+                currentPage={currentPage}
                 totalPages={totalPages}
                 hasPrevious={hasPrevious}
                 hasNext={hasNext}

@@ -21,7 +21,8 @@ type SearchParams = Record<string, string | string[] | undefined>;
 export default async function SearchPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = (await searchParams) ?? {};
   const keyword = toStringParam(resolvedSearchParams.keyword);
-  const page = toNumberParam(resolvedSearchParams.page, 1) ?? 1;
+  const requestedPage = Math.max(1, toNumberParam(resolvedSearchParams.page, 1) ?? 1);
+  const apiPage = requestedPage - 1;
 
   const categorySlug = toStringParam(resolvedSearchParams.categorySlug) ?? toStringParam(resolvedSearchParams.categoryId);
   const brandSlug = toStringParam(resolvedSearchParams.brandSlug) ?? toStringParam(resolvedSearchParams.brandId);
@@ -61,7 +62,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
 
   const resultsPage = keyword
     ? await searchProducts(keyword, {
-        page,
+      page: apiPage,
         size: Number(current.size) || 12,
         sort: current.sort,
         categoryId,
@@ -79,8 +80,9 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
 
   const totalItems = resultsPage.totalItems ?? resultsPage.items.length;
   const totalPages = resultsPage.totalPages ?? (resultsPage.size > 0 ? Math.max(1, Math.ceil(totalItems / resultsPage.size)) : 1);
-  const hasPrevious = resultsPage.page > 1;
-  const hasNext = resultsPage.hasNext ?? resultsPage.page < totalPages;
+  const currentPage = Math.min(totalPages, Math.max(1, (resultsPage.page ?? apiPage) + 1));
+  const hasPrevious = currentPage > 1;
+  const hasNext = resultsPage.hasNext ?? currentPage < totalPages;
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -93,7 +95,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
           <SearchResultSummary
             keyword={keyword}
             totalItems={totalItems}
-            currentPage={resultsPage.page}
+            currentPage={currentPage}
             totalPages={totalPages}
           />
 
@@ -101,7 +103,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
             <>
               <SearchGrid items={resultsPage.items} />
               <SearchPagination
-                currentPage={resultsPage.page}
+                currentPage={currentPage}
                 totalItems={totalItems}
                 totalPages={totalPages}
                 hasPrevious={hasPrevious}
