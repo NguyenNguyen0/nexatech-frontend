@@ -16,6 +16,20 @@ const CATEGORY_API_BASE = '/api/v1/categories';
 const BRAND_API_BASE = '/api/v1/brands';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
 
+function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
+  const seen = new Set<string>();
+
+  return products.filter((product) => {
+    const identity = product.id?.trim() || product.slug?.trim() || `${product.name}:${product.price}`;
+    if (!identity || seen.has(identity)) {
+      return false;
+    }
+
+    seen.add(identity);
+    return true;
+  });
+}
+
 function resolveApiPath(path: string): string {
   // Server-side fetch does not reliably support relative URLs for external rewrites.
   if (typeof window === 'undefined' && path.startsWith('/')) {
@@ -88,7 +102,7 @@ export async function fetchRelatedProducts(productSlugOrId: string, fallbackProd
   for (const path of candidates) {
     try {
       const payload = await requestProductApi<unknown>(path);
-      return normalizeCollection<ProductSummary>(payload);
+      return dedupeProducts(normalizeCollection<ProductSummary>(payload));
     } catch {
       // Try next compatible route.
     }
