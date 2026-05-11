@@ -13,6 +13,7 @@ export function buildProductQuery(params?: ProductListParams): string {
   appendParam(searchParams, 'size', params.size);
   appendParam(searchParams, 'sort', params.sort);
   appendParam(searchParams, 'categoryId', params.categoryId);
+  appendParam(searchParams, 'subcategoryId', params.subcategoryId);
   appendParam(searchParams, 'brandId', params.brandId);
   appendParam(searchParams, 'minPrice', params.minPrice);
   appendParam(searchParams, 'maxPrice', params.maxPrice);

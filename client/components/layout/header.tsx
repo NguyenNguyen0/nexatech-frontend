@@ -5,9 +5,13 @@ import { Armchair, Boxes, Gamepad2, HardDrive, Headphones, Keyboard, Laptop, Mic
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ProductSearch } from '@/components/layout/product-search';
+import { getApiErrorMessage, getCart } from '@/features/cart/services/cart-api';
+import type { Cart } from '@/types/cart';
+import { formatCurrency } from '@/lib/utils';
 
 type CategorySection = {
   heading: string;
@@ -133,10 +137,50 @@ const categoryGroups: CategoryGroup[] = [
 
 export function Header() {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [cart, setCart] = useState<Cart | null>(null);
   const [activeCategory, setActiveCategory] = useState(categoryGroups[0].name);
   const currentCategory = categoryGroups.find((category) => category.name === activeCategory) ?? categoryGroups[0];
+  const cartCount = cart?.totalItems ?? 0;
+
+  const loadCartPreview = useCallback(async () => {
+    setCartLoading(true);
+    setCartError(null);
+    try {
+      const data = await getCart();
+      setCart(data);
+    } catch (error) {
+      setCartError(getApiErrorMessage(error, 'Không thể tải giỏ hàng'));
+      setCart(null);
+    } finally {
+      setCartLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!cartOpen) return;
+    loadCartPreview();
+  }, [cartOpen, loadCartPreview]);
+
+  useEffect(() => {
+    if (!cartOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCartOpen(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [cartOpen]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-bg-elevated/85 backdrop-blur-xl transition-smooth">
@@ -252,9 +296,17 @@ export function Header() {
             <Heart className="h-5 w-5" />
           </button>
 
-          <button type="button" className="relative rounded-full p-2 text-text-secondary transition hover:bg-primary/10 hover:text-primary">
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="relative rounded-full p-2 text-text-secondary transition hover:bg-primary/10 hover:text-primary"
+            aria-label="Mở giỏ hàng"
+            aria-expanded={cartOpen}
+          >
             <ShoppingCart className="h-5 w-5" />
-            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">2</span>
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+              {cartCount}
+            </span>
           </button>
 
           <button type="button" className="hidden rounded-full p-2 text-text-secondary transition hover:bg-primary/10 hover:text-primary sm:inline-flex">
@@ -342,6 +394,103 @@ export function Header() {
           </div>
         </div>
       )}
+
+      {mounted && cartOpen
+        ? createPortal(
+        <>
+          <button
+            type="button"
+            aria-label="Đóng giỏ hàng"
+            className="fixed inset-0 z-60 bg-black/30"
+            onClick={() => setCartOpen(false)}
+          />
+
+          <aside className="fixed right-0 top-0 z-61 h-full w-full max-w-md border-l border-border bg-bg-elevated shadow-2xl">
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <div>
+                  <p className="text-lg font-bold text-text-primary">Giỏ hàng</p>
+                  <p className="text-xs text-text-tertiary">{cartCount} sản phẩm</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(false)}
+                  className="rounded-full p-2 text-text-secondary transition hover:bg-primary/10 hover:text-primary"
+                  aria-label="Đóng"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                {cartLoading ? (
+                  <div className="rounded-2xl border border-border bg-bg-base p-4 text-sm text-text-secondary">
+                    Đang tải giỏ hàng...
+                  </div>
+                ) : cartError ? (
+                  <div className="space-y-3 rounded-2xl border border-danger/20 bg-danger/5 p-4">
+                    <p className="text-sm text-danger">{cartError}</p>
+                    <button
+                      type="button"
+                      onClick={loadCartPreview}
+                      className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary-dark"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                ) : cart && cart.items.length > 0 ? (
+                  <div className="space-y-3">
+                    {cart.items.map((item) => (
+                      <div key={item.productId} className="flex items-center gap-3 rounded-2xl border border-border bg-bg-base p-3">
+                        <div className="h-14 w-14 overflow-hidden rounded-xl bg-bg-sunken">
+                          {item.productImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
+                          ) : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text-primary">{item.productName}</p>
+                          <p className="text-xs text-text-tertiary">SL: {item.quantity}</p>
+                          <p className="text-sm font-semibold text-primary">{formatCurrency(item.totalPrice)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-border bg-bg-base p-4 text-sm text-text-secondary">
+                    Giỏ hàng của bạn đang trống.
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-border px-5 py-4">
+                <div className="mb-3 flex items-center justify-between text-sm">
+                  <span className="text-text-secondary">Tạm tính</span>
+                  <span className="font-bold text-text-primary">{formatCurrency(cart?.totalAmount ?? 0)}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(false)}
+                    className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-border bg-bg-base text-sm font-semibold text-text-primary transition hover:border-primary hover:text-primary"
+                  >
+                    Tiếp tục mua
+                  </button>
+                  <Link
+                    href="/cart"
+                    onClick={() => setCartOpen(false)}
+                    className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-white transition hover:bg-primary-dark"
+                  >
+                    Xem giỏ hàng
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </>,
+        document.body,
+      )
+        : null}
     </header>
   );
 }

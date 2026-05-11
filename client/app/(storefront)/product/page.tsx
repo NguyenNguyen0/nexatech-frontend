@@ -42,6 +42,7 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
       size: Number(current.size) || 12,
       sort: current.sort,
       categoryId: current.categoryId,
+      subcategoryId: current.subcategoryId,
       brandId: current.brandId,
       minPrice: toNumberParam(resolvedSearchParams.minPrice),
       maxPrice: toNumberParam(resolvedSearchParams.maxPrice),

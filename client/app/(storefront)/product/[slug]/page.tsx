@@ -62,6 +62,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <PdpGallery images={gallery} productName={product.name} />
         <PdpSummary
+          productId={product.id}
           name={product.name}
           slug={product.slug}
           categoryName={product.categoryName}
