@@ -117,6 +117,28 @@ export function AppearanceForm() {
           )}
         />
 
+        <FormItem>
+          <FormLabel>Language</FormLabel>
+          <div className='relative w-max'>
+            <FormControl>
+              <select
+                disabled
+                className={cn(
+                  buttonVariants({ variant: 'outline' }),
+                  'w-[200px] appearance-none font-normal opacity-50'
+                )}
+              >
+                <option>English (Coming Soon)</option>
+                <option>Vietnamese (Coming Soon)</option>
+              </select>
+            </FormControl>
+            <ChevronDownIcon className='absolute right-3 top-2.5 h-4 w-4 opacity-50' />
+          </div>
+          <FormDescription>
+            Select your preferred language. (Multilingual support coming soon)
+          </FormDescription>
+        </FormItem>
+
         <Button type='submit'>Update preferences</Button>
       </form>
     </Form>

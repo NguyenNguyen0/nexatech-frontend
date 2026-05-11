@@ -128,3 +128,15 @@ export async function enableUser(userId: string): Promise<void> {
     throw new Error(data.message || 'Khong the enable user')
   }
 }
+
+export interface ChangePasswordPayload {
+  oldPassword: string
+  newPassword: string
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
+  const { data } = await axiosClient.post<ApiResponse<void>>(`${USERS_API_BASE}/me/change-password`, payload)
+  if (data.code !== 1000) {
+    throw new Error(data.message || 'Khong the doi mat khau')
+  }
+}

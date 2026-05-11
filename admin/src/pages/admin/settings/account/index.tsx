@@ -1,14 +1,13 @@
-import { AccountForm } from './account-form'
+import { PasswordForm } from './password-form'
 import ContentSection from '../components/content-section'
 
 export default function SettingsAccount() {
   return (
     <ContentSection
-      title='Account'
-      desc='Update your account settings. Set your preferred language and
-          timezone.'
+      title='Account Security'
+      desc='Manage your password and keep your account secure.'
     >
-      <AccountForm />
+      <PasswordForm />
     </ContentSection>
   )
 }
