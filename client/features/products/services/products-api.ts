@@ -1,3 +1,28 @@
+/**
+ * Product API Service — Updated for Backend API Changes (2026-05-11)
+ *
+ * BREAKING CHANGES:
+ * 1. Product fields restructured:
+ *    - `categoryId` → `primaryCategoryId` + `categoryIds[]` (product now supports multiple categories)
+ *    - `categoryName` → `primaryCategoryName` + `categorySlugs[]`
+ *    - `attributes` field removed entirely
+ *
+ * 2. Category filters now use "contains match" on categoryIds[] instead of exact match on single categoryId
+ *    - All category filter endpoints still accept `categoryId` query param
+ *    - Backend internally checks if categoryId is in product's categoryIds[] array
+ *
+ * 3. Related products now filter by `primaryCategoryId` (main category) instead of any category
+ *
+ * 4. Category model changes:
+ *    - `imageUrl` field removed from Category objects
+ *    - Use `metadata.bannerImage` for category banner images instead
+ *    - `metadata` now contains: seoTitle, seoDescription, bannerImage
+ *
+ * BACKWARD COMPATIBILITY:
+ * - ProductSummary still includes legacy categoryId/categoryName fields for backward compat
+ * - Components using these fields will continue to work but should migrate to new primary category fields
+ */
+
 import { buildProductQuery, normalizeCollection, normalizePageResult, unwrapProductApiResponse } from '../utils';
 import type {
   PageResult,
@@ -164,6 +189,8 @@ export async function fetchRelatedProducts(productSlugOrId: string, fallbackProd
   for (const path of candidates) {
     try {
       const payload = await requestProductApi<unknown>(path);
+      // Backend now filters related products by primaryCategoryId instead of single categoryId
+      // Products with multi-category support (categoryIds[]) may appear multiple times across category results
       return dedupeProducts(normalizeCollection<ProductSummary>(payload));
     } catch {
       // Try next compatible route.

@@ -11,6 +11,14 @@ export interface ProductSummary {
   reviewCount?: number;
   stockQuantity?: number;
   stockStatus?: StockStatus;
+  // Primary category (new backend structure)
+  primaryCategoryId?: string;
+  primaryCategorySlug?: string;
+  primaryCategoryName?: string;
+  // All categories this product belongs to (new multi-category support)
+  categoryIds?: string[];
+  categorySlugs?: string[];
+  // Legacy single category fields (deprecated, kept for backward compatibility)
   categoryId?: string;
   categoryName?: string;
   brandId?: string;
@@ -31,7 +39,12 @@ export interface ProductCategory {
   slug?: string;
   parentId?: string;
   description?: string;
-  imageUrl?: string;
+  // imageUrl removed in backend API - use metadata.bannerImage instead
+  metadata?: {
+    seoTitle?: string;
+    seoDescription?: string;
+    bannerImage?: string;
+  };
 }
 
 export interface ProductSubcategory {
