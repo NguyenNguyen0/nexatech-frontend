@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { canAccessByPath, clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isAccessTokenExpired } from '@/services/authSession';
+import {
+    canAccessByPath,
+    clearAuthTokens,
+    getAccessToken,
+    getRefreshToken,
+    getDefaultPathByRole,
+    getRolesFromAccessToken,
+    isAccessTokenExpired,
+} from '@/services/authSession';
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -17,10 +25,10 @@ export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteP
     const location = useLocation();
 
     const token = getAccessToken();
-    const isAuthenticated = !!token && !isAccessTokenExpired(token);
+    const refreshToken = getRefreshToken();
+    const isAuthenticated = !!token || !!refreshToken;
 
     if (!isAuthenticated) {
-        clearAuthTokens();
         return <Navigate to="/auth" replace />;
     }
 
