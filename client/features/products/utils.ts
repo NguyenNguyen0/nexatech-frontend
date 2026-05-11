@@ -27,15 +27,45 @@ export function buildProductQuery(params?: ProductListParams): string {
 }
 
 export function unwrapProductApiResponse<T>(payload: unknown): T {
+  if (Array.isArray(payload)) {
+    return payload as T;
+  }
+
   if (!payload || typeof payload !== 'object') {
     throw new Error('Phan hoi product API khong hop le');
   }
 
-  const response = payload as { status?: unknown; message?: unknown; data?: unknown };
+  const response = payload as {
+    status?: unknown;
+    message?: unknown;
+    data?: unknown;
+    success?: unknown;
+    code?: unknown;
+    result?: unknown;
+  };
+
   if (typeof response.status === 'number' && 'data' in response) {
     if (response.status < 200 || response.status >= 400) {
       throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
     }
+    return response.data as T;
+  }
+
+  if (typeof response.success === 'boolean' && 'data' in response) {
+    if (!response.success) {
+      throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
+    }
+    return response.data as T;
+  }
+
+  if (typeof response.code === 'number' && 'result' in response) {
+    if (response.code !== 1000) {
+      throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
+    }
+    return response.result as T;
+  }
+
+  if ('data' in response) {
     return response.data as T;
   }
 

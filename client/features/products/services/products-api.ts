@@ -14,9 +14,19 @@ import type {
 const PRODUCT_API_BASE = '/api/v1/products';
 const CATEGORY_API_BASE = '/api/v1/categories';
 const BRAND_API_BASE = '/api/v1/brands';
+const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
+
+function resolveApiPath(path: string): string {
+  // Server-side fetch does not reliably support relative URLs for external rewrites.
+  if (typeof window === 'undefined' && path.startsWith('/')) {
+    return `${API_GATEWAY_URL}${path}`;
+  }
+
+  return path;
+}
 
 async function requestProductApi<T>(path: string): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiPath(path), {
     method: 'GET',
     cache: 'no-store',
     credentials: 'include',
