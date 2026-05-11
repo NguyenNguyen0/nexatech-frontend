@@ -51,7 +51,7 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
         <div className={cn('flex flex-1 flex-col gap-3 p-4', variant === 'compact' && 'p-3')}>
           <div className="space-y-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-tertiary">
-              {product.brandName ?? product.categoryName ?? 'NexaTech'}
+              {product.brandName ?? product.primaryCategoryName ?? product.categoryName ?? 'NexaTech'}
             </p>
             <h3 className={cn('font-display text-base font-bold leading-snug text-text-primary line-clamp-2', variant === 'compact' && 'text-sm')}>
               {product.name}
