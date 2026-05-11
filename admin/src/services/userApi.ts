@@ -61,6 +61,8 @@ export interface AdminUserUpdatePayload {
   phone?: string
   role?: string
   onBoarded?: boolean
+  dob?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
 }
 
 export async function getUsers(page = 1, size = 10, filters: UserListFilters = {}): Promise<UsersPageResult> {
@@ -86,6 +88,14 @@ export async function createAdminUser(payload: AdminUserCreatePayload): Promise<
   const { data } = await axiosClient.post<ApiResponse<UserRecord>>(USERS_API_BASE, payload)
   if (data.code !== 1000 || !data.result) {
     throw new Error(data.message || 'Khong the tao user')
+  }
+  return data.result
+}
+
+export async function getUser(userId: string): Promise<UserRecord> {
+  const { data } = await axiosClient.get<ApiResponse<UserRecord>>(`${USERS_API_BASE}/${userId}`)
+  if (data.code !== 1000 || !data.result) {
+    throw new Error(data.message || 'Khong the tai thong tin user')
   }
   return data.result
 }
