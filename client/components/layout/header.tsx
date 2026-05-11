@@ -10,132 +10,25 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { ProductSearch } from '@/components/layout/product-search';
 import { getApiErrorMessage, getCart } from '@/features/cart/services/cart-api';
-import { fetchCategories } from '@/features/products/services/products-api';
+import { fetchCategoryMenu } from '@/features/products/services/products-api';
 import type { ProductCategory } from '@/features/products/types';
 import type { Cart } from '@/types/cart';
 import { formatCurrency } from '@/lib/utils';
 
 type CategorySection = {
+  id: string;
   heading: string;
-  items: string[];
+  slug?: string;
+  items: ProductCategory[];
 };
 
 type CategoryGroup = {
+  id: string;
   name: string;
+  slug?: string;
   icon: LucideIcon;
   sections: CategorySection[];
 };
-
-const categoryGroups: CategoryGroup[] = [
-  {
-    name: 'Laptop',
-    icon: Laptop,
-    sections: [
-      { heading: 'Brands', items: ['ASUS', 'ACER', 'MSI', 'LENOVO', 'DELL', 'HP Pavilion', 'LG Gram'] },
-    ],
-  },
-  {
-    name: 'Gaming Laptop',
-    icon: Gamepad2,
-    sections: [
-      { heading: 'Brands', items: ['ACER / Predator', 'ASUS / ROG', 'MSI', 'LENOVO', 'DELL', 'GIGABYTE', 'HP'] },
-    ],
-  },
-  {
-    name: 'Case - Power Supply - Cooling',
-    icon: Boxes,
-    sections: [
-      { heading: 'PC Case', items: ['ASUS', 'Corsair', 'Lian Li', 'NZXT', 'Jonsbo'] },
-      { heading: 'Power Supply (PSU)', items: ['ASUS', 'DeepCool', 'Corsair', 'NZXT', 'MSI'] },
-    ],
-  },
-  {
-    name: 'RAM - SSD - HDD',
-    icon: HardDrive,
-    sections: [
-      { heading: 'RAM', items: ['Corsair', 'Kingston', 'G.Skill', 'PNY'] },
-      { heading: 'SSD', items: ['Samsung', 'Western Digital', 'Kingston', 'Corsair', 'PNY'] },
-      { heading: 'HDD', items: ['Western Digital', 'Seagate', 'Toshiba'] },
-    ],
-  },
-  {
-    name: 'Speakers - Microphone - Webcam',
-    icon: Mic,
-    sections: [
-      { heading: 'Speakers', items: ['Edifier', 'Razer', 'Logitech', 'SoundMax'] },
-      { heading: 'Microphone', items: ['HyperX'] },
-    ],
-  },
-  {
-    name: 'Monitor',
-    icon: Monitor,
-    sections: [
-      {
-        heading: 'Brands',
-        items: ['LG', 'ASUS', 'ViewSonic', 'Dell', 'Gigabyte', 'AOC', 'Acer', 'HKC', 'MSI', 'Samsung', 'Philips', 'E-Dra', 'VSP'],
-      },
-    ],
-  },
-  {
-    name: 'Keyboard',
-    icon: Keyboard,
-    sections: [
-      {
-        heading: 'Brands',
-        items: [
-          'AKKO',
-          'AULA',
-          'Dare-U',
-          'Durgod',
-          'Leobog',
-          'Keychron',
-          'FL-Esports',
-          'Corsair',
-          'E-Dra',
-          'Cidoo',
-          'Machenike',
-          'ASUS',
-          'Logitech',
-          'Razer',
-          'Leopold',
-          'SteelSeries',
-          'Rapoo',
-          'VGN',
-          'MadLions',
-          'Skyloong',
-        ],
-      },
-    ],
-  },
-  {
-    name: 'Mouse',
-    icon: Mouse,
-    sections: [
-      {
-        heading: 'Brands',
-        items: ['Logitech', 'Razer', 'Corsair', 'Microsoft', 'Dare-U', 'ASUS', 'SteelSeries', 'Glorious', 'Rapoo', 'HyperX', 'ATK'],
-      },
-    ],
-  },
-  {
-    name: 'Headphones',
-    icon: Headphones,
-    sections: [
-      {
-        heading: 'Brands',
-        items: ['ASUS', 'HyperX', 'Corsair', 'Razer', 'ONIKUMA', 'SteelSeries', 'Rapoo', 'Logitech', 'Edifier'],
-      },
-    ],
-  },
-  {
-    name: 'Chair',
-    icon: Armchair,
-    sections: [
-      { heading: 'Gaming Chair', items: ['Corsair', 'Warrior', 'E-DRA', 'DXRacer', 'Cougar', 'AKRacing', 'Razer'] },
-      { heading: 'Ergonomic Chair', items: ['Warrior', 'Sihoo', 'E-Dra'] },
-    ],
-  },
-];
 
 function normalizeCategoryToken(value: string): string {
   return value
@@ -148,6 +41,47 @@ function normalizeCategoryToken(value: string): string {
     .trim();
 }
 
+const CATEGORY_ICON_BY_SLUG: Record<string, LucideIcon> = {
+  laptop: Laptop,
+  'gaming-laptop': Gamepad2,
+  'case-power-supply-cooling': Boxes,
+  'ram-ssd-hdd': HardDrive,
+  'speakers-microphone-webcam': Mic,
+  monitor: Monitor,
+  keyboard: Keyboard,
+  mouse: Mouse,
+  headphones: Headphones,
+  chair: Armchair,
+};
+
+function resolveCategoryIcon(category: ProductCategory): LucideIcon {
+  if (category.slug && CATEGORY_ICON_BY_SLUG[category.slug]) {
+    return CATEGORY_ICON_BY_SLUG[category.slug];
+  }
+
+  const normalizedName = normalizeCategoryToken(category.name).replace(/\s+/g, '-');
+  return CATEGORY_ICON_BY_SLUG[normalizedName] ?? Boxes;
+}
+
+function buildCategoryGroups(categories: ProductCategory[]): CategoryGroup[] {
+  return categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    icon: resolveCategoryIcon(category),
+    sections: (category.children ?? []).map((section) => ({
+      id: section.id,
+      heading: section.name,
+      slug: section.slug,
+      items: section.children ?? [],
+    })),
+  }));
+}
+
+function resolveCollectionHref(slug?: string): string {
+  return slug ? `/product/collection/${encodeURIComponent(slug)}` : '/product';
+}
+
 export function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -157,33 +91,12 @@ export function Header() {
   const [cartLoading, setCartLoading] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
   const [cart, setCart] = useState<Cart | null>(null);
-  const [apiCategories, setApiCategories] = useState<ProductCategory[]>([]);
-  const [activeCategory, setActiveCategory] = useState(categoryGroups[0].name);
-  const currentCategory = categoryGroups.find((category) => category.name === activeCategory) ?? categoryGroups[0];
+  const [categoryMenu, setCategoryMenu] = useState<ProductCategory[]>([]);
+  const [categoryMenuLoading, setCategoryMenuLoading] = useState(true);
+  const categoryGroups = useMemo(() => buildCategoryGroups(categoryMenu), [categoryMenu]);
+  const [activeCategoryId, setActiveCategoryId] = useState<string>('');
+  const currentCategory = categoryGroups.find((category) => category.id === activeCategoryId) ?? categoryGroups[0] ?? null;
   const cartCount = cart?.totalItems ?? 0;
-
-  const categoryHrefByName = useMemo(() => {
-    const hrefMap = new Map<string, string>();
-
-    for (const group of categoryGroups) {
-      const normalizedGroup = normalizeCategoryToken(group.name);
-      const matched = apiCategories.find((category) => {
-        const normalizedName = normalizeCategoryToken(category.name ?? '');
-        const normalizedSlug = normalizeCategoryToken(category.slug ?? '');
-        return normalizedGroup === normalizedName || normalizedGroup === normalizedSlug;
-      });
-
-      const routeSlug = matched?.slug ?? normalizeCategoryToken(group.name).replace(/\s+/g, '-');
-      hrefMap.set(group.name, `/product/collection/${encodeURIComponent(routeSlug)}`);
-    }
-
-    return hrefMap;
-  }, [apiCategories]);
-
-  const resolveCategoryHref = useCallback(
-    (categoryName: string) => categoryHrefByName.get(categoryName) ?? '/product',
-    [categoryHrefByName],
-  );
 
   const loadCartPreview = useCallback(async () => {
     setCartLoading(true);
@@ -211,15 +124,22 @@ export function Header() {
   useEffect(() => {
     let active = true;
 
-    void fetchCategories()
+    setCategoryMenuLoading(true);
+
+    void fetchCategoryMenu()
       .then((categories) => {
         if (active) {
-          setApiCategories(categories);
+          setCategoryMenu(categories);
         }
       })
       .catch(() => {
         if (active) {
-          setApiCategories([]);
+          setCategoryMenu([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setCategoryMenuLoading(false);
         }
       });
 
@@ -227,6 +147,17 @@ export function Header() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentCategory && categoryGroups[0]) {
+      setActiveCategoryId(categoryGroups[0].id);
+      return;
+    }
+
+    if (currentCategory && activeCategoryId !== currentCategory.id) {
+      setActiveCategoryId(currentCategory.id);
+    }
+  }, [activeCategoryId, categoryGroups, currentCategory]);
 
   useEffect(() => {
     if (!cartOpen) return;
@@ -290,57 +221,92 @@ export function Header() {
             {categoryMenuOpen ? (
               <div className="absolute left-0 top-full z-50 w-[70rem] max-w-[calc(100vw-4rem)] pt-2">
                 <div className="overflow-hidden rounded-[1.75rem] border border-border bg-bg-elevated shadow-[0_28px_80px_rgba(14,18,48,0.16)]">
-                <div className="grid grid-cols-[16rem_1fr]">
-                  <div className="border-r border-border bg-bg-base/80 p-3">
-                    {categoryGroups.map((group) => (
-                      <Link
-                        key={group.name}
-                        href={resolveCategoryHref(group.name)}
-                        onMouseEnter={() => setActiveCategory(group.name)}
-                        onFocus={() => setActiveCategory(group.name)}
-                        onClick={() => setCategoryMenuOpen(false)}
-                        className={`flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${group.name === currentCategory.name
-                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                          : 'text-text-primary hover:bg-primary/8 hover:text-primary'}`}
-                      >
-                        <group.icon className="h-4 w-4 shrink-0" />
-                        <span>{group.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-6 border-b border-border pb-5">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Main category</p>
-                        <h3 className="mt-2 flex items-center gap-2 text-2xl font-bold text-text-primary">
-                          <currentCategory.icon className="h-6 w-6" />
-                          {currentCategory.name}
-                        </h3>
+                  {currentCategory ? (
+                    <div className="grid grid-cols-[16rem_1fr]">
+                      <div className="border-r border-border bg-bg-base/80 p-3">
+                        {categoryGroups.map((group) => (
+                          <Link
+                            key={group.id}
+                            href={resolveCollectionHref(group.slug)}
+                            onMouseEnter={() => setActiveCategoryId(group.id)}
+                            onFocus={() => setActiveCategoryId(group.id)}
+                            onClick={() => setCategoryMenuOpen(false)}
+                            className={`flex w-full items-center gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${group.id === currentCategory.id
+                              ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                              : 'text-text-primary hover:bg-primary/8 hover:text-primary'}`}
+                          >
+                            <group.icon className="h-4 w-4 shrink-0" />
+                            <span>{group.name}</span>
+                          </Link>
+                        ))}
                       </div>
-                      <Button asChild className="h-10 rounded-xl px-4">
-                        <Link href={resolveCategoryHref(currentCategory.name)}>View all</Link>
-                      </Button>
-                    </div>
 
-                    <div className="mt-6 grid grid-cols-2 gap-6 xl:grid-cols-4">
-                      {currentCategory.sections.map((section) => (
-                        <div key={section.heading}>
-                          <p className="text-sm font-semibold text-primary">{section.heading}</p>
-                          <ul className="mt-3 space-y-2 text-sm text-text-secondary">
-                            {section.items.map((item) => (
-                              <li key={item}>
-                                <button type="button" className="text-left transition hover:text-primary">
-                                  {item}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
+                      <div className="p-6">
+                        <div className="flex items-start justify-between gap-6 border-b border-border pb-5">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Main category</p>
+                            <h3 className="mt-2 flex items-center gap-2 text-2xl font-bold text-text-primary">
+                              <currentCategory.icon className="h-6 w-6" />
+                              {currentCategory.name}
+                            </h3>
+                          </div>
+                          <Button asChild className="h-10 rounded-xl px-4">
+                            <Link href={resolveCollectionHref(currentCategory.slug)} onClick={() => setCategoryMenuOpen(false)}>
+                              View all
+                            </Link>
+                          </Button>
                         </div>
-                      ))}
+
+                        <div className="mt-6 grid grid-cols-2 gap-6 xl:grid-cols-4">
+                          {currentCategory.sections.map((section) => (
+                            <div key={section.id}>
+                              {section.slug ? (
+                                <Link
+                                  href={resolveCollectionHref(section.slug)}
+                                  onClick={() => setCategoryMenuOpen(false)}
+                                  className="text-sm font-semibold text-primary transition hover:text-primary-dark"
+                                >
+                                  {section.heading}
+                                </Link>
+                              ) : (
+                                <p className="text-sm font-semibold text-primary">{section.heading}</p>
+                              )}
+
+                              {section.items.length > 0 ? (
+                                <ul className="mt-3 space-y-2 text-sm text-text-secondary">
+                                  {section.items.map((item) => (
+                                    <li key={item.id}>
+                                      <Link
+                                        href={resolveCollectionHref(item.slug)}
+                                        onClick={() => setCategoryMenuOpen(false)}
+                                        className="text-left transition hover:text-primary"
+                                      >
+                                        {item.name}
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="mt-3">
+                                  <Link
+                                    href={resolveCollectionHref(section.slug)}
+                                    onClick={() => setCategoryMenuOpen(false)}
+                                    className="text-sm text-text-secondary transition hover:text-primary"
+                                  >
+                                    Xem danh mục
+                                  </Link>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  ) : (
+                    <div className="p-6 text-sm text-text-secondary">
+                      {categoryMenuLoading ? 'Đang tải danh mục...' : 'Chưa có danh mục để hiển thị.'}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : null}
@@ -417,8 +383,12 @@ export function Header() {
 
               <div className="mt-4 space-y-4">
                 {categoryGroups.map((group) => (
-                  <div key={group.name} className="rounded-2xl border border-border/80 bg-bg-elevated p-4">
-                    <Link href={resolveCategoryHref(group.name)} className="flex items-center justify-between text-sm font-semibold text-text-primary">
+                  <div key={group.id} className="rounded-2xl border border-border/80 bg-bg-elevated p-4">
+                    <Link
+                      href={resolveCollectionHref(group.slug)}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-between text-sm font-semibold text-text-primary"
+                    >
                       <span className="inline-flex items-center gap-2">
                         <group.icon className="h-4 w-4" />
                         {group.name}
@@ -427,14 +397,18 @@ export function Header() {
                     </Link>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {group.sections.slice(0, 2).map((section) => (
-                        <div key={section.heading}>
+                        <div key={section.id}>
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{section.heading}</p>
                           <ul className="mt-2 space-y-1.5 text-sm text-text-secondary">
                             {section.items.slice(0, 3).map((item) => (
-                              <li key={item}>
-                                <button type="button" className="text-left transition hover:text-primary">
-                                  {item}
-                                </button>
+                              <li key={item.id}>
+                                <Link
+                                  href={resolveCollectionHref(item.slug)}
+                                  onClick={() => setMobileMenuOpen(false)}
+                                  className="text-left transition hover:text-primary"
+                                >
+                                  {item.name}
+                                </Link>
                               </li>
                             ))}
                           </ul>

@@ -33,18 +33,22 @@ export interface ProductDetail extends ProductSummary {
   specs?: Record<string, string | number | boolean | null | undefined>;
 }
 
+export interface ProductCategoryMetadata {
+  seoTitle?: string;
+  seoDescription?: string;
+  bannerImage?: string;
+  [key: string]: unknown;
+}
+
 export interface ProductCategory {
   id: string;
   name: string;
   slug?: string;
   parentId?: string;
   description?: string;
-  // imageUrl removed in backend API - use metadata.bannerImage instead
-  metadata?: {
-    seoTitle?: string;
-    seoDescription?: string;
-    bannerImage?: string;
-  };
+  metadata?: ProductCategoryMetadata;
+  sortOrder?: number;
+  children?: ProductCategory[];
 }
 
 export interface ProductSubcategory {

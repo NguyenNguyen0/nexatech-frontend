@@ -237,6 +237,11 @@ export async function fetchCategories(): Promise<ProductCategory[]> {
   return normalizeCollection<ProductCategory>(payload);
 }
 
+export async function fetchCategoryMenu(): Promise<ProductCategory[]> {
+  const payload = await requestProductApi<unknown>(`${CATEGORY_API_BASE}/menu`);
+  return normalizeCollection<ProductCategory>(payload);
+}
+
 export async function fetchBrands(): Promise<ProductBrand[]> {
   const payload = await requestProductApi<unknown>(BRAND_API_BASE);
   return normalizeCollection<ProductBrand>(payload);
