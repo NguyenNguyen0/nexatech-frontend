@@ -7,7 +7,7 @@ export default function StorefrontLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#f3f4f6]">
+    <div className="min-h-screen flex flex-col font-body bg-bg-base">
       <Header />
       <main className="flex-1 pb-10">{children}</main>
       <Footer />
