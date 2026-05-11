@@ -33,3 +33,7 @@ next-env.d.ts
 
 # agent / AI
 .agent/
+plan.md
+task.md
+# IDE
+.vscode

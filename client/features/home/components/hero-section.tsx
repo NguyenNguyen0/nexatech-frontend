@@ -4,80 +4,110 @@ import { ChevronRight, Phone, Tablet, Laptop, Headphones, Watch, Tv, RefreshCcw,
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import { useRef } from 'react';
+import { Button } from '@/components/ui/button';
 
 export function HeroSection() {
-  const plugin = useRef(Autoplay({ delay: 3500, stopOnInteraction: true }));
+  const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
 
   const categoryIcons = [
-    { name: 'Điện thoại', icon: <Phone className="w-4 h-4" /> },
-    { name: 'Tablet', icon: <Tablet className="w-4 h-4" /> },
-    { name: 'Mac', icon: <Laptop className="w-4 h-4" /> },
-    { name: 'Máy cũ giá rẻ', icon: <RefreshCcw className="w-4 h-4" /> },
-    { name: 'Phụ kiện', icon: <Headphones className="w-4 h-4" /> },
-    { name: 'Đồng hồ', icon: <Watch className="w-4 h-4" /> },
-    { name: 'Âm thanh', icon: <Headphones className="w-4 h-4" /> },
-    { name: 'Điện máy, Gia dụng', icon: <Tv className="w-4 h-4" /> },
-    { name: 'Apple (AAR)', icon: <Phone className="w-4 h-4" /> },
-    { name: 'Xe điện', icon: <Tag className="w-4 h-4" /> },
-    { name: 'Màn hình, Tivi', icon: <Tv className="w-4 h-4" /> },
-    { name: 'Thu cũ đổi mới', icon: <RefreshCcw className="w-4 h-4" /> },
-    { name: 'Khuyến mãi', icon: <Tag className="w-4 h-4" /> },
+    { name: 'Điện thoại', icon: <Phone className="w-5 h-5" /> },
+    { name: 'Tablet', icon: <Tablet className="w-5 h-5" /> },
+    { name: 'Mac', icon: <Laptop className="w-5 h-5" /> },
+    { name: 'Máy cũ', icon: <RefreshCcw className="w-5 h-5" /> },
+    { name: 'Phụ kiện', icon: <Headphones className="w-5 h-5" /> },
+    { name: 'Đồng hồ', icon: <Watch className="w-5 h-5" /> },
+    { name: 'Âm thanh', icon: <Headphones className="w-5 h-5" /> },
+    { name: 'Gia dụng', icon: <Tv className="w-5 h-5" /> },
+    { name: 'Khuyến mãi', icon: <Tag className="w-5 h-5" /> },
   ];
 
   return (
-    <section className="max-w-[1200px] mx-auto px-4 py-4">
+    <section className="max-w-[1200px] mx-auto px-4 py-6 space-y-4">
       <div className="flex gap-4">
-        {/* Left Sidebar Menu */}
-        <div className="hidden lg:flex flex-col w-[230px] xl:w-[250px] bg-background rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-border/50 py-2 h-[380px] shrink-0 relative group/menu z-20">
-          <div className="h-full overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-            {categoryIcons.map((item, i) => (
-              <a key={i} href="#" className="flex items-center justify-between px-4 py-1.5 hover:bg-muted/50 transition-colors text-sm font-medium group">
-                <span className="flex items-center gap-3">
-                  <span className="text-muted-foreground group-hover:text-primary">{item.icon}</span>
-                  {item.name}
-                </span>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </a>
-            ))}
-          </div>
+        {/* Left Category Sidebar */}
+        <div className="hidden lg:flex flex-col w-[200px] xl:w-[220px] bg-bg-elevated dark:bg-bg-elevated rounded-xl shadow-sm border border-border dark:border-border/50 py-3 h-[400px] overflow-y-auto transition-smooth">
+          {categoryIcons.map((item, i) => (
+            <a
+              key={i}
+              href="#"
+              className="flex items-center justify-between px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-800 transition-smooth text-sm font-medium group"
+            >
+              <span className="flex items-center gap-3 text-text-primary dark:text-text-inverse">
+                <span className="text-primary group-hover:text-primary-light transition-smooth">{item.icon}</span>
+                {item.name}
+              </span>
+              <ChevronRight className="w-4 h-4 text-text-tertiary opacity-0 group-hover:opacity-100 transition-smooth" />
+            </a>
+          ))}
         </div>
 
-        {/* Center Carousel */}
-        <div className="flex-1 min-w-0 w-full relative h-[250px] md:h-[300px] lg:h-[380px] z-10">
+        {/* Hero Carousel */}
+        <div className="flex-1 relative group">
           <Carousel
             plugins={[plugin.current as never]}
-            className="w-full h-full rounded-lg overflow-hidden shadow-sm"
+            className="w-full h-[250px] md:h-[300px] lg:h-[400px] rounded-xl overflow-hidden"
             opts={{ loop: true }}
             onMouseEnter={plugin.current.stop}
             onMouseLeave={plugin.current.reset}
           >
             <CarouselContent className="h-full">
               {[1, 2, 3].map((_, index) => (
-                <CarouselItem key={index} className="h-full relative bg-gray-100">
+                <CarouselItem key={index} className="h-full relative">
                   <img
-                    src={`https://picsum.photos/seed/didonghero${index}/900/450`}
+                    src={`https://picsum.photos/seed/didonghero${index}/1200/400`}
                     alt={`Banner ${index}`}
-                    className="object-cover w-full h-full"
+                    className="w-full h-full object-cover"
                   />
-                  {index === 0 && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/20 backdrop-blur-[2px]">
-                      <div className="text-center font-bold">
-                        <h2 className="text-3xl md:text-5xl font-black text-black">
-                          Mac Tuyệt Vời. <br /> Giá Bất Ngờ.
-                        </h2>
-                        <button className="mt-4 border-2 border-black rounded-full px-6 py-1.5 font-bold hover:bg-black hover:text-white transition-colors">
-                          Mua ngay
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {/* Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent flex flex-col items-start justify-center px-6 md:px-12">
+                    <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-black text-white mb-3 max-w-2xl leading-tight">
+                      Công Nghệ<br />
+                      <span className="bg-gradient-to-r from-secondary to-primary-light bg-clip-text text-transparent">
+                        Tương Lai
+                      </span>
+                    </h2>
+                    <p className="text-white/90 text-sm md:text-base mb-6 max-w-xl">
+                      Khám phá những sản phẩm công nghệ mới nhất với giá tốt nhất
+                    </p>
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="rounded-full font-bold"
+                    >
+                      Mua ngay →
+                    </Button>
+                  </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="left-2 bg-white/50 border-none hover:bg-white text-black w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <CarouselNext className="right-2 bg-white/50 border-none hover:bg-white text-black w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            {/* Carousel Controls */}
+            <div className="absolute left-0 right-0 bottom-4 flex justify-center gap-2 z-20">
+              {[0, 1, 2].map((i) => (
+                <button
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-white/50 hover:bg-white transition-smooth"
+                />
+              ))}
+            </div>
+
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-none text-white opacity-0 group-hover:opacity-100 transition-smooth" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 border-none text-white opacity-0 group-hover:opacity-100 transition-smooth" />
           </Carousel>
         </div>
+      </div>
+
+      {/* Category Pills for Mobile */}
+      <div className="lg:hidden flex gap-2 overflow-x-auto pb-2">
+        {categoryIcons.slice(0, 5).map((item, i) => (
+          <button
+            key={i}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 dark:bg-primary/5 text-primary rounded-full text-sm font-medium flex-shrink-0 hover:bg-primary/20 dark:hover:bg-primary/10 transition-smooth"
+          >
+            {item.icon}
+            {item.name}
+          </button>
+        ))}
       </div>
     </section>
   );
