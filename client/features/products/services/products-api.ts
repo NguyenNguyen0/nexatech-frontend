@@ -6,6 +6,7 @@ import type {
   ProductDetail,
   ProductListParams,
   ProductReview,
+  ProductSubcategory,
   ProductSuggestion,
   ProductSummary,
 } from '../types';
@@ -84,4 +85,11 @@ export async function fetchCategories(): Promise<ProductCategory[]> {
 export async function fetchBrands(): Promise<ProductBrand[]> {
   const payload = await requestProductApi<unknown>(BRAND_API_BASE);
   return normalizeCollection<ProductBrand>(payload);
+}
+
+export async function fetchSubcategories(categoryId: string): Promise<ProductSubcategory[]> {
+  const payload = await requestProductApi<unknown>(
+    `${CATEGORY_API_BASE}/${encodeURIComponent(categoryId)}/subcategories`
+  );
+  return normalizeCollection<ProductSubcategory>(payload);
 }

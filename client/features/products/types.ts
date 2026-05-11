@@ -33,6 +33,15 @@ export interface ProductCategory {
   imageUrl?: string;
 }
 
+export interface ProductSubcategory {
+  id: string;
+  name: string;
+  slug?: string;
+  parentId?: string;
+  description?: string;
+  imageUrl?: string;
+}
+
 export interface ProductBrand {
   id: string;
   name: string;
@@ -79,6 +88,7 @@ export interface ProductListParams {
   page?: number;
   size?: number;
   sort?: string;
+    subcategoryId?: string;
   categoryId?: string;
   brandId?: string;
   minPrice?: number;

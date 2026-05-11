@@ -26,6 +26,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
   const current = {
     keyword,
     categoryId: toStringParam(resolvedSearchParams.categoryId),
+    subcategoryId: toStringParam(resolvedSearchParams.subcategoryId),
     brandId: toStringParam(resolvedSearchParams.brandId),
     minPrice: toStringParam(resolvedSearchParams.minPrice),
     maxPrice: toStringParam(resolvedSearchParams.maxPrice),

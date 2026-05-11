@@ -7,6 +7,7 @@ type SearchSidebarFiltersProps = {
   current: {
     keyword?: string;
     categoryId?: string;
+    subcategoryId?: string;
     brandId?: string;
     minPrice?: string;
     maxPrice?: string;

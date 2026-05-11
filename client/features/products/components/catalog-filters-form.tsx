@@ -1,6 +1,10 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SlidersHorizontal, MessageCircle } from 'lucide-react';
-import type { ProductBrand, ProductCategory } from '../types';
+import { SlidersHorizontal, MessageCircle, ChevronDown } from 'lucide-react';
+import { fetchSubcategories } from '../services/products-api';
+import type { ProductBrand, ProductCategory, ProductSubcategory } from '../types';
 
 const sortOptions = [
   { label: 'Phù hợp nhất', value: 'relevance,desc' },
@@ -24,6 +28,7 @@ interface CatalogFiltersFormProps {
   current: {
     keyword?: string;
     categoryId?: string;
+    subcategoryId?: string;
     brandId?: string;
     minPrice?: string;
     maxPrice?: string;
@@ -43,6 +48,22 @@ export function CatalogFiltersForm({
   current,
   showKeyword = false,
 }: CatalogFiltersFormProps) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(current.categoryId ?? '');
+  const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+
+  // Load subcategories when category changes
+  useEffect(() => {
+    if (selectedCategoryId && selectedCategoryId !== '') {
+      setLoadingSubcategories(true);
+      fetchSubcategories(selectedCategoryId)
+        .then(setSubcategories)
+        .catch(() => setSubcategories([]))
+        .finally(() => setLoadingSubcategories(false));
+    } else {
+      setSubcategories([]);
+    }
+  }, [selectedCategoryId]);
   return (
     <aside className="w-full lg:w-64 shrink-0">
       <div className="sticky top-24 space-y-4">
@@ -56,6 +77,7 @@ export function CatalogFiltersForm({
           <form action={action} method="get" className="space-y-5">
             <input type="hidden" name="page" value="1" />
             <input type="hidden" name="size" value={current.size ?? '12'} />
+            <input type="hidden" name="subcategoryId" value={current.subcategoryId ?? ''} />
 
             {/* Keyword */}
             {showKeyword ? (
@@ -72,40 +94,88 @@ export function CatalogFiltersForm({
               <input type="hidden" name="keyword" value={current.keyword} />
             ) : null}
 
-            {/* Category */}
+            {/* Category & Subcategory */}
             {categories.length > 0 && (
-              <div>
-                <p className="mb-2.5 text-xs font-bold text-text-primary">Danh mục</p>
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-text-primary">Danh mục</p>
                 <div
                   className={
-                    categories.length > 6 ? 'max-h-44 space-y-2 overflow-y-auto pr-1' : 'space-y-2'
+                    categories.length > 6 ? 'max-h-80 space-y-2 overflow-y-auto pr-1' : 'space-y-2'
                   }
                 >
+                  {/* "All categories" option */}
                   <label className="group flex cursor-pointer items-center gap-2.5">
                     <input
                       type="radio"
                       name="categoryId"
                       value=""
-                      defaultChecked={!current.categoryId}
+                      checked={selectedCategoryId === ''}
+                      onChange={(e) => setSelectedCategoryId(e.target.value)}
                       className="h-4 w-4 accent-primary"
                     />
                     <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
                       Tất cả
                     </span>
                   </label>
+
+                  {/* Categories with subcategories */}
                   {categories.map((cat) => (
-                    <label key={cat.id} className="group flex cursor-pointer items-center gap-2.5">
-                      <input
-                        type="radio"
-                        name="categoryId"
-                        value={cat.id}
-                        defaultChecked={current.categoryId === cat.id}
-                        className="h-4 w-4 accent-primary"
-                      />
-                      <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
-                        {cat.name}
-                      </span>
-                    </label>
+                    <div key={cat.id}>
+                      <label className="group flex cursor-pointer items-center gap-2.5">
+                        <input
+                          type="radio"
+                          name="categoryId"
+                          value={cat.id}
+                          checked={selectedCategoryId === cat.id}
+                          onChange={(e) => setSelectedCategoryId(e.target.value)}
+                          className="h-4 w-4 accent-primary"
+                        />
+                        <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                          {cat.name}
+                        </span>
+                      </label>
+
+                      {/* Subcategories (show when parent is selected) */}
+                      {selectedCategoryId === cat.id && subcategories.length > 0 && (
+                        <div className="ml-6 mt-2 space-y-2 border-l border-border/50 pl-3">
+                          {loadingSubcategories ? (
+                            <div className="py-1 text-xs text-text-tertiary">Đang tải...</div>
+                          ) : (
+                            <>
+                              <label className="group flex cursor-pointer items-center gap-2.5">
+                                <input
+                                  type="radio"
+                                  name="subcategoryId"
+                                  value=""
+                                  defaultChecked={!current.subcategoryId}
+                                  className="h-4 w-4 accent-primary"
+                                />
+                                <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                                  Tất cả
+                                </span>
+                              </label>
+                              {subcategories.map((subcat) => (
+                                <label
+                                  key={subcat.id}
+                                  className="group flex cursor-pointer items-center gap-2.5"
+                                >
+                                  <input
+                                    type="radio"
+                                    name="subcategoryId"
+                                    value={subcat.id}
+                                    defaultChecked={current.subcategoryId === subcat.id}
+                                    className="h-4 w-4 accent-primary"
+                                  />
+                                  <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                                    {subcat.name}
+                                  </span>
+                                </label>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

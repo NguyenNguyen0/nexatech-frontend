@@ -6,6 +6,7 @@ type CatalogSidebarFiltersProps = {
   brands: ProductBrand[];
   current: {
     categoryId?: string;
+    subcategoryId?: string;
     brandId?: string;
     minPrice?: string;
     maxPrice?: string;
