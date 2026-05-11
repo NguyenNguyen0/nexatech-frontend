@@ -146,7 +146,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }:
                     email: values.email,
                     firstName: values.firstName,
                     lastName: values.lastName,
-                    avatarUrl: avatarPreview || currentRow.avatarUrl,
+                    avatarUrl: currentRow.avatarUrl, // Don't send base64 yet
                     phone: values.phoneNumber,
                     role: values.role?.toUpperCase(),
                     onBoarded: currentRow.onBoarded,
@@ -160,7 +160,7 @@ export function UsersActionDialog({ currentRow, open, onOpenChange, onSuccess }:
                     username: values.username,
                     firstName: values.firstName,
                     lastName: values.lastName,
-                    avatarUrl: avatarPreview || '',
+                    avatarUrl: '', // Don't send base64 yet
                     phone: values.phoneNumber,
                     role: values.role?.toUpperCase(),
                     password: values.password,

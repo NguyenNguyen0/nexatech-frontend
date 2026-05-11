@@ -29,16 +29,16 @@ export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteP
     TODO: Thêm Path URL vào để tắt alert cảnh báo mocks data (tránh sai sót)
     */
     useEffect(() => {
-        const isNotImplemented =
-            location.pathname.startsWith('/admin') &&
-            location.pathname !== '/admin/users' &&
-            location.pathname !== '/admin/settings' &&
-            location.pathname !== '/admin/settings/account';
+        // Danh sách các trang đã được triển khai (không hiện alert)
+        const implementedPaths = ['/admin/users', '/admin/settings', '/admin/settings/account', '/admin/settings/appearance'];
 
-        if (isNotImplemented) {
+        const isImplemented = implementedPaths.includes(location.pathname);
+        const isAdminPath = location.pathname.startsWith('/admin');
+
+        if (isAdminPath && !isImplemented) {
             alert('CHÚ Ý: Chào Developer! Trang này hiện đang sử dụng dữ liệu mẫu (Mock data) và chưa được triển khai gọi API thực tế.');
             alert(
-                "*** Nếu bạn đã hoàn thành trang team Leader giao thì vào \n nexatech-frontend/admin/src/components/custom/ProtectedRoute.tsx \n (example: && location.pathname !== '/admin/users') \n tắt Alert. \n Thanks! ***",
+                '*** Nếu bạn đã hoàn thành trang team Leader giao thì vào \n nexatech-frontend/admin/src/components/custom/ProtectedRoute.tsx \n (thêm path vào mảng implementedPaths) \n để tắt Alert. \n Thanks! ***',
             );
         }
     }, [location.pathname]);
