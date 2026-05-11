@@ -84,10 +84,18 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
 
         <ProductReviewSection
           productId={product.id}
+          productSlug={product.slug}
           productName={product.name}
           averageRating={product.averageRating}
           reviewCount={reviewsPage.totalItems ?? reviewsPage.items.length}
           initialReviews={reviewsPage.items}
+          initialHasNext={Boolean(
+            typeof reviewsPage.hasNext === 'boolean'
+              ? reviewsPage.hasNext
+              : typeof reviewsPage.totalPages === 'number'
+                ? reviewsPage.page < reviewsPage.totalPages
+                : false,
+          )}
         />
 
         <PdpRelatedProducts products={relatedProducts} />
