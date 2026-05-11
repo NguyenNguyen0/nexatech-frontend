@@ -62,9 +62,6 @@ export default function ProfileForm() {
             const loadUser = async () => {
                 try {
                     const user = await getUser(sub);
-                    const tokenRoles = getRolesFromAccessToken(token);
-                    const primaryTokenRole = pickPrimaryRole(tokenRoles);
-
                     form.reset({
                         username: user.username,
                         email: user.email,
@@ -73,7 +70,7 @@ export default function ProfileForm() {
                         phone: user.phone || '',
                         dob: user.dob || '',
                         gender: (user.gender as 'MALE' | 'FEMALE' | 'OTHER') || 'OTHER',
-                        role: user.role || primaryTokenRole || 'UNASSIGNED',
+                        role: user.role || 'UNASSIGNED',
                         avatarUrl: user.avatarUrl || '',
                     });
                     if (user.avatarUrl) setAvatarPreview(user.avatarUrl);
