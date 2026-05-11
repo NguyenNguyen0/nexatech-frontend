@@ -22,6 +22,7 @@ export interface ProductDetail extends ProductSummary {
   description?: string;
   descriptionHtml?: string;
   images?: string[];
+  specs?: Record<string, string | number | boolean | null | undefined>;
 }
 
 export interface ProductCategory {
@@ -88,8 +89,8 @@ export interface ProductListParams {
   page?: number;
   size?: number;
   sort?: string;
-    subcategoryId?: string;
   categoryId?: string;
+  subcategoryId?: string;
   brandId?: string;
   minPrice?: number;
   maxPrice?: number;

@@ -27,9 +27,9 @@ interface CatalogFiltersFormProps {
   brands: ProductBrand[];
   current: {
     keyword?: string;
-    categoryId?: string;
-    subcategoryId?: string;
-    brandId?: string;
+    categorySlug?: string;
+    subcategorySlug?: string;
+    brandSlug?: string;
     minPrice?: string;
     maxPrice?: string;
     minRating?: string;
@@ -48,13 +48,20 @@ export function CatalogFiltersForm({
   current,
   showKeyword = false,
 }: CatalogFiltersFormProps) {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(current.categoryId ?? '');
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>(current.categorySlug ?? '');
   const [subcategories, setSubcategories] = useState<ProductSubcategory[]>([]);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
 
+  const resolveCategoryId = (slugOrId: string): string | undefined => {
+    if (!slugOrId) return undefined;
+    return categories.find((category) => category.slug === slugOrId || category.id === slugOrId)?.id;
+  };
+
   // Load subcategories when category changes
   useEffect(() => {
-    if (selectedCategoryId && selectedCategoryId !== '') {
+    const selectedCategoryId = resolveCategoryId(selectedCategorySlug);
+
+    if (selectedCategoryId) {
       setLoadingSubcategories(true);
       fetchSubcategories(selectedCategoryId)
         .then(setSubcategories)
@@ -63,7 +70,7 @@ export function CatalogFiltersForm({
     } else {
       setSubcategories([]);
     }
-  }, [selectedCategoryId]);
+  }, [selectedCategorySlug, categories]);
   return (
     <aside className="w-full lg:w-64 shrink-0">
       <div className="sticky top-24 space-y-4">
@@ -77,7 +84,7 @@ export function CatalogFiltersForm({
           <form action={action} method="get" className="space-y-5">
             <input type="hidden" name="page" value="1" />
             <input type="hidden" name="size" value={current.size ?? '12'} />
-            <input type="hidden" name="subcategoryId" value={current.subcategoryId ?? ''} />
+            <input type="hidden" name="subcategorySlug" value={current.subcategorySlug ?? ''} />
 
             {/* Keyword */}
             {showKeyword ? (
@@ -107,10 +114,10 @@ export function CatalogFiltersForm({
                   <label className="group flex cursor-pointer items-center gap-2.5">
                     <input
                       type="radio"
-                      name="categoryId"
+                      name="categorySlug"
                       value=""
-                      checked={selectedCategoryId === ''}
-                      onChange={(e) => setSelectedCategoryId(e.target.value)}
+                      checked={selectedCategorySlug === ''}
+                      onChange={(e) => setSelectedCategorySlug(e.target.value)}
                       className="h-4 w-4 accent-primary"
                     />
                     <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
@@ -124,10 +131,10 @@ export function CatalogFiltersForm({
                       <label className="group flex cursor-pointer items-center gap-2.5">
                         <input
                           type="radio"
-                          name="categoryId"
-                          value={cat.id}
-                          checked={selectedCategoryId === cat.id}
-                          onChange={(e) => setSelectedCategoryId(e.target.value)}
+                          name="categorySlug"
+                          value={cat.slug ?? cat.id}
+                          checked={selectedCategorySlug === (cat.slug ?? cat.id)}
+                          onChange={(e) => setSelectedCategorySlug(e.target.value)}
                           className="h-4 w-4 accent-primary"
                         />
                         <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
@@ -136,7 +143,7 @@ export function CatalogFiltersForm({
                       </label>
 
                       {/* Subcategories (show when parent is selected) */}
-                      {selectedCategoryId === cat.id && subcategories.length > 0 && (
+                      {selectedCategorySlug === (cat.slug ?? cat.id) && subcategories.length > 0 && (
                         <div className="ml-6 mt-2 space-y-2 border-l border-border/50 pl-3">
                           {loadingSubcategories ? (
                             <div className="py-1 text-xs text-text-tertiary">Đang tải...</div>
@@ -145,9 +152,9 @@ export function CatalogFiltersForm({
                               <label className="group flex cursor-pointer items-center gap-2.5">
                                 <input
                                   type="radio"
-                                  name="subcategoryId"
+                                  name="subcategorySlug"
                                   value=""
-                                  defaultChecked={!current.subcategoryId}
+                                  defaultChecked={!current.subcategorySlug}
                                   className="h-4 w-4 accent-primary"
                                 />
                                 <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
@@ -161,9 +168,9 @@ export function CatalogFiltersForm({
                                 >
                                   <input
                                     type="radio"
-                                    name="subcategoryId"
-                                    value={subcat.id}
-                                    defaultChecked={current.subcategoryId === subcat.id}
+                                    name="subcategorySlug"
+                                    value={subcat.slug ?? subcat.id}
+                                    defaultChecked={current.subcategorySlug === (subcat.slug ?? subcat.id)}
                                     className="h-4 w-4 accent-primary"
                                   />
                                   <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
@@ -193,9 +200,9 @@ export function CatalogFiltersForm({
                   <label className="group flex cursor-pointer items-center gap-2.5">
                     <input
                       type="radio"
-                      name="brandId"
+                      name="brandSlug"
                       value=""
-                      defaultChecked={!current.brandId}
+                      defaultChecked={!current.brandSlug}
                       className="h-4 w-4 accent-primary"
                     />
                     <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
@@ -206,9 +213,9 @@ export function CatalogFiltersForm({
                     <label key={brand.id} className="group flex cursor-pointer items-center gap-2.5">
                       <input
                         type="radio"
-                        name="brandId"
-                        value={brand.id}
-                        defaultChecked={current.brandId === brand.id}
+                        name="brandSlug"
+                        value={brand.slug ?? brand.id}
+                        defaultChecked={current.brandSlug === (brand.slug ?? brand.id)}
                         className="h-4 w-4 accent-primary"
                       />
                       <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">

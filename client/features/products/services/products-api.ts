@@ -63,17 +63,59 @@ export async function searchProducts(keyword: string, params?: ProductListParams
 }
 
 export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
-  return requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/${encodeURIComponent(slug)}`);
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    throw new Error('Slug san pham khong hop le');
+  }
+
+  // New backend contract: dedicated get-by-slug endpoint.
+  try {
+    return await requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/slug/${encodeURIComponent(normalizedSlug)}`);
+  } catch {
+    // Backward-compatible fallback for environments that still expose the legacy direct path.
+    return requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedSlug)}`);
+  }
 }
 
-export async function fetchRelatedProducts(productId: string): Promise<ProductSummary[]> {
-  const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/${encodeURIComponent(productId)}/related`);
-  return normalizeCollection<ProductSummary>(payload);
+export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductSummary[]> {
+  const normalized = productSlugOrId.trim();
+  const candidates = [
+    `${PRODUCT_API_BASE}/slug/${encodeURIComponent(normalized)}/related`,
+    `${PRODUCT_API_BASE}/${encodeURIComponent(normalized)}/related`,
+    fallbackProductId ? `${PRODUCT_API_BASE}/${encodeURIComponent(fallbackProductId)}/related` : undefined,
+  ].filter((value): value is string => Boolean(value));
+
+  for (const path of candidates) {
+    try {
+      const payload = await requestProductApi<unknown>(path);
+      return normalizeCollection<ProductSummary>(payload);
+    } catch {
+      // Try next compatible route.
+    }
+  }
+
+  return [];
 }
 
-export async function fetchProductReviews(productId: string, params?: ProductListParams): Promise<PageResult<ProductReview>> {
-  const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/${encodeURIComponent(productId)}/reviews${buildProductQuery(params)}`);
-  return normalizePageResult<ProductReview>(payload);
+export async function fetchProductReviews(productSlugOrId: string, params?: ProductListParams, fallbackProductId?: string): Promise<PageResult<ProductReview>> {
+  const normalized = productSlugOrId.trim();
+  const query = buildProductQuery(params);
+  const candidates = [
+    `${PRODUCT_API_BASE}/slug/${encodeURIComponent(normalized)}/reviews${query}`,
+    `${PRODUCT_API_BASE}/${encodeURIComponent(normalized)}/reviews${query}`,
+    fallbackProductId ? `${PRODUCT_API_BASE}/${encodeURIComponent(fallbackProductId)}/reviews${query}` : undefined,
+  ].filter((value): value is string => Boolean(value));
+
+  for (const path of candidates) {
+    try {
+      const payload = await requestProductApi<unknown>(path);
+      return normalizePageResult<ProductReview>(payload);
+    } catch {
+      // Try next compatible route.
+    }
+  }
+
+  return { items: [], page: params?.page ?? 1, size: params?.size ?? 10, totalItems: 0, totalPages: 1, hasNext: false };
 }
 
 export async function fetchProductSuggestions(keyword: string, params?: { limit?: number; categoryId?: string; brandId?: string }): Promise<ProductSuggestion[]> {
@@ -97,9 +139,32 @@ export async function fetchBrands(): Promise<ProductBrand[]> {
   return normalizeCollection<ProductBrand>(payload);
 }
 
-export async function fetchSubcategories(categoryId: string): Promise<ProductSubcategory[]> {
-  const payload = await requestProductApi<unknown>(
-    `${CATEGORY_API_BASE}/${encodeURIComponent(categoryId)}/subcategories`
-  );
-  return normalizeCollection<ProductSubcategory>(payload);
+export async function fetchSubcategories(categorySlugOrId: string): Promise<ProductSubcategory[]> {
+  const normalized = categorySlugOrId.trim();
+  if (!normalized) return [];
+
+  try {
+    const payload = await requestProductApi<unknown>(
+      `${CATEGORY_API_BASE}/slug/${encodeURIComponent(normalized)}/subcategories`
+    );
+    return normalizeCollection<ProductSubcategory>(payload);
+  } catch {
+    // Fallback for current backend implementations that still require category id.
+    let categoryId = normalized;
+
+    try {
+      const categories = await fetchCategories();
+      const matched = categories.find((category) => category.slug === normalized || category.id === normalized);
+      if (matched?.id) {
+        categoryId = matched.id;
+      }
+    } catch {
+      // Keep original value; next request may still succeed if it's already an id.
+    }
+
+    const payload = await requestProductApi<unknown>(
+      `${CATEGORY_API_BASE}/${encodeURIComponent(categoryId)}/subcategories`
+    );
+    return normalizeCollection<ProductSubcategory>(payload);
+  }
 }

@@ -5,6 +5,7 @@ import { fetchProductBySlug, fetchProductReviews, fetchRelatedProducts } from '@
 import type { PageResult, ProductReview } from '@/features/products/types';
 import {
   PdpBreadcrumb,
+  PdpBlogReview,
   PdpGallery,
   PdpSummary,
   PdpSpecs,
@@ -47,8 +48,8 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
   }
 
   const [relatedProducts, reviewsPage] = await Promise.all([
-    fetchRelatedProducts(product.id).catch(() => []),
-    fetchProductReviews(product.id, { page: 1, size: 10 }).catch(
+    fetchRelatedProducts(product.slug, product.id).catch(() => []),
+    fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
       () => ({ items: [], page: 1, size: 10, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductReview>),
     ),
   ]);
@@ -70,18 +71,16 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
           price={product.price}
           compareAtPrice={product.compareAtPrice}
           averageRating={product.averageRating}
+          reviewCount={reviewsPage.totalItems ?? product.reviewCount ?? 0}
           stockStatus={product.stockStatus}
           stockQuantity={product.stockQuantity}
         />
       </div>
 
       <div className="mt-8 space-y-6">
-        <PdpSpecs
-          slug={product.slug}
-          id={product.id}
-          description={product.description}
-          descriptionHtml={product.descriptionHtml}
-        />
+        <PdpSpecs description={product.description} specs={product.specs} />
+
+        <PdpBlogReview descriptionHtml={product.descriptionHtml} />
 
         <ProductReviewSection
           productId={product.id}

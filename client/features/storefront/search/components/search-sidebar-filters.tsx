@@ -6,9 +6,9 @@ type SearchSidebarFiltersProps = {
   brands: ProductBrand[];
   current: {
     keyword?: string;
-    categoryId?: string;
-    subcategoryId?: string;
-    brandId?: string;
+    categorySlug?: string;
+    subcategorySlug?: string;
+    brandSlug?: string;
     minPrice?: string;
     maxPrice?: string;
     minRating?: string;

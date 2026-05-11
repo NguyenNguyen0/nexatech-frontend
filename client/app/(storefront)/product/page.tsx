@@ -7,7 +7,7 @@ import {
   CatalogSidebarFilters,
   CatalogToolbar,
 } from '@/features/storefront/catalog/components';
-import { fetchBrands, fetchCategories, fetchProducts } from '@/features/products/services/products-api';
+import { fetchBrands, fetchCategories, fetchProducts, fetchSubcategories } from '@/features/products/services/products-api';
 import type { PageResult, ProductSummary } from '@/features/products/types';
 import { toNumberParam, toStringParam } from '@/features/products/utils';
 
@@ -21,10 +21,14 @@ type SearchParams = Record<string, string | string[] | undefined>;
 export default async function ProductPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
   const resolvedSearchParams = (await searchParams) ?? {};
 
+  const categorySlug = toStringParam(resolvedSearchParams.categorySlug) ?? toStringParam(resolvedSearchParams.categoryId);
+  const brandSlug = toStringParam(resolvedSearchParams.brandSlug) ?? toStringParam(resolvedSearchParams.brandId);
+  const subcategorySlug = toStringParam(resolvedSearchParams.subcategorySlug) ?? toStringParam(resolvedSearchParams.subcategoryId);
+
   const current = {
-    categoryId: toStringParam(resolvedSearchParams.categoryId),
-    subcategoryId: toStringParam(resolvedSearchParams.subcategoryId),
-    brandId: toStringParam(resolvedSearchParams.brandId),
+    categorySlug,
+    subcategorySlug,
+    brandSlug,
     minPrice: toStringParam(resolvedSearchParams.minPrice),
     maxPrice: toStringParam(resolvedSearchParams.maxPrice),
     minRating: toStringParam(resolvedSearchParams.minRating),
@@ -36,33 +40,47 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
 
   const page = toNumberParam(resolvedSearchParams.page, 1) ?? 1;
 
-  const [productsPage, categories, brands] = await Promise.all([
-    fetchProducts({
-      page,
-      size: Number(current.size) || 12,
-      sort: current.sort,
-      categoryId: current.categoryId,
-      subcategoryId: current.subcategoryId,
-      brandId: current.brandId,
-      minPrice: toNumberParam(resolvedSearchParams.minPrice),
-      maxPrice: toNumberParam(resolvedSearchParams.maxPrice),
-      minRating: toNumberParam(resolvedSearchParams.minRating),
-      maxRating: toNumberParam(resolvedSearchParams.maxRating),
-      featured: current.featured === 'true' ? true : current.featured === 'false' ? false : undefined,
-    }).catch(
-      () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
-    ),
+  const [categories, brands] = await Promise.all([
     fetchCategories().catch(() => []),
     fetchBrands().catch(() => []),
   ]);
+
+  const activeCategory = current.categorySlug
+    ? categories.find((category) => category.slug === current.categorySlug || category.id === current.categorySlug)
+    : undefined;
+  const activeBrand = current.brandSlug
+    ? brands.find((brand) => brand.slug === current.brandSlug || brand.id === current.brandSlug)
+    : undefined;
+
+  const categoryId = activeCategory?.id;
+  const brandId = activeBrand?.id;
+
+  let subcategoryId: string | undefined;
+  if (categoryId && current.subcategorySlug) {
+    const subcategories = await fetchSubcategories(current.categorySlug ?? categoryId).catch(() => []);
+    subcategoryId = subcategories.find((subcategory) => subcategory.slug === current.subcategorySlug || subcategory.id === current.subcategorySlug)?.id;
+  }
+
+  const productsPage = await fetchProducts({
+    page,
+    size: Number(current.size) || 12,
+    sort: current.sort,
+    categoryId,
+    subcategoryId,
+    brandId,
+    minPrice: toNumberParam(resolvedSearchParams.minPrice),
+    maxPrice: toNumberParam(resolvedSearchParams.maxPrice),
+    minRating: toNumberParam(resolvedSearchParams.minRating),
+    maxRating: toNumberParam(resolvedSearchParams.maxRating),
+    featured: current.featured === 'true' ? true : current.featured === 'false' ? false : undefined,
+  }).catch(
+    () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
+  );
 
   const totalItems = productsPage.totalItems ?? productsPage.items.length;
   const totalPages = productsPage.totalPages ?? (productsPage.size > 0 ? Math.max(1, Math.ceil(totalItems / productsPage.size)) : 1);
   const hasPrevious = productsPage.page > 1;
   const hasNext = productsPage.hasNext ?? productsPage.page < totalPages;
-
-  const activeCategory = current.categoryId ? categories.find((c) => c.id === current.categoryId) : undefined;
-  const activeBrand = current.brandId ? brands.find((b) => b.id === current.brandId) : undefined;
 
   const pageTitle = activeCategory?.name ?? activeBrand?.name ?? 'Sản phẩm';
   const pageDescription =

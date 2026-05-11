@@ -7,7 +7,7 @@ import {
   SearchEmptyState,
   SearchSidebarFilters,
 } from '@/features/storefront/search/components';
-import { fetchBrands, fetchCategories, searchProducts } from '@/features/products/services/products-api';
+import { fetchBrands, fetchCategories, fetchSubcategories, searchProducts } from '@/features/products/services/products-api';
 import type { PageResult, ProductSummary } from '@/features/products/types';
 import { toNumberParam, toStringParam } from '@/features/products/utils';
 
@@ -23,11 +23,15 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
   const keyword = toStringParam(resolvedSearchParams.keyword);
   const page = toNumberParam(resolvedSearchParams.page, 1) ?? 1;
 
+  const categorySlug = toStringParam(resolvedSearchParams.categorySlug) ?? toStringParam(resolvedSearchParams.categoryId);
+  const brandSlug = toStringParam(resolvedSearchParams.brandSlug) ?? toStringParam(resolvedSearchParams.brandId);
+  const subcategorySlug = toStringParam(resolvedSearchParams.subcategorySlug) ?? toStringParam(resolvedSearchParams.subcategoryId);
+
   const current = {
     keyword,
-    categoryId: toStringParam(resolvedSearchParams.categoryId),
-    subcategoryId: toStringParam(resolvedSearchParams.subcategoryId),
-    brandId: toStringParam(resolvedSearchParams.brandId),
+    categorySlug,
+    subcategorySlug,
+    brandSlug,
     minPrice: toStringParam(resolvedSearchParams.minPrice),
     maxPrice: toStringParam(resolvedSearchParams.maxPrice),
     minRating: toStringParam(resolvedSearchParams.minRating),
@@ -37,27 +41,41 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
     size: toStringParam(resolvedSearchParams.size) ?? '12',
   };
 
-  const [resultsPage, categories, brands] = await Promise.all([
-    keyword
-      ? searchProducts(keyword, {
-          page,
-          size: Number(current.size) || 12,
-          sort: current.sort,
-          categoryId: current.categoryId,
-          subcategoryId: current.subcategoryId,
-          brandId: current.brandId,
-          minPrice: toNumberParam(resolvedSearchParams.minPrice),
-          maxPrice: toNumberParam(resolvedSearchParams.maxPrice),
-          minRating: toNumberParam(resolvedSearchParams.minRating),
-          maxRating: toNumberParam(resolvedSearchParams.maxRating),
-          featured: current.featured === 'true' ? true : current.featured === 'false' ? false : undefined,
-        }).catch(
-          () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
-        )
-      : Promise.resolve({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
+  const [categories, brands] = await Promise.all([
     fetchCategories().catch(() => []),
     fetchBrands().catch(() => []),
   ]);
+
+  const categoryId = current.categorySlug
+    ? categories.find((category) => category.slug === current.categorySlug || category.id === current.categorySlug)?.id
+    : undefined;
+  const brandId = current.brandSlug
+    ? brands.find((brand) => brand.slug === current.brandSlug || brand.id === current.brandSlug)?.id
+    : undefined;
+
+  let subcategoryId: string | undefined;
+  if (categoryId && current.subcategorySlug) {
+    const subcategories = await fetchSubcategories(current.categorySlug ?? categoryId).catch(() => []);
+    subcategoryId = subcategories.find((subcategory) => subcategory.slug === current.subcategorySlug || subcategory.id === current.subcategorySlug)?.id;
+  }
+
+  const resultsPage = keyword
+    ? await searchProducts(keyword, {
+        page,
+        size: Number(current.size) || 12,
+        sort: current.sort,
+        categoryId,
+        subcategoryId,
+        brandId,
+        minPrice: toNumberParam(resolvedSearchParams.minPrice),
+        maxPrice: toNumberParam(resolvedSearchParams.maxPrice),
+        minRating: toNumberParam(resolvedSearchParams.minRating),
+        maxRating: toNumberParam(resolvedSearchParams.maxRating),
+        featured: current.featured === 'true' ? true : current.featured === 'false' ? false : undefined,
+      }).catch(
+        () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
+      )
+    : ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>);
 
   const totalItems = resultsPage.totalItems ?? resultsPage.items.length;
   const totalPages = resultsPage.totalPages ?? (resultsPage.size > 0 ? Math.max(1, Math.ceil(totalItems / resultsPage.size)) : 1);
