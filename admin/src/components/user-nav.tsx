@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/custom/button';
 import {
@@ -18,6 +19,7 @@ import { getAccessToken } from '@/services/authSession';
 import { toast } from 'sonner';
 
 export function UserNav() {
+    const navigate = useNavigate();
     const [user, setUser] = useState<UserRecord | null>(null);
 
     useEffect(() => {
@@ -82,13 +84,13 @@ export function UserNav() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/admin/settings')}>
                         Profile
                         <DropdownMenuShortcut>Ctrl + P</DropdownMenuShortcut>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                        Settings
-                        <DropdownMenuShortcut>Ctrl + S</DropdownMenuShortcut>
+                    <DropdownMenuItem onClick={() => navigate('/admin/settings/account')}>
+                        Account
+                        <DropdownMenuShortcut>Ctrl + A</DropdownMenuShortcut>
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
