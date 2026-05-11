@@ -1,3 +1,28 @@
+/**
+ * Product API Service — Updated for Backend API Changes (2026-05-11)
+ *
+ * BREAKING CHANGES:
+ * 1. Product fields restructured:
+ *    - `categoryId` → `primaryCategoryId` + `categoryIds[]` (product now supports multiple categories)
+ *    - `categoryName` → `primaryCategoryName` + `categorySlugs[]`
+ *    - `attributes` field removed entirely
+ *
+ * 2. Category filters now use "contains match" on categoryIds[] instead of exact match on single categoryId
+ *    - All category filter endpoints still accept `categoryId` query param
+ *    - Backend internally checks if categoryId is in product's categoryIds[] array
+ *
+ * 3. Related products now filter by `primaryCategoryId` (main category) instead of any category
+ *
+ * 4. Category model changes:
+ *    - `imageUrl` field removed from Category objects
+ *    - Use `metadata.bannerImage` for category banner images instead
+ *    - `metadata` now contains: seoTitle, seoDescription, bannerImage
+ *
+ * BACKWARD COMPATIBILITY:
+ * - ProductSummary still includes legacy categoryId/categoryName fields for backward compat
+ * - Components using these fields will continue to work but should migrate to new primary category fields
+ */
+
 import { buildProductQuery, normalizeCollection, normalizePageResult, unwrapProductApiResponse } from '../utils';
 import type {
   PageResult,
@@ -16,6 +41,15 @@ const CATEGORY_API_BASE = '/api/v1/categories';
 const BRAND_API_BASE = '/api/v1/brands';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
 
+type SubcategoryTreeNode = {
+  id?: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  imageUrl?: string;
+  children?: SubcategoryTreeNode[];
+};
+
 function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
   const seen = new Set<string>();
 
@@ -28,6 +62,49 @@ function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
     seen.add(identity);
     return true;
   });
+}
+
+function flattenSubcategoryTree(nodes: SubcategoryTreeNode[]): ProductSubcategory[] {
+  const leaves: ProductSubcategory[] = [];
+
+  const visit = (node: SubcategoryTreeNode): void => {
+    const children = Array.isArray(node.children) ? node.children : [];
+
+    if (children.length === 0 && node.id && node.name) {
+      leaves.push({
+        id: node.id,
+        name: node.name,
+        slug: node.slug,
+        description: node.description,
+        imageUrl: node.imageUrl,
+        children: [],
+      });
+      return;
+    }
+
+    for (const child of children) {
+      visit(child);
+    }
+  };
+
+  for (const node of nodes) {
+    visit(node);
+  }
+
+  if (leaves.length > 0) {
+    return leaves;
+  }
+
+  return nodes
+    .filter((node): node is Required<Pick<SubcategoryTreeNode, 'id' | 'name'>> & SubcategoryTreeNode => Boolean(node.id && node.name))
+    .map((node) => ({
+      id: node.id,
+      name: node.name,
+      slug: node.slug,
+      description: node.description,
+      imageUrl: node.imageUrl,
+      children: Array.isArray(node.children) ? flattenSubcategoryTree(node.children) : [],
+    }));
 }
 
 function resolveApiPath(path: string): string {
@@ -63,6 +140,16 @@ async function requestProductApi<T>(path: string): Promise<T> {
 
 export async function fetchProducts(params?: ProductListParams): Promise<PageResult<ProductSummary>> {
   const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}${buildProductQuery(params)}`);
+  return normalizePageResult<ProductSummary>(payload);
+}
+
+export async function fetchProductsByCategorySlug(slug: string, params?: ProductListParams): Promise<PageResult<ProductSummary>> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) {
+    return { items: [], page: params?.page ?? 0, size: params?.size ?? 12, totalItems: 0, totalPages: 1, hasNext: false };
+  }
+
+  const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/category/slug/${encodeURIComponent(normalizedSlug)}${buildProductQuery(params)}`);
   return normalizePageResult<ProductSummary>(payload);
 }
 
@@ -102,6 +189,8 @@ export async function fetchRelatedProducts(productSlugOrId: string, fallbackProd
   for (const path of candidates) {
     try {
       const payload = await requestProductApi<unknown>(path);
+      // Backend now filters related products by primaryCategoryId instead of single categoryId
+      // Products with multi-category support (categoryIds[]) may appear multiple times across category results
       return dedupeProducts(normalizeCollection<ProductSummary>(payload));
     } catch {
       // Try next compatible route.
@@ -148,6 +237,11 @@ export async function fetchCategories(): Promise<ProductCategory[]> {
   return normalizeCollection<ProductCategory>(payload);
 }
 
+export async function fetchCategoryMenu(): Promise<ProductCategory[]> {
+  const payload = await requestProductApi<unknown>(`${CATEGORY_API_BASE}/menu`);
+  return normalizeCollection<ProductCategory>(payload);
+}
+
 export async function fetchBrands(): Promise<ProductBrand[]> {
   const payload = await requestProductApi<unknown>(BRAND_API_BASE);
   return normalizeCollection<ProductBrand>(payload);
@@ -161,7 +255,8 @@ export async function fetchSubcategories(categorySlugOrId: string): Promise<Prod
     const payload = await requestProductApi<unknown>(
       `${CATEGORY_API_BASE}/slug/${encodeURIComponent(normalized)}/subcategories`
     );
-    return normalizeCollection<ProductSubcategory>(payload);
+    const tree = normalizeCollection<SubcategoryTreeNode>(payload);
+    return flattenSubcategoryTree(tree);
   } catch {
     // Fallback for current backend implementations that still require category id.
     let categoryId = normalized;
@@ -179,6 +274,7 @@ export async function fetchSubcategories(categorySlugOrId: string): Promise<Prod
     const payload = await requestProductApi<unknown>(
       `${CATEGORY_API_BASE}/${encodeURIComponent(categoryId)}/subcategories`
     );
-    return normalizeCollection<ProductSubcategory>(payload);
+    const tree = normalizeCollection<SubcategoryTreeNode>(payload);
+    return flattenSubcategoryTree(tree);
   }
 }

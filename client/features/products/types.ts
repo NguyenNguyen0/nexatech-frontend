@@ -11,6 +11,14 @@ export interface ProductSummary {
   reviewCount?: number;
   stockQuantity?: number;
   stockStatus?: StockStatus;
+  // Primary category (new backend structure)
+  primaryCategoryId?: string;
+  primaryCategorySlug?: string;
+  primaryCategoryName?: string;
+  // All categories this product belongs to (new multi-category support)
+  categoryIds?: string[];
+  categorySlugs?: string[];
+  // Legacy single category fields (deprecated, kept for backward compatibility)
   categoryId?: string;
   categoryName?: string;
   brandId?: string;
@@ -25,13 +33,22 @@ export interface ProductDetail extends ProductSummary {
   specs?: Record<string, string | number | boolean | null | undefined>;
 }
 
+export interface ProductCategoryMetadata {
+  seoTitle?: string;
+  seoDescription?: string;
+  bannerImage?: string;
+  [key: string]: unknown;
+}
+
 export interface ProductCategory {
   id: string;
   name: string;
   slug?: string;
   parentId?: string;
   description?: string;
-  imageUrl?: string;
+  metadata?: ProductCategoryMetadata;
+  sortOrder?: number;
+  children?: ProductCategory[];
 }
 
 export interface ProductSubcategory {
@@ -41,6 +58,7 @@ export interface ProductSubcategory {
   parentId?: string;
   description?: string;
   imageUrl?: string;
+  children?: ProductSubcategory[];
 }
 
 export interface ProductBrand {

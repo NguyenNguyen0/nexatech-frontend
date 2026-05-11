@@ -60,10 +60,11 @@ export function CatalogFiltersForm({
   // Load subcategories when category changes
   useEffect(() => {
     const selectedCategoryId = resolveCategoryId(selectedCategorySlug);
+    const selectedCategoryKey = selectedCategorySlug || selectedCategoryId;
 
-    if (selectedCategoryId) {
+    if (selectedCategoryKey) {
       setLoadingSubcategories(true);
-      fetchSubcategories(selectedCategoryId)
+      fetchSubcategories(selectedCategoryKey)
         .then(setSubcategories)
         .catch(() => setSubcategories([]))
         .finally(() => setLoadingSubcategories(false));
