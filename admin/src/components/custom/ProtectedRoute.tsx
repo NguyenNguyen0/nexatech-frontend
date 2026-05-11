@@ -24,13 +24,21 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteProps) => {
     const location = useLocation();
 
+    /* 
+    *** Developer Note ***
+    TODO: Thêm Path URL vào để tắt alert cảnh báo mocks data (tránh sai sót)
+    */
     useEffect(() => {
-        const isNotImplemented = location.pathname.startsWith('/admin') && location.pathname !== '/admin/users';
+        const isNotImplemented =
+            location.pathname.startsWith('/admin') &&
+            location.pathname !== '/admin/users' &&
+            location.pathname !== '/admin/settings' &&
+            location.pathname !== '/admin/settings/account';
 
         if (isNotImplemented) {
             alert('CHÚ Ý: Chào Developer! Trang này hiện đang sử dụng dữ liệu mẫu (Mock data) và chưa được triển khai gọi API thực tế.');
             alert(
-                "*** Nếu bạn đã hoàn thành trang team Leader giao thì vào (example: && location.pathname !== '/admin/users') trong nexatech-frontend/admin/src/components/custom/ProtectedRoute.tsx tắt Alert. Thanks! ***",
+                "*** Nếu bạn đã hoàn thành trang team Leader giao thì vào \n nexatech-frontend/admin/src/components/custom/ProtectedRoute.tsx \n (example: && location.pathname !== '/admin/users') \n tắt Alert. \n Thanks! ***",
             );
         }
     }, [location.pathname]);
