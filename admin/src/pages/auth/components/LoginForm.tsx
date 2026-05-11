@@ -57,18 +57,11 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
             });
             persistTokensFromExchange(result);
 
-            const onboarding = await fetchOnboardingStatus();
-            if (!onboarding.onBoarded) {
-                await requestEmailOtp();
-                setOtpCode('');
-                setResendCooldown(30);
-                setOtpDialogOpen(true);
-                toast.info('Vui long xac minh email bang OTP de tiep tuc');
-                return;
-            }
-
-            toast.success('Login successful');
-            continueAfterLoginChecks();
+            await requestEmailOtp();
+            setOtpCode('');
+            setResendCooldown(30);
+            setOtpDialogOpen(true);
+            toast.info('Vui lòng xác minh OTP để hoàn tất đăng nhập');
         } catch (err) {
             toast.error(getApiErrorMessage(err, 'Login failed'));
         } finally {
