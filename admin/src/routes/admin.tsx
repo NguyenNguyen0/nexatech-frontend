@@ -146,6 +146,14 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Roles management */
+            {
+                path: 'roles',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/roles')).default,
+                }),
+            },
+
             /** Settings with sub-sections (profile/account/appearance/...) */
             {
                 path: 'settings',
