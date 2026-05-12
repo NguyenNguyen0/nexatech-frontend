@@ -1,9 +1,14 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RoleItem } from '@/services/roleApi'
+import { Badge } from '@/components/ui/badge'
 import { DataTableColumnHeader } from './data-table-column-header'
 
-export const columns: ColumnDef<RoleItem>[] = [
+export interface PermissionItem extends RoleItem {
+  module: string
+}
+
+export const columns: ColumnDef<PermissionItem>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -26,6 +31,19 @@ export const columns: ColumnDef<RoleItem>[] = [
       />
     ),
     enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: 'module',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Module' />
+    ),
+    cell: ({ row }) => (
+      <Badge variant="outline" className="font-semibold text-xs tracking-wider">
+        {row.getValue('module')}
+      </Badge>
+    ),
+    enableSorting: true,
     enableHiding: false,
   },
   {

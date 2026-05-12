@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { columns } from './components/permissions-columns'
+import { columns, PermissionItem } from './components/permissions-columns'
 import { PermissionsTable } from './components/permissions-table'
 import PermissionsProvider from './context/permissions-context'
 import { Layout } from '@/components/custom/layout'
@@ -43,7 +43,12 @@ export default function Permissions() {
     }
   }, [])
 
-  const permissionList: RoleItem[] = useMemo(() => data, [data])
+  const permissionList: PermissionItem[] = useMemo(() => {
+    return data.map((item) => ({
+      ...item,
+      module: item.name ? item.name.split('_')[0] : 'OTHER',
+    }))
+  }, [data])
 
   return (
     <PermissionsProvider>

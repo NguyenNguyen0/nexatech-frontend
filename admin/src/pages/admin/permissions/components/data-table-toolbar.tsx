@@ -3,6 +3,7 @@ import { Cross2Icon } from '@radix-ui/react-icons'
 import { Table } from '@tanstack/react-table'
 import { IconSearch } from '@tabler/icons-react'
 import { Input } from '@/components/ui/input'
+import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { DataTableViewOptions } from './data-table-view-options'
 import { Button } from '@/components/custom/button'
 
@@ -15,6 +16,12 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0
   const [searchKeyword, setSearchKeyword] = useState('')
+
+  // Unique modules for faceted filter
+  const modules = Array.from(
+    new Set(table.getCoreRowModel().rows.map((row) => (row.original as any).module))
+  ).map((mod) => ({ label: String(mod), value: String(mod) }))
+
 
   const handleSearch = () => {
     table.getColumn('name')?.setFilterValue(undefined)
@@ -53,6 +60,15 @@ export function DataTableToolbar<TData>({
             <IconSearch className='mr-1 h-4 w-4' />
             Search
           </Button>
+        </div>
+        <div className='flex gap-x-2'>
+          {table.getColumn('module') && modules.length > 0 && (
+            <DataTableFacetedFilter
+              column={table.getColumn('module')}
+              title='Module'
+              options={modules}
+            />
+          )}
         </div>
         {isFiltered && (
           <Button
