@@ -154,6 +154,14 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Permissions management */
+            {
+                path: 'permissions',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/permissions')).default,
+                }),
+            },
+
             /** Settings with sub-sections (profile/account/appearance/...) */
             {
                 path: 'settings',
