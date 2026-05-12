@@ -1,23 +1,18 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Be_Vietnam_Pro } from 'next/font/google';
 import { Toaster } from 'sonner';
-import { ThemeProvider } from '@/components/shared/theme-provider';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+const beVietnamPro = Be_Vietnam_Pro({
+  subsets: ['latin', 'vietnamese'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: {
-    template: '%s | Nexatech',
-    default: 'Nexatech — Thương mại điện tử số 1 Việt Nam',
+    template: '%s | NexaTech',
+    default: 'NexaTech — Thương mại điện tử số 1 Việt Nam',
   },
   description:
     'Nền tảng thương mại điện tử hàng đầu Việt Nam với hàng ngàn ưu đãi hấp dẫn.',
@@ -32,17 +27,15 @@ export default function RootLayout({
     <html lang="vi" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${beVietnamPro.className} antialiased`}
       >
-        <ThemeProvider>
-          {children}
-          <Toaster
-            duration={3000}
-            closeButton
-            position="top-center"
-            richColors
-          />
-        </ThemeProvider>
+        {children}
+        <Toaster
+          duration={3000}
+          closeButton
+          position="top-center"
+          richColors
+        />
       </body>
     </html>
   );
