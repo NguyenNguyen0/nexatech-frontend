@@ -1,137 +1,136 @@
 'use client';
 
-import { Globe, Mail, MapPin, Phone as PhoneIcon, SendHorizonal } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MessageCircle } from 'lucide-react';
+
+/* ── Footer data matching Stitch design exactly ── */
+
+const supportLinks = [
+  { label: 'Trung tâm trợ giúp', href: '#' },
+  { label: 'Hướng dẫn mua hàng', href: '#' },
+  { label: 'Tra cứu đơn hàng', href: '#' },
+  { label: 'Liên hệ', href: '#' },
+];
+
+const policyLinks = [
+  { label: 'Chính sách bảo hành', href: '#' },
+  { label: 'Chính sách đổi trả', href: '#' },
+  { label: 'Chính sách vận chuyển', href: '#' },
+  { label: 'Chính sách bảo mật', href: '#' },
+];
+
+const paymentMethods = [
+  { name: 'VISA', bg: 'bg-[#1a1f71]' },
+  { name: 'mastercard', display: '●●', bg: 'bg-[#eb001b]' },
+  { name: 'MoMo', bg: 'bg-[#a50064]' },
+];
+
+const socialLinks = [
+  { name: 'Facebook', icon: 'f', color: 'bg-[#1877f2]' },
+  { name: 'Instagram', icon: '📷', color: 'bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]' },
+  { name: 'Youtube', icon: '▶', color: 'bg-[#ff0000]' },
+];
 
 export function Footer() {
-  const currentYear = new Date().getFullYear();
-  const quickLinks = ['Privacy Policy', 'Terms of Service', 'Support Center', 'Global Shipping', 'Affiliate Program'];
-  const helpLinks = ['Setup Guides', 'Driver Downloads', 'Service Centers', 'Order Status'];
-
   return (
-    <footer className="mt-20 border-t border-border/70 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-bg-elevated)_92%,white),var(--color-primary-subtle))] transition-smooth">
-      <div className="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Link href="/" className="inline-flex items-center gap-3">
-              <div className="rounded-2xl bg-[image:var(--gradient-brand)] px-3 py-2 text-sm font-black tracking-[0.24em] text-white shadow-lg shadow-primary/20">
-                NT
-              </div>
-              <div>
-                <p className="font-display text-xl font-bold text-text-primary">NexaTech</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">Precision for the digital frontier</p>
-              </div>
-            </Link>
-            <p className="mt-5 max-w-sm text-sm leading-7 text-text-secondary">
-              Premium hardware for work, play and creative focus. Built around trusted support,
-              fast fulfilment and a cleaner buying experience.
-            </p>
-            <div className="mt-6 flex gap-3">
-              {[
-                { label: 'Web', icon: Globe },
-                { label: 'Mail', icon: Mail },
-                { label: 'Share', icon: SendHorizonal },
-              ].map((item) => {
-                const Icon = item.icon;
+    <>
+      {/* Main Footer - dark blue background matching Stitch design */}
+      <footer className="border-t border-[#001524] bg-[#001e31]">
+        <div className="mx-auto max-w-[1200px] px-4 py-10">
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Hỗ trợ */}
+            <div>
+              <h3 className="mb-4 text-[14px] font-bold text-white">Hỗ trợ</h3>
+              <ul className="space-y-2.5">
+                {supportLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-[13px] text-[#bfe0ff] transition hover:text-white"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-                return (
-                  <a
-                    key={item.label}
-                    href="#"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-bg-elevated text-primary transition hover:border-primary hover:bg-primary hover:text-white"
-                    aria-label={item.label}
+            {/* Chính sách */}
+            <div>
+              <h3 className="mb-4 text-[14px] font-bold text-white">Chính sách</h3>
+              <ul className="space-y-2.5">
+                {policyLinks.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-[13px] text-[#bfe0ff] transition hover:text-white"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Phương thức thanh toán */}
+            <div>
+              <h3 className="mb-4 text-[14px] font-bold text-white">
+                Phương thức thanh toán
+              </h3>
+              <div className="flex items-center gap-2.5">
+                {paymentMethods.map((method) => (
+                  <div
+                    key={method.name}
+                    className={`flex h-8 w-12 items-center justify-center rounded ${method.bg} text-[10px] font-bold text-white`}
                   >
-                    <Icon className="h-4 w-4" />
+                    {method.display || method.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Social media */}
+            <div>
+              <h3 className="mb-4 text-[14px] font-bold text-white">Social media</h3>
+              <div className="space-y-3">
+                {socialLinks.map((social) => (
+                  <a
+                    key={social.name}
+                    href="#"
+                    className="flex items-center gap-2.5 text-[13px] text-[#bfe0ff] transition hover:text-white"
+                  >
+                    <div
+                      className={`flex h-6 w-6 items-center justify-center rounded-full ${social.color} text-[10px] font-bold text-white`}
+                    >
+                      {social.icon}
+                    </div>
+                    {social.name}
                   </a>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
+        </div>
 
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary">Quick Links</h3>
-            <ul className="mt-5 space-y-3 text-sm text-text-secondary">
-              {quickLinks.map((link) => (
-                <li key={link}>
-                  <Link href="/product" className="transition hover:text-primary">
-                    {link}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary">Product Help</h3>
-            <ul className="mt-5 space-y-3 text-sm text-text-secondary">
-              {helpLinks.map((link) => (
-                <li key={link}>
-                  <Link href="/product" className="transition hover:text-primary">
-                    {link}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-text-primary">Join the Pulse</h3>
-            <p className="mt-5 text-sm leading-7 text-text-secondary">
-              Get launch drops, weekly tech edits and early access to flagship deals.
+        {/* Bottom copyright bar */}
+        <div className="border-t border-[#002a45]">
+          <div className="mx-auto max-w-[1200px] px-4 py-4">
+            <p className="text-[12px] text-[#90cdff]">
+              Bản quyền thuộc về NexaTech
             </p>
-            <div className="mt-5 flex gap-2">
-              <Input
-                type="email"
-                placeholder="Email address"
-                className="h-11 rounded-xl border-border bg-bg-elevated"
-              />
-              <Button className="h-11 rounded-xl px-4">
-                Join
-              </Button>
-            </div>
-            <div className="mt-6 space-y-3">
-              <a href="tel:1800.6018" className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg-elevated/70 p-4 transition hover:border-primary/25 hover:bg-bg-elevated">
-                <PhoneIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-text-tertiary">Call sales</p>
-                  <p className="font-semibold text-text-primary">1800.6018</p>
-                </div>
-              </a>
-              <a href="mailto:support@nexatech.vn" className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg-elevated/70 p-4 transition hover:border-primary/25 hover:bg-bg-elevated">
-                <Mail className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-text-tertiary">Email</p>
-                  <p className="font-semibold text-text-primary">support@nexatech.vn</p>
-                </div>
-              </a>
-              <a href="#" className="flex items-start gap-3 rounded-2xl border border-border/70 bg-bg-elevated/70 p-4 transition hover:border-primary/25 hover:bg-bg-elevated">
-                <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-text-tertiary">Studio</p>
-                  <p className="font-semibold text-text-primary">77 Tran Quang Khai, Ho Chi Minh City</p>
-                </div>
-              </a>
-            </div>
           </div>
         </div>
+      </footer>
 
-        <div className="mt-12 border-t border-border/70 pt-6 text-center text-sm text-text-tertiary">
-          <p>© {currentYear} NexaTech. Precision engineering for the digital frontier.</p>
-          <p className="mt-1">Business registration 0123456789 · 77 Tran Quang Khai, Ho Chi Minh City</p>
-          <p className="mt-3 text-xs uppercase tracking-[0.2em]">Built for the client storefront experience</p>
-        </div>
-      </div>
-
+      {/* Chat FAB - lighter blue circle for contrast */}
       <button
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        className="fixed bottom-6 right-6 max-lg:hidden lg:flex h-11 w-11 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 transition hover:scale-105 hover:bg-primary-dark"
         type="button"
-        aria-label="Scroll to top"
+        onClick={() => {}}
+        className="fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#006699] text-white shadow-lg transition hover:scale-105 hover:bg-[#004d75]"
+        aria-label="Chat hỗ trợ"
       >
-        ↑
+        <MessageCircle className="h-5 w-5" />
       </button>
-    </footer>
+    </>
   );
 }
