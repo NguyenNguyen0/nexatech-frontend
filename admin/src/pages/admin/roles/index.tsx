@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { columns } from './components/roles-columns'
 import { RolesTable } from './components/roles-table'
+import { RolesDialogs } from './components/roles-dialogs'
 import RolesProvider from './context/roles-context'
 import { Layout } from '@/components/custom/layout'
 import { getApiErrorMessage } from '@/services/authApi'
@@ -63,6 +64,7 @@ export default function Roles() {
           </div>
         </Layout.Body>
       </Layout>
+      <RolesDialogs />
     </RolesProvider>
   )
 }

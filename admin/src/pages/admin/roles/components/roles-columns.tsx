@@ -2,6 +2,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RoleItem } from '@/services/roleApi'
 import { DataTableColumnHeader } from './data-table-column-header'
+import { DataTableRowActions } from './data-table-row-actions'
 
 export const columns: ColumnDef<RoleItem>[] = [
   {
@@ -53,5 +54,9 @@ export const columns: ColumnDef<RoleItem>[] = [
     ),
     enableSorting: true,
     enableHiding: true,
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => <DataTableRowActions row={row} />,
   },
 ]

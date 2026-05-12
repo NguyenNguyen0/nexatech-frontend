@@ -42,6 +42,12 @@ export const sidelinks: SideLink[] = [
         icon: <IconUsers size={18} />,
         sub: [
             {
+                title: 'User List',
+                label: '',
+                href: '/admin/users',
+                icon: <IconUsers size={18} />,
+            },
+            {
                 title: 'Role List',
                 label: '',
                 href: '/admin/roles',
@@ -52,12 +58,6 @@ export const sidelinks: SideLink[] = [
                 label: '',
                 href: '/admin/permissions',
                 icon: <IconKey size={18} />,
-            },
-            {
-                title: 'User List',
-                label: '',
-                href: '/admin/users',
-                icon: <IconUsers size={18} />,
             },
         ],
     },

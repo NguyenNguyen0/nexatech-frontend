@@ -2,7 +2,7 @@ import React from 'react'
 import useDialogState from '@/hooks/use-dialog-state'
 import type { RoleItem } from '@/services/roleApi'
 
-type RolesDialogType = 'invite' | 'add' | 'edit' | 'delete'
+type RolesDialogType = 'invite' | 'add' | 'edit' | 'delete' | 'assign_permissions'
 
 interface RolesContextType {
   open: RolesDialogType | null
