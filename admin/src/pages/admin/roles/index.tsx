@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { columns } from './components/roles-columns'
-import { RolesDialogs } from './components/roles-dialogs'
-import { RolesPrimaryButtons } from './components/roles-primary-buttons'
 import { RolesTable } from './components/roles-table'
 import RolesProvider from './context/roles-context'
 import { Layout } from '@/components/custom/layout'
@@ -59,12 +57,10 @@ export default function Roles() {
                   : `Manage your roles here. Total records: ${data?.length ?? 0}`}
               </p>
             </div>
-            <RolesPrimaryButtons />
           </div>
           <div className='-mx-4 flex-1 overflow-auto px-4 py-1 lg:flex-row lg:space-x-12 lg:space-y-0'>
             <RolesTable data={roleList} columns={columns} isLoading={loading} />
           </div>
-          <RolesDialogs onDataChanged={loadRoles} />
         </Layout.Body>
       </Layout>
     </RolesProvider>
