@@ -76,26 +76,28 @@ export function CatalogFiltersForm({
     <aside className="w-full lg:w-64 shrink-0">
       <div className="sticky top-24 space-y-4">
         {/* ── Filter panel ──────────────────────────────────── */}
-        <div className="rounded-xl border border-border bg-bg-elevated p-5 shadow-sm">
-          <h3 className="mb-5 flex items-center justify-between font-display text-base font-bold text-text-primary">
-            Bộ lọc
-            <SlidersHorizontal className="h-4 w-4 text-text-tertiary" />
-          </h3>
+        <div className="bg-surface rounded-xl border border-outline-variant p-4 md:p-6 mb-6 lg:mb-0 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-title-md font-title-md text-on-surface flex items-center gap-2">
+              <SlidersHorizontal className="h-5 w-5 text-on-surface-variant" />
+              Bộ lọc tìm kiếm
+            </h2>
+          </div>
 
-          <form action={action} method="get" className="space-y-5">
+          <form action={action} method="get" className="space-y-6">
             <input type="hidden" name="page" value="1" />
             <input type="hidden" name="size" value={current.size ?? '12'} />
             <input type="hidden" name="subcategorySlug" value={current.subcategorySlug ?? ''} />
 
             {/* Keyword */}
             {showKeyword ? (
-              <div className="space-y-1.5">
-                <p className="text-xs font-bold text-text-primary">Từ khóa</p>
+              <div className="space-y-3">
+                <h3 className="text-label-lg font-label-lg text-on-surface">Từ khóa</h3>
                 <input
                   name="keyword"
                   defaultValue={current.keyword ?? ''}
                   placeholder="Tìm sản phẩm..."
-                  className="h-9 w-full rounded-lg border border-border bg-bg-base px-3 text-sm outline-none transition focus:border-primary"
+                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
                 />
               </div>
             ) : current.keyword ? (
@@ -105,76 +107,76 @@ export function CatalogFiltersForm({
             {/* Category & Subcategory */}
             {categories.length > 0 && (
               <div className="space-y-3">
-                <p className="text-xs font-bold text-text-primary">Danh mục</p>
+                <h3 className="text-label-lg font-label-lg text-on-surface">Danh mục</h3>
                 <div
                   className={
-                    categories.length > 6 ? 'max-h-80 space-y-2 overflow-y-auto pr-1' : 'space-y-2'
+                    categories.length > 6 ? 'max-h-80 space-y-3 overflow-y-auto pr-1' : 'space-y-3'
                   }
                 >
                   {/* "All categories" option */}
-                  <label className="group flex cursor-pointer items-center gap-2.5">
+                  <label className="group flex cursor-pointer items-center gap-3">
                     <input
                       type="radio"
                       name="categorySlug"
                       value=""
                       checked={selectedCategorySlug === ''}
                       onChange={(e) => setSelectedCategorySlug(e.target.value)}
-                      className="h-4 w-4 accent-primary"
+                      className="h-4 w-4 accent-primary text-primary"
                     />
-                    <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                    <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                       Tất cả
                     </span>
                   </label>
 
                   {/* Categories with subcategories */}
                   {categories.map((cat) => (
-                    <div key={cat.id}>
-                      <label className="group flex cursor-pointer items-center gap-2.5">
+                    <div key={cat.id} className="space-y-2">
+                      <label className="group flex cursor-pointer items-center gap-3">
                         <input
                           type="radio"
                           name="categorySlug"
                           value={cat.slug ?? cat.id}
                           checked={selectedCategorySlug === (cat.slug ?? cat.id)}
                           onChange={(e) => setSelectedCategorySlug(e.target.value)}
-                          className="h-4 w-4 accent-primary"
+                          className="h-4 w-4 accent-primary text-primary"
                         />
-                        <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                        <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                           {cat.name}
                         </span>
                       </label>
 
                       {/* Subcategories (show when parent is selected) */}
                       {selectedCategorySlug === (cat.slug ?? cat.id) && subcategories.length > 0 && (
-                        <div className="ml-6 mt-2 space-y-2 border-l border-border/50 pl-3">
+                        <div className="ml-7 mt-2 space-y-3 border-l-2 border-outline-variant pl-4">
                           {loadingSubcategories ? (
-                            <div className="py-1 text-xs text-text-tertiary">Đang tải...</div>
+                            <div className="py-1 text-label-sm text-on-surface-variant">Đang tải...</div>
                           ) : (
                             <>
-                              <label className="group flex cursor-pointer items-center gap-2.5">
+                              <label className="group flex cursor-pointer items-center gap-3">
                                 <input
                                   type="radio"
                                   name="subcategorySlug"
                                   value=""
                                   defaultChecked={!current.subcategorySlug}
-                                  className="h-4 w-4 accent-primary"
+                                  className="h-4 w-4 accent-primary text-primary"
                                 />
-                                <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                                <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                                   Tất cả
                                 </span>
                               </label>
                               {subcategories.map((subcat) => (
                                 <label
                                   key={subcat.id}
-                                  className="group flex cursor-pointer items-center gap-2.5"
+                                  className="group flex cursor-pointer items-center gap-3"
                                 >
                                   <input
                                     type="radio"
                                     name="subcategorySlug"
                                     value={subcat.slug ?? subcat.id}
                                     defaultChecked={current.subcategorySlug === (subcat.slug ?? subcat.id)}
-                                    className="h-4 w-4 accent-primary"
+                                    className="h-4 w-4 accent-primary text-primary"
                                   />
-                                  <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                                  <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                                     {subcat.name}
                                   </span>
                                 </label>
@@ -191,35 +193,35 @@ export function CatalogFiltersForm({
 
             {/* Brand */}
             {brands.length > 0 && (
-              <div>
-                <p className="mb-2.5 text-xs font-bold text-text-primary">Thương hiệu</p>
+              <div className="pt-4 border-t border-outline-variant">
+                <h3 className="mb-3 text-label-lg font-label-lg text-on-surface">Thương hiệu</h3>
                 <div
                   className={
-                    brands.length > 6 ? 'max-h-44 space-y-2 overflow-y-auto pr-1' : 'space-y-2'
+                    brands.length > 6 ? 'max-h-44 space-y-3 overflow-y-auto pr-1' : 'space-y-3'
                   }
                 >
-                  <label className="group flex cursor-pointer items-center gap-2.5">
+                  <label className="group flex cursor-pointer items-center gap-3">
                     <input
                       type="radio"
                       name="brandSlug"
                       value=""
                       defaultChecked={!current.brandSlug}
-                      className="h-4 w-4 accent-primary"
+                      className="h-4 w-4 accent-primary text-primary"
                     />
-                    <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                    <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                       Tất cả
                     </span>
                   </label>
                   {brands.map((brand) => (
-                    <label key={brand.id} className="group flex cursor-pointer items-center gap-2.5">
+                    <label key={brand.id} className="group flex cursor-pointer items-center gap-3">
                       <input
                         type="radio"
                         name="brandSlug"
                         value={brand.slug ?? brand.id}
                         defaultChecked={current.brandSlug === (brand.slug ?? brand.id)}
-                        className="h-4 w-4 accent-primary"
+                        className="h-4 w-4 accent-primary text-primary"
                       />
-                      <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                      <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                         {brand.name}
                       </span>
                     </label>
@@ -229,8 +231,8 @@ export function CatalogFiltersForm({
             )}
 
             {/* Price range */}
-            <div>
-              <p className="mb-2.5 text-xs font-bold text-text-primary">Khoảng giá</p>
+            <div className="pt-4 border-t border-outline-variant">
+              <h3 className="mb-3 text-label-lg font-label-lg text-on-surface">Khoảng giá</h3>
               <div className="flex items-center gap-2">
                 <input
                   name="minPrice"
@@ -239,9 +241,9 @@ export function CatalogFiltersForm({
                   step="10000"
                   defaultValue={current.minPrice ?? ''}
                   placeholder="Từ"
-                  className="h-9 w-full min-w-0 rounded-lg border border-border bg-bg-base px-3 text-sm outline-none transition focus:border-primary"
+                  className="h-10 w-full min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
                 />
-                <span className="shrink-0 text-text-tertiary">—</span>
+                <span className="shrink-0 text-on-surface-variant">—</span>
                 <input
                   name="maxPrice"
                   type="number"
@@ -249,25 +251,25 @@ export function CatalogFiltersForm({
                   step="10000"
                   defaultValue={current.maxPrice ?? ''}
                   placeholder="Đến"
-                  className="h-9 w-full min-w-0 rounded-lg border border-border bg-bg-base px-3 text-sm outline-none transition focus:border-primary"
+                  className="h-10 w-full min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
                 />
               </div>
             </div>
 
             {/* Rating */}
-            <div>
-              <p className="mb-2.5 text-xs font-bold text-text-primary">Đánh giá tối thiểu</p>
-              <div className="space-y-2">
+            <div className="pt-4 border-t border-outline-variant">
+              <h3 className="mb-3 text-label-lg font-label-lg text-on-surface">Đánh giá tối thiểu</h3>
+              <div className="space-y-3">
                 {ratingOptions.map((opt) => (
-                  <label key={opt.value} className="group flex cursor-pointer items-center gap-2.5">
+                  <label key={opt.value} className="group flex cursor-pointer items-center gap-3">
                     <input
                       type="radio"
                       name="minRating"
                       value={opt.value}
                       defaultChecked={(current.minRating ?? '') === opt.value}
-                      className="h-4 w-4 accent-primary"
+                      className="h-4 w-4 accent-primary text-primary"
                     />
-                    <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                    <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                       {opt.label}
                     </span>
                   </label>
@@ -276,22 +278,22 @@ export function CatalogFiltersForm({
             </div>
 
             {/* Featured */}
-            <div>
-              <p className="mb-2.5 text-xs font-bold text-text-primary">Loại sản phẩm</p>
-              <div className="space-y-2">
+            <div className="pt-4 border-t border-outline-variant">
+              <h3 className="mb-3 text-label-lg font-label-lg text-on-surface">Loại sản phẩm</h3>
+              <div className="space-y-3">
                 {[
                   { label: 'Tất cả', value: '' },
                   { label: 'Nổi bật', value: 'true' },
                 ].map((opt) => (
-                  <label key={opt.value} className="group flex cursor-pointer items-center gap-2.5">
+                  <label key={opt.value} className="group flex cursor-pointer items-center gap-3">
                     <input
                       type="radio"
                       name="featured"
                       value={opt.value}
                       defaultChecked={(current.featured ?? '') === opt.value}
-                      className="h-4 w-4 accent-primary"
+                      className="h-4 w-4 accent-primary text-primary"
                     />
-                    <span className="text-sm text-text-secondary transition-colors group-hover:text-primary">
+                    <span className="text-body-md text-on-surface-variant transition-colors group-hover:text-primary">
                       {opt.label}
                     </span>
                   </label>
@@ -300,12 +302,10 @@ export function CatalogFiltersForm({
             </div>
 
             {/* Sort */}
-            <div>
-              <p className="mb-2.5 text-xs font-bold text-text-primary">Sắp xếp</p>
+            <div className="hidden">
               <select
                 name="sort"
                 defaultValue={current.sort ?? 'createdAt,desc'}
-                className="h-9 w-full rounded-lg border border-border bg-bg-base px-3 text-sm outline-none transition focus:border-primary"
               >
                 {sortOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -316,37 +316,37 @@ export function CatalogFiltersForm({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex flex-col gap-3 pt-4 border-t border-outline-variant">
               <button
                 type="submit"
-                className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-95"
+                className="w-full h-10 rounded-lg bg-primary text-on-primary text-label-lg font-label-lg transition hover:bg-primary/90 active:scale-95"
               >
                 Áp dụng
               </button>
               <Link
                 href={action}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-bg-base px-4 text-sm font-semibold text-text-primary transition hover:border-primary hover:text-primary"
+                className="w-full flex items-center justify-center h-10 rounded-lg border border-outline-variant bg-surface text-on-surface-variant text-label-lg font-label-lg transition hover:border-primary hover:text-primary"
               >
-                Xóa
+                Xóa bộ lọc
               </Link>
             </div>
           </form>
         </div>
 
         {/* ── Expert Advice card ─────────────────────────── */}
-        <div className="rounded-xl border border-primary/10 bg-primary-subtle p-4">
-          <div className="mb-1 flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-primary" />
-            <p className="text-sm font-bold text-primary">Tư vấn chuyên gia</p>
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <p className="text-label-lg font-label-lg text-primary">Tư vấn chuyên gia</p>
           </div>
-          <p className="mb-3 text-xs text-text-secondary">
+          <p className="mb-4 text-body-sm text-on-surface-variant">
             Chưa biết chọn sản phẩm nào? Chuyên gia của chúng tôi sẵn sàng giúp bạn tìm lựa chọn
             phù hợp nhất.
           </p>
           <button
             type="button"
             disabled
-            className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-white transition hover:bg-primary-dark active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-primary py-2.5 text-label-sm font-label-sm text-on-primary transition hover:bg-primary/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             title="Tính năng sắp ra mắt"
           >
             Chat tư vấn

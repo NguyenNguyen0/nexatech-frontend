@@ -3,7 +3,8 @@
 import { ChevronDown, Heart, Menu, ShoppingCart, Search, UserRound, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
@@ -14,9 +15,63 @@ const navLinks = [
   { label: 'Ghế', href: '/product/collection/chair' },
 ];
 
+const STORAGE_KEY = 'nexatech_cart';
+const WISHLIST_KEY = 'nexatech_wishlist';
+
+function getCartCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return 0;
+    const cart = JSON.parse(raw);
+    return cart?.totalItems ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+function getWishlistCount(): number {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const raw = localStorage.getItem(WISHLIST_KEY);
+    if (!raw) return 0;
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function Header() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  const refreshCounts = useCallback(() => {
+    setCartCount(getCartCount());
+    setWishlistCount(getWishlistCount());
+  }, []);
+
+  useEffect(() => {
+    refreshCounts();
+    window.addEventListener('cart-updated', refreshCounts);
+    window.addEventListener('wishlist-updated', refreshCounts);
+    window.addEventListener('storage', refreshCounts);
+    return () => {
+      window.removeEventListener('cart-updated', refreshCounts);
+      window.removeEventListener('wishlist-updated', refreshCounts);
+      window.removeEventListener('storage', refreshCounts);
+    };
+  }, [refreshCounts]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 shadow-sm">
@@ -36,7 +91,7 @@ export function Header() {
           </Link>
 
           {/* Search Bar */}
-          <div className="hidden flex-1 max-w-[480px] md:block">
+          <form onSubmit={handleSearch} className="hidden flex-1 max-w-[480px] md:block">
             <div className="relative">
               <input
                 type="text"
@@ -46,39 +101,46 @@ export function Header() {
                 className="h-[38px] w-full rounded-sm border border-[#004d75] bg-white px-3 pr-11 text-[13px] text-[#1b1c1c] placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-[#004d75]"
               />
               <button
-                type="button"
+                type="submit"
                 className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-[#004d75] text-white transition hover:bg-[#003d5c]"
               >
                 <Search className="h-4 w-4" />
               </button>
             </div>
-          </div>
+          </form>
 
           {/* Right Actions */}
           <div className="flex items-center gap-1">
             <Link
-              href="/user"
+              href="/user/account"
               className="hidden items-center gap-1.5 rounded px-2.5 py-1.5 text-[13px] text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
             >
               <UserRound className="h-[18px] w-[18px]" />
               <span className="hidden lg:inline">Tài khoản</span>
             </Link>
 
-            <button
-              type="button"
-              className="hidden rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
+            <Link
+              href="/user/wishlist"
+              className="relative hidden rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
             >
               <Heart className="h-[18px] w-[18px]" />
-            </button>
+              {wishlistCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              )}
+            </Link>
 
             <Link
               href="/cart"
               className="relative flex items-center rounded p-2 text-[#333] transition hover:bg-[#f0f0f0]"
             >
               <ShoppingCart className="h-[18px] w-[18px]" />
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
-                3
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
             </Link>
 
             <button
@@ -93,26 +155,28 @@ export function Header() {
 
         {/* Mobile Search */}
         <div className="border-t border-[#e0e0e0] px-4 py-2 md:hidden">
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm sản phẩm..."
               className="h-9 w-full rounded-sm border border-[#004d75] bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
             />
             <button
-              type="button"
+              type="submit"
               className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-[#004d75] text-white"
             >
               <Search className="h-4 w-4" />
             </button>
-          </div>
+          </form>
         </div>
       </div>
 
       {/* Second Tier - Category Navigation */}
       <div className="bg-[#004d75] text-white">
         <div className="mx-auto flex max-w-[1200px] items-center px-4">
-          {/* Category Dropdown */}
+          {/* Category Dropdown Button */}
           <button
             type="button"
             className="flex items-center gap-2 border-r border-white/20 py-2.5 pr-4 text-[13px] font-semibold transition hover:bg-white/10"
@@ -162,6 +226,22 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href="/user/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+              >
+                <UserRound className="h-4 w-4" />
+                Tài khoản
+              </Link>
+              <Link
+                href="/user/wishlist"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+              >
+                <Heart className="h-4 w-4" />
+                Yêu thích {wishlistCount > 0 && `(${wishlistCount})`}
+              </Link>
             </nav>
           </div>
         </div>

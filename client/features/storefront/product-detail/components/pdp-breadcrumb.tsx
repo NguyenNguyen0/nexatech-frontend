@@ -8,23 +8,28 @@ type PdpBreadcrumbProps = {
 
 export function PdpBreadcrumb({ categoryName, brandName }: PdpBreadcrumbProps) {
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-      <Link href="/product" className="inline-flex items-center gap-2 transition hover:text-primary">
-        <ArrowLeft className="h-4 w-4" />
-        Quay lại danh sách
+    <nav className="flex items-center gap-2 text-label-sm font-label-sm text-on-surface-variant mb-6">
+      <Link href="/" className="hover:text-primary transition-colors">
+        Trang chủ
+      </Link>
+      <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+      <Link href="/product" className="hover:text-primary transition-colors">
+        Sản phẩm
       </Link>
       {categoryName && (
         <>
-          <span aria-hidden="true">•</span>
-          <span>{categoryName}</span>
+          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+          <span className={brandName ? "hover:text-primary transition-colors" : "text-on-surface font-medium"}>
+            {categoryName}
+          </span>
         </>
       )}
       {brandName && (
         <>
-          <span aria-hidden="true">•</span>
-          <span>{brandName}</span>
+          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+          <span className="text-on-surface font-medium">{brandName}</span>
         </>
       )}
-    </div>
+    </nav>
   );
 }

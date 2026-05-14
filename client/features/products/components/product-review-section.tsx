@@ -234,28 +234,28 @@ export function ProductReviewSection({
   };
 
   return (
-    <section className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
-      <div className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <section className="bg-surface rounded-2xl p-6 md:p-8 border border-outline-variant">
+      <div className="flex flex-col gap-5 border-b border-outline-variant pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Đánh giá sản phẩm</p>
-          <h2 className="mt-2 font-display text-2xl font-bold text-text-primary">{productName}</h2>
-          <div className="mt-3 flex items-center gap-3 text-sm text-text-secondary">
+          <p className="text-label-sm font-bold uppercase tracking-wider text-primary">Đánh giá sản phẩm</p>
+          <h2 className="mt-2 text-headline-sm font-headline-sm text-on-surface">{productName}</h2>
+          <div className="mt-3 flex items-center gap-3 text-body-md text-on-surface-variant">
             <span className="flex items-center gap-2">
               <span className="flex items-center gap-1">{renderStars(ratingValue)}</span>
-              <strong className="text-text-primary">{ratingValue > 0 ? ratingValue.toFixed(1) : '0.0'}</strong>
+              <strong className="text-on-surface">{ratingValue > 0 ? ratingValue.toFixed(1) : '0.0'}</strong>
             </span>
             <span>{totalReviews} đánh giá</span>
           </div>
         </div>
 
         {hasAccessToken ? (
-          <div className="rounded-2xl bg-primary/5 px-4 py-3 text-sm text-primary">
+          <div className="rounded-xl bg-surface-container-low border border-outline-variant px-4 py-3 text-label-sm text-on-surface-variant">
             Bạn có thể gửi đánh giá mới hoặc chỉnh sửa đánh giá đã tạo.
           </div>
         ) : (
           <a
             href="/auth/login"
-            className="inline-flex items-center gap-2 rounded-2xl border border-border bg-bg-base px-4 py-3 text-sm font-semibold text-text-primary transition hover:border-primary hover:text-primary"
+            className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-label-sm font-bold text-primary transition hover:bg-surface-container"
           >
             <LogIn className="h-4 w-4" />
             Đăng nhập để đánh giá
@@ -264,14 +264,14 @@ export function ProductReviewSection({
       </div>
 
       {hasAccessToken ? (
-        <form onSubmit={handleCreateReview} className="mt-6 grid gap-4 rounded-3xl border border-border bg-bg-base p-5">
+        <form onSubmit={handleCreateReview} className="mt-6 grid gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
           <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-            <label className="space-y-2 text-sm font-medium text-text-primary">
+            <label className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Chấm điểm</span>
               <select
                 value={form.rating}
                 onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                className="h-11 w-full rounded-2xl border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
+                className="h-11 w-full rounded-xl border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {[5, 4, 3, 2, 1].map((rating) => (
                   <option key={rating} value={rating}>
@@ -281,37 +281,37 @@ export function ProductReviewSection({
               </select>
             </label>
 
-            <label className="space-y-2 text-sm font-medium text-text-primary">
+            <label className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Tiêu đề</span>
               <input
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 placeholder="Sản phẩm tốt, đóng gói chắc chắn..."
-                className="h-11 w-full rounded-2xl border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
+                className="h-11 w-full rounded-xl border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
                 required
               />
             </label>
           </div>
 
-          <label className="space-y-2 text-sm font-medium text-text-primary">
+          <label className="space-y-2 text-label-sm font-medium text-on-surface">
             <span>Nội dung</span>
             <textarea
               value={form.content}
               onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
               rows={4}
               placeholder="Chia sẻ trải nghiệm của bạn..."
-              className="w-full rounded-2xl border border-border bg-bg-elevated px-4 py-3 outline-none transition focus:border-primary"
+              className="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
               required
             />
           </label>
 
-          <label className="space-y-2 text-sm font-medium text-text-primary">
+          <label className="space-y-2 text-label-sm font-medium text-on-surface">
             <span>Ảnh minh họa</span>
             <input
               value={form.images.join(', ')}
               onChange={(event) => setForm((current) => ({ ...current, images: parseImages(event.target.value) }))}
               placeholder="https://... , https://..."
-              className="h-11 w-full rounded-2xl border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
+              className="h-11 w-full rounded-xl border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
             />
           </label>
 
@@ -319,7 +319,7 @@ export function ProductReviewSection({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-label-sm font-bold text-on-primary transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
             </button>
@@ -337,10 +337,10 @@ export function ProductReviewSection({
               key={String(rating)}
               type="button"
               onClick={() => applyRatingFilter(rating)}
-              className={`inline-flex h-9 items-center justify-center rounded-full border px-4 text-sm font-semibold transition ${
+              className={`inline-flex h-9 items-center justify-center rounded-full border px-4 text-label-sm font-bold transition ${
                 selected
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-border bg-bg-base text-text-secondary hover:border-primary hover:text-primary'
+                  ? 'border-primary bg-primary text-on-primary'
+                  : 'border-outline-variant bg-surface text-on-surface-variant hover:border-primary hover:text-primary'
               }`}
             >
               {label}
@@ -351,7 +351,7 @@ export function ProductReviewSection({
 
       <div className="mt-6 space-y-4">
         {loadingReviews ? (
-          <div className="rounded-3xl border border-dashed border-border bg-bg-base p-8 text-center text-sm text-text-secondary">
+          <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-8 text-center text-body-md text-on-surface-variant">
             Đang tải đánh giá...
           </div>
         ) : sortedReviews.length > 0 ? (
@@ -359,7 +359,7 @@ export function ProductReviewSection({
             const isEditing = editingId === review.id;
 
             return (
-              <article key={review.id} className="rounded-3xl border border-border bg-bg-base p-5">
+              <article key={review.id} className="rounded-2xl border border-outline-variant bg-surface p-5">
                 {isEditing ? (
                   <form onSubmit={(event) => handleEditSubmit(event, review.id)} className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
@@ -428,20 +428,20 @@ export function ProductReviewSection({
                   <>
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <div className="flex items-center gap-2 text-sm text-text-secondary">
-                          <span className="font-semibold text-text-primary">{review.userName ?? 'Khách hàng'}</span>
+                        <div className="flex items-center gap-2 text-label-sm text-on-surface-variant">
+                          <span className="font-bold text-on-surface">{review.userName ?? 'Khách hàng'}</span>
                           <span>•</span>
                           <span>{review.createdAt ? new Date(review.createdAt).toLocaleString('vi-VN') : 'Vừa xong'}</span>
                         </div>
                         <div className="mt-2 flex items-center gap-1">{renderStars(review.rating)}</div>
-                        <h3 className="mt-3 text-lg font-semibold text-text-primary">{review.title}</h3>
+                        <h3 className="mt-3 text-title-md font-title-md text-on-surface">{review.title}</h3>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleHelpful(review.id)}
-                          className="inline-flex items-center gap-2 rounded-2xl border border-border bg-bg-elevated px-4 py-2 text-sm font-medium text-text-primary transition hover:border-primary hover:text-primary"
+                          className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-4 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
                         >
                           <ThumbsUp className="h-4 w-4" />
                           Hữu ích ({review.helpfulCount})
@@ -460,7 +460,7 @@ export function ProductReviewSection({
                                     images: review.images ?? [],
                                   });
                                 }}
-                                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-bg-elevated px-3 py-2 text-sm font-medium text-text-primary transition hover:border-primary hover:text-primary"
+                                className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
                               >
                                 <PencilLine className="h-4 w-4" />
                                 Sửa
@@ -470,7 +470,7 @@ export function ProductReviewSection({
                               <button
                                 type="button"
                                 onClick={() => handleDelete(review.id)}
-                                className="inline-flex items-center gap-2 rounded-2xl border border-border bg-bg-elevated px-3 py-2 text-sm font-medium text-danger transition hover:border-danger hover:bg-danger/5"
+                                className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-error transition hover:bg-error/10"
                               >
                                 <Trash2 className="h-4 w-4" />
                                 Xóa
@@ -481,12 +481,12 @@ export function ProductReviewSection({
                       </div>
                     </div>
 
-                    <p className="mt-4 whitespace-pre-line text-sm leading-6 text-text-secondary">{review.content}</p>
+                    <p className="mt-4 whitespace-pre-line text-body-md text-on-surface-variant">{review.content}</p>
 
                     {review.images && review.images.length > 0 ? (
                       <div className="mt-4 flex flex-wrap gap-3">
                         {review.images.map((image) => (
-                          <img key={image} src={image} alt={review.title} className="h-20 w-20 rounded-2xl border border-border object-cover" />
+                          <img key={image} src={image} alt={review.title} className="h-20 w-20 rounded-xl border border-outline-variant object-cover" />
                         ))}
                       </div>
                     ) : null}
@@ -496,7 +496,7 @@ export function ProductReviewSection({
             );
           })
         ) : (
-          <div className="rounded-3xl border border-dashed border-border bg-bg-base p-8 text-center text-sm text-text-secondary">
+          <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-8 text-center text-body-md text-on-surface-variant">
             {activeRating === 'ALL' ? 'Chưa có đánh giá cho sản phẩm này.' : `Chưa có đánh giá ${activeRating} sao.`}
           </div>
         )}
@@ -507,7 +507,7 @@ export function ProductReviewSection({
               type="button"
               onClick={() => void loadReviews(page + 1, 'append')}
               disabled={loadingMore}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-border bg-bg-base px-5 text-sm font-semibold text-text-primary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-outline-variant bg-surface px-5 text-label-sm font-bold text-primary transition hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loadingMore ? 'Đang tải...' : 'Tải thêm đánh giá'}
             </button>

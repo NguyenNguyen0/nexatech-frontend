@@ -1,15 +1,39 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Star, Zap } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateCartItem, getApiErrorMessage, getCart } from '@/features/cart/services/cart-api';
 import { fetchProductBySlug } from '@/features/products/services/products-api';
 import type { StockStatus } from '@/features/products/types';
-import { getStockStatusClassName, getStockStatusLabel } from '@/features/products/utils';
+import { getStockStatusLabel } from '@/features/products/utils';
 import { formatCurrency } from '@/lib/utils';
 import { PdpPromotions } from './pdp-promotions';
+
+const WISHLIST_KEY = 'nexatech_wishlist';
+
+type WishlistItem = { productId: string; name: string; price: number; thumbnail?: string; slug: string; addedAt: string };
+
+function getWishlist(): WishlistItem[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(WISHLIST_KEY) ?? '[]'); } catch { return []; }
+}
+
+function toggleWishlist(item: Omit<WishlistItem, 'addedAt'>): boolean {
+  const list = getWishlist();
+  const idx = list.findIndex((i) => i.productId === item.productId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    localStorage.setItem(WISHLIST_KEY, JSON.stringify(list));
+    window.dispatchEvent(new Event('wishlist-updated'));
+    return false;
+  }
+  list.push({ ...item, addedAt: new Date().toISOString() });
+  localStorage.setItem(WISHLIST_KEY, JSON.stringify(list));
+  window.dispatchEvent(new Event('wishlist-updated'));
+  return true;
+}
 
 type PdpSummaryProps = {
   productId: string;
@@ -23,6 +47,7 @@ type PdpSummaryProps = {
   reviewCount?: number;
   stockStatus?: string;
   stockQuantity?: number;
+  thumbnail?: string;
 };
 
 function deriveStockStatus(quantity: number | undefined, fallback?: StockStatus): StockStatus {
@@ -47,6 +72,7 @@ export function PdpSummary({
   reviewCount,
   stockStatus,
   stockQuantity,
+  thumbnail,
 }: PdpSummaryProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,6 +81,12 @@ export function PdpSummary({
   const [liveStockStatus, setLiveStockStatus] = useState<StockStatus>(
     deriveStockStatus(stockQuantity, stockStatus)
   );
+  const [wishlisted, setWishlisted] = useState(false);
+
+  useEffect(() => {
+    const list = getWishlist();
+    setWishlisted(list.some((i) => i.productId === productId));
+  }, [productId]);
 
   const isOutOfStock = liveStockStatus === 'OUT_OF_STOCK' || liveStockQuantity === 0;
   const stockStateText = useMemo(() => {
@@ -68,6 +100,11 @@ export function PdpSummary({
   }, [liveStockQuantity, liveStockStatus]);
 
   const ratingText = typeof averageRating === 'number' ? averageRating.toFixed(1) : '0.0';
+
+  const discount =
+    typeof compareAtPrice === 'number' && compareAtPrice > price
+      ? Math.round((1 - price / compareAtPrice) * 100)
+      : null;
 
   const handleAddToCart = async () => {
     if (isOutOfStock || isSubmitting) return;
@@ -120,74 +157,96 @@ export function PdpSummary({
   };
 
   return (
-    <div className="space-y-6 rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
-      <div className="space-y-4 border-b border-border pb-6">
-        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="flex items-center gap-2 text-label-sm uppercase tracking-wider text-on-surface-variant font-bold mb-2">
           {categoryName && <span>{categoryName}</span>}
-          {categoryName && brandName && <span aria-hidden="true">•</span>}
+          {categoryName && brandName && <span>•</span>}
           {brandName && <span>{brandName}</span>}
         </div>
-
-        <h1 className="font-display text-3xl font-black text-text-primary">{name}</h1>
-
-        <div className="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
-          <span className="inline-flex items-center gap-1">
-            <Star className="h-4 w-4 fill-warning text-warning" />
-            <span className="font-semibold text-warning-dark">{ratingText}</span>
+        
+        <h1 className="text-display-sm font-display-sm text-on-surface mb-3">{name}</h1>
+        
+        <div className="flex flex-wrap items-center gap-3 text-body-md text-on-surface-variant">
+          <div className="flex items-center gap-1">
+            <span className="material-symbols-outlined text-[18px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+            <span className="font-bold text-on-surface">{ratingText}</span>
             <span>({reviewCount ?? 0} đánh giá)</span>
-          </span>
-          <span aria-hidden="true" className="text-border">|</span>
-          <span>
-            Mã SP: <span className="font-semibold text-text-primary">{productId}</span>
-          </span>
-          <span aria-hidden="true" className="text-border">|</span>
-          <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStockStatusClassName(liveStockStatus)}`}>
-            Tình trạng: {stockStateText}
           </div>
-        </div>
-
-        <div className="rounded-3xl border border-border bg-bg-base p-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <span className="text-4xl font-black text-danger">{formatCurrency(price)}</span>
-            {typeof compareAtPrice === 'number' && compareAtPrice > price && (
-              <span className="mb-1 text-base font-semibold text-text-tertiary line-through">{formatCurrency(compareAtPrice)}</span>
-            )}
+          <span>|</span>
+          <div className="flex items-center gap-1">
+            <span>Mã SP:</span>
+            <span className="font-bold text-on-surface">{productId.slice(0, 8).toUpperCase()}</span>
           </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="inline-flex items-center rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-              Trả góp 0%
-            </span>
-            <span className="inline-flex items-center rounded-lg border border-border bg-bg-elevated px-2.5 py-1 text-xs font-semibold text-text-primary">
-              Bảo hành chính hãng 12 tháng
-            </span>
+          <span>|</span>
+          <div className={`text-label-sm font-bold ${isOutOfStock ? 'text-error' : 'text-primary'}`}>
+            {stockStateText}
           </div>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <PdpPromotions />
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={handleBuyNow}
-            disabled={isOutOfStock || isBuyingNow || isSubmitting}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-danger px-5 text-sm font-bold uppercase tracking-widest text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Zap className="h-4 w-4" />
-            {isBuyingNow ? 'Đang xử lý...' : isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
-          </button>
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={isOutOfStock || isSubmitting || isBuyingNow}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border-2 border-primary bg-bg-base px-5 text-sm font-bold uppercase tracking-widest text-primary transition hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {isSubmitting ? 'Đang thêm...' : isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
-          </button>
+      <div className="bg-surface-container-low rounded-xl p-4 border border-outline-variant">
+        <div className="flex items-end gap-3 mb-3">
+          <span className="text-display-md font-display-md text-primary">{formatCurrency(price)}</span>
+          {typeof compareAtPrice === 'number' && compareAtPrice > price && (
+            <>
+              <span className="text-title-md font-title-md text-on-surface-variant line-through mb-1">
+                {formatCurrency(compareAtPrice)}
+              </span>
+              {discount ? (
+                <span className="bg-error text-on-error text-label-sm font-bold px-2 py-1 rounded-md mb-2">
+                  -{discount}%
+                </span>
+              ) : null}
+            </>
+          )}
         </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-lg bg-surface px-2.5 py-1 text-label-sm border border-outline-variant text-on-surface-variant">
+            Trả góp 0%
+          </span>
+          <span className="inline-flex items-center rounded-lg bg-surface px-2.5 py-1 text-label-sm border border-outline-variant text-on-surface-variant">
+            Bảo hành chính hãng 12 tháng
+          </span>
+        </div>
+      </div>
+
+      <PdpPromotions />
+
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={isOutOfStock || isSubmitting || isBuyingNow}
+          className="flex-1 h-12 rounded-xl border-2 border-primary text-primary font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:border-outline disabled:text-on-surface-variant"
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {isSubmitting ? 'Đang thêm...' : isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const added = toggleWishlist({ productId, name, price, thumbnail, slug });
+            setWishlisted(added);
+            toast.success(added ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
+          }}
+          className={`h-12 w-12 rounded-xl border-2 flex items-center justify-center transition-colors ${
+            wishlisted
+              ? 'border-error bg-error/10 text-error'
+              : 'border-outline-variant text-on-surface-variant hover:border-error hover:text-error'
+          }`}
+          title={wishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
+        >
+          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: wishlisted ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleBuyNow}
+          disabled={isOutOfStock || isBuyingNow || isSubmitting}
+          className="flex-1 h-12 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary/90 transition-colors flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-surface-container-high disabled:text-on-surface-variant"
+        >
+          {isBuyingNow ? 'Đang xử lý...' : isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
+        </button>
       </div>
     </div>
   );

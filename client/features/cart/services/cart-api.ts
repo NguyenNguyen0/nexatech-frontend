@@ -1,54 +1,113 @@
-import { isAxiosError } from 'axios';
-import axiosClient from '@/lib/axios-client';
-import type { ApiResponse } from '@/types/auth';
-import type { Cart, UpdateCartItemBody } from '@/types/cart';
+/**
+ * Cart service — Local Storage implementation for mock/dev testing.
+ * Mirrors the same function signatures as the real cart-api (axios) so
+ * components stay unchanged when switching to real API.
+ */
 
-const CART_API_BASE = '/api/v1/cart';
+import type { Cart, CartItem, UpdateCartItemBody } from '@/types/cart';
 
-export function getApiErrorMessage(
-  error: unknown,
-  fallback = 'Có lỗi xảy ra. Vui lòng thử lại.',
-): string {
-  if (!isAxiosError(error)) return fallback;
-  const data = error.response?.data as ApiResponse<unknown> | undefined;
-  return data?.message || error.message || fallback;
+const STORAGE_KEY = 'nexatech_cart';
+
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+function readCart(): Cart {
+  if (typeof window === 'undefined') {
+    return { items: [], totalItems: 0, totalAmount: 0 };
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { items: [], totalItems: 0, totalAmount: 0 };
+    return JSON.parse(raw) as Cart;
+  } catch {
+    return { items: [], totalItems: 0, totalAmount: 0 };
+  }
+}
+
+function writeCart(cart: Cart): Cart {
+  const totals: Cart = {
+    ...cart,
+    totalItems: cart.items.reduce((s, i) => s + i.quantity, 0),
+    totalAmount: cart.items.reduce((s, i) => s + i.totalPrice, 0),
+  };
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(totals));
+  }
+  // Dispatch storage event so other tabs / header badge can react
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('cart-updated'));
+  }
+  return totals;
+}
+
+async function fetchProductMeta(productId: string): Promise<{ name: string; image: string; price: number } | null> {
+  try {
+    const res = await fetch(`/api/v1/products/${productId}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const p = json?.result ?? json;
+    return {
+      name: p.name ?? 'Sản phẩm',
+      image: Array.isArray(p.images) ? (p.images[0] ?? '') : '',
+      price: p.price ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── public API ───────────────────────────────────────────────────────────────
+
+export function getApiErrorMessage(error: unknown, fallback = 'Có lỗi xảy ra. Vui lòng thử lại.'): string {
+  if (error instanceof Error) return error.message || fallback;
+  return fallback;
 }
 
 export async function getCart(): Promise<Cart> {
-  const { data } = await axiosClient.get<ApiResponse<Cart>>(CART_API_BASE);
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể tải giỏ hàng');
-  }
-  return data.result;
+  return readCart();
 }
 
-export async function updateCartItem(
-  productId: string,
-  body: UpdateCartItemBody,
-): Promise<Cart> {
-  const { data } = await axiosClient.put<ApiResponse<Cart>>(
-    `${CART_API_BASE}/items/${productId}`,
-    body,
-  );
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Cập nhật số lượng thất bại');
+export async function updateCartItem(productId: string, body: UpdateCartItemBody): Promise<Cart> {
+  const cart = readCart();
+  const { quantity } = body;
+
+  if (quantity <= 0) {
+    return removeCartItem(productId);
   }
-  return data.result;
+
+  const existingIndex = cart.items.findIndex((i) => i.productId === productId);
+
+  if (existingIndex >= 0) {
+    const existing = cart.items[existingIndex];
+    cart.items[existingIndex] = {
+      ...existing,
+      quantity,
+      totalPrice: existing.price * quantity,
+    };
+  } else {
+    // Fetch product metadata to enrich cart item
+    const meta = await fetchProductMeta(productId);
+    const price = meta?.price ?? 0;
+
+    const newItem: CartItem = {
+      productId,
+      productName: meta?.name ?? 'Sản phẩm',
+      productImage: meta?.image ?? '',
+      quantity,
+      price,
+      totalPrice: price * quantity,
+    };
+    cart.items.push(newItem);
+  }
+
+  return writeCart(cart);
 }
 
 export async function removeCartItem(productId: string): Promise<Cart> {
-  const { data } = await axiosClient.delete<ApiResponse<Cart>>(
-    `${CART_API_BASE}/items/${productId}`,
-  );
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Xóa sản phẩm thất bại');
-  }
-  return data.result;
+  const cart = readCart();
+  cart.items = cart.items.filter((i) => i.productId !== productId);
+  return writeCart(cart);
 }
 
 export async function clearCart(): Promise<void> {
-  const { data } = await axiosClient.delete<ApiResponse<void>>(CART_API_BASE);
-  if (data.code !== 1000) {
-    throw new Error(data.message || 'Xóa giỏ hàng thất bại');
-  }
+  writeCart({ items: [], totalItems: 0, totalAmount: 0 });
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import Link from 'next/link';
+import { Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCart, updateCartItem, removeCartItem, clearCart, getApiErrorMessage } from '@/features/cart/services/cart-api';
 import {
@@ -83,60 +84,68 @@ export default function CartPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10">
-            <ShoppingBag className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">Giỏ hàng</h1>
-            <p className="mt-0.5 text-sm text-text-secondary">{cart.totalItems} sản phẩm</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleClearCart}
-          disabled={updating}
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-text-secondary transition hover:bg-danger/5 hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Trash2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Xóa tất cả</span>
-        </button>
-      </div>
+    <div className="flex-grow bg-surface-container-low py-8">
+      <div className="max-w-container-max mx-auto px-gutter">
+        <nav className="flex items-center gap-2 text-label-sm font-label-sm text-on-surface-variant mb-6">
+          <Link href="/" className="hover:text-primary">Trang chủ</Link>
+          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+          <span className="text-on-surface font-medium">Giỏ hàng</span>
+        </nav>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-        <div className="lg:col-span-2">
-          <div className="space-y-4">
-            {cart.items.map((item) => (
-              <CartItemRow
-                key={item.productId}
-                item={item}
-                updating={updating}
-                onDecrease={handleUpdateQuantity}
-                onIncrease={handleUpdateQuantity}
-                onRemove={handleRemove}
-              />
-            ))}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-headline-md font-headline-md text-on-surface">Giỏ hàng của bạn</h1>
+            <p className="mt-1 text-body-md text-on-surface-variant">{cart.totalItems} sản phẩm</p>
           </div>
+          <button
+            type="button"
+            onClick={handleClearCart}
+            disabled={updating}
+            className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-label-sm font-label-sm text-on-surface-variant transition hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-40 border border-outline-variant hover:border-error"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Xóa tất cả</span>
+          </button>
         </div>
-        <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <CartSummaryCard totalItems={cart.totalItems} totalAmount={cart.totalAmount} updating={updating} />
-          <CartPromoBox canUseCode={cart.totalItems > 0} />
-          {updating ? (
-            <div className="rounded-2xl border border-border bg-bg-base px-4 py-3 text-xs text-text-secondary">
-              Hệ thống đang cập nhật giỏ hàng của bạn...
+
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="w-full lg:w-2/3 flex flex-col gap-4">
+            <div className="bg-surface rounded-xl border border-outline-variant p-2 sm:p-4 shadow-sm">
+              <div className="flex flex-col">
+                {cart.items.map((item) => (
+                  <CartItemRow
+                    key={item.productId}
+                    item={item}
+                    updating={updating}
+                    onDecrease={handleUpdateQuantity}
+                    onIncrease={handleUpdateQuantity}
+                    onRemove={handleRemove}
+                  />
+                ))}
+              </div>
             </div>
-          ) : null}
-          {cart.totalItems >= 3 ? (
-            <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-xs text-success">
-              Bạn đang đủ điều kiện miễn phí vận chuyển toàn quốc.
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-warning/20 bg-warning/10 px-4 py-3 text-xs text-warning-dark">
-              Thêm {Math.max(0, 3 - cart.totalItems)} sản phẩm để nhận miễn phí vận chuyển ưu tiên.
-            </div>
-          )}
+          </div>
+          
+          <div className="w-full lg:w-1/3 flex flex-col gap-6">
+            <CartPromoBox canUseCode={cart.totalItems > 0} />
+            <CartSummaryCard totalItems={cart.totalItems} totalAmount={cart.totalAmount} updating={updating} />
+            
+            {updating ? (
+              <div className="rounded-lg border border-outline-variant bg-surface-container px-4 py-3 text-label-sm text-on-surface-variant flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang cập nhật giỏ hàng...
+              </div>
+            ) : null}
+            {cart.totalItems >= 3 ? (
+              <div className="rounded-lg border border-success/20 bg-success/10 px-4 py-3 text-label-sm text-success">
+                Bạn đang đủ điều kiện miễn phí vận chuyển toàn quốc.
+              </div>
+            ) : (
+              <div className="rounded-lg border border-secondary/20 bg-secondary/10 px-4 py-3 text-label-sm text-secondary">
+                Thêm {Math.max(0, 3 - cart.totalItems)} sản phẩm để nhận miễn phí vận chuyển.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
