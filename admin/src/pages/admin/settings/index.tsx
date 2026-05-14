@@ -57,15 +57,5 @@ const sidebarNavItems = [
     title: 'Notifications',
     icon: <IconNotification size={18} />,
     href: '/admin/settings/notifications',
-  },
-  {
-    title: 'Display',
-    icon: <IconBrowserCheck size={18} />,
-    href: '/admin/settings/display',
-  },
-  {
-    title: 'Error Example',
-    icon: <IconExclamationCircle size={18} />,
-    href: '/admin/settings/error-example',
-  },
+  }
 ]

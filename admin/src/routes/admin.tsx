@@ -193,20 +193,7 @@ export const admin: RouteObject[] = [
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/settings/notifications')).default,
                         }),
-                    },
-                    {
-                        path: 'display',
-                        lazy: async () => ({
-                            Component: (await import('@/pages/admin/settings/display')).default,
-                        }),
-                    },
-                    {
-                        path: 'error-example',
-                        lazy: async () => ({
-                            Component: (await import('@/pages/admin/settings/error-example')).default,
-                        }),
-                        errorElement: <GeneralError className="h-[50svh]" minimal />,
-                    },
+                    }
                 ],
             },
         ],
