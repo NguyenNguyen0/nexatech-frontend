@@ -43,36 +43,36 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
   const pageRange = getPageRange(currentPage, totalPages);
 
   return (
-    <div className="flex justify-center">
-      <nav className="flex items-center gap-1.5" aria-label="Phân trang">
+    <div className="mt-8 flex justify-center">
+      <nav className="flex items-center gap-1" aria-label="Phân trang">
         {hasPrevious ? (
           <Link
             href={`${basePath}?${buildQuery(searchParams, { page: String(currentPage - 1) })}`}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-secondary transition hover:border-primary hover:text-primary"
+            className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
             aria-label="Trang trước"
           >
-            <ChevronRight className="h-4 w-4 rotate-180" />
+            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
           </Link>
         ) : (
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-tertiary opacity-40">
-            <ChevronRight className="h-4 w-4 rotate-180" />
+          <span className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed">
+            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
           </span>
         )}
 
         {pageRange.map((p, idx) =>
           p === '...' ? (
-            <span key={`ellipsis-${idx}`} className="flex h-10 w-10 items-center justify-center text-sm text-text-tertiary">
+            <span key={`ellipsis-${idx}`} className="w-10 h-10 flex items-center justify-center text-on-surface-variant">
               ...
             </span>
           ) : p === currentPage ? (
-            <span key={p} className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white" aria-current="page">
+            <span key={p} className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-on-primary font-medium" aria-current="page">
               {p}
             </span>
           ) : (
             <Link
               key={p}
               href={`${basePath}?${buildQuery(searchParams, { page: String(p) })}`}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-sm text-text-secondary transition hover:border-primary hover:text-primary"
+              className="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors font-medium"
             >
               {p}
             </Link>
@@ -82,14 +82,14 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
         {hasNext ? (
           <Link
             href={`${basePath}?${buildQuery(searchParams, { page: String(currentPage + 1) })}`}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-secondary transition hover:border-primary hover:text-primary"
+            className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
             aria-label="Trang sau"
           >
-            <ChevronRight className="h-4 w-4" />
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
           </Link>
         ) : (
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-bg-elevated text-text-tertiary opacity-40">
-            <ChevronRight className="h-4 w-4" />
+          <span className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed">
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
           </span>
         )}
       </nav>

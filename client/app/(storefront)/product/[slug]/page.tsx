@@ -57,47 +57,56 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
       <PdpBreadcrumb categoryName={product.categoryName} brandName={product.brandName} />
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <div className="flex flex-col lg:flex-row gap-8 mb-12">
         <PdpGallery images={gallery} productName={product.name} />
-        <PdpSummary
-          productId={product.id}
-          name={product.name}
-          slug={product.slug}
-          categoryName={product.categoryName}
-          brandName={product.brandName}
-          price={product.price}
-          compareAtPrice={product.compareAtPrice}
-          averageRating={product.averageRating}
-          reviewCount={reviewsPage.totalItems ?? product.reviewCount ?? 0}
-          stockStatus={product.stockStatus}
-          stockQuantity={product.stockQuantity}
-        />
+        <div className="w-full lg:w-1/3">
+          <PdpSummary
+            productId={product.id}
+            name={product.name}
+            slug={product.slug}
+            categoryName={product.categoryName}
+            brandName={product.brandName}
+            price={product.price}
+            compareAtPrice={product.compareAtPrice}
+            averageRating={product.averageRating}
+            reviewCount={reviewsPage.totalItems ?? product.reviewCount ?? 0}
+            stockStatus={product.stockStatus}
+            stockQuantity={product.stockQuantity}
+            thumbnail={product.thumbnail ?? (product.images?.[0])}
+          />
+        </div>
       </div>
 
-      <div className="mt-8 space-y-6">
-        <PdpSpecs description={product.description} specs={product.specs} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+        <div className="col-span-1 lg:col-span-2 space-y-8">
+          <PdpBlogReview descriptionHtml={product.descriptionHtml} />
 
-        <PdpBlogReview descriptionHtml={product.descriptionHtml} />
+          <ProductReviewSection
+            productId={product.id}
+            productSlug={product.slug}
+            productName={product.name}
+            averageRating={product.averageRating}
+            reviewCount={reviewsPage.totalItems ?? reviewsPage.items.length}
+            initialReviews={reviewsPage.items}
+            initialHasNext={Boolean(
+              typeof reviewsPage.hasNext === 'boolean'
+                ? reviewsPage.hasNext
+                : typeof reviewsPage.totalPages === 'number'
+                  ? reviewsPage.page < reviewsPage.totalPages
+                  : false,
+            )}
+          />
+        </div>
+        
+        <div className="col-span-1 lg:col-span-1">
+          <PdpSpecs description={product.description} specs={product.specs} />
+        </div>
+      </div>
 
-        <ProductReviewSection
-          productId={product.id}
-          productSlug={product.slug}
-          productName={product.name}
-          averageRating={product.averageRating}
-          reviewCount={reviewsPage.totalItems ?? reviewsPage.items.length}
-          initialReviews={reviewsPage.items}
-          initialHasNext={Boolean(
-            typeof reviewsPage.hasNext === 'boolean'
-              ? reviewsPage.hasNext
-              : typeof reviewsPage.totalPages === 'number'
-                ? reviewsPage.page < reviewsPage.totalPages
-                : false,
-          )}
-        />
-
+      <div className="mt-12">
         <PdpRelatedProducts products={relatedProducts} />
       </div>
     </section>

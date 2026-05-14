@@ -1,4 +1,4 @@
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import type { CartItem } from '@/types/cart';
 import { formatCurrency } from '@/lib/utils';
 
@@ -12,54 +12,61 @@ type CartItemRowProps = {
 
 export function CartItemRow({ item, updating, onDecrease, onIncrease, onRemove }: CartItemRowProps) {
   return (
-    <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 rounded-3xl border border-border bg-bg-elevated p-4 sm:grid-cols-[96px_minmax(0,1fr)_auto]">
-      <div className="h-22 w-22 overflow-hidden rounded-2xl bg-bg-sunken sm:h-24 sm:w-24">
+    <div className="flex flex-col sm:flex-row gap-4 p-4 border-b border-outline-variant last:border-b-0">
+      <div className="w-24 h-24 bg-surface-container rounded-lg border border-outline-variant shrink-0 relative overflow-hidden">
         {item.productImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-xs font-semibold text-text-tertiary">NexaTech</div>
+          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+            <span className="material-symbols-outlined text-outline text-[32px]">inventory_2</span>
+          </div>
         )}
       </div>
-
-      <div className="min-w-0 space-y-3">
-        <div>
-          <p className="line-clamp-2 text-sm font-semibold text-text-primary sm:text-base">{item.productName}</p>
-          <p className="mt-1 text-sm text-text-secondary">Đơn giá: {formatCurrency(item.price)}</p>
-          <p className="mt-1 text-base font-bold text-primary">{formatCurrency(item.totalPrice)}</p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onDecrease(item.productId, item.quantity - 1)}
-            disabled={updating || item.quantity <= 1}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-base text-text-primary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Giảm số lượng"
-          >
-            -
-          </button>
-          <span className="inline-flex h-9 min-w-10 items-center justify-center rounded-xl border border-border bg-bg-base px-3 text-sm font-semibold text-text-primary">
-            {item.quantity}
-          </span>
-          <button
-            type="button"
-            onClick={() => onIncrease(item.productId, item.quantity + 1)}
-            disabled={updating}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-base text-text-primary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Tăng số lượng"
-          >
-            +
-          </button>
+      
+      <div className="flex-grow flex flex-col justify-between">
+        <div className="flex justify-between items-start gap-4">
+          <div>
+            <h3 className="text-title-lg font-title-lg text-on-surface line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+              {item.productName}
+            </h3>
+            {/* Mock variant info if needed in the future */}
+            <p className="text-label-sm text-on-surface-variant mt-1">Đơn giá: {formatCurrency(item.price)}</p>
+          </div>
           <button
             type="button"
             onClick={() => onRemove(item.productId)}
             disabled={updating}
-            className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-base text-text-secondary transition hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Xóa sản phẩm"
+            className="text-on-surface-variant hover:text-error transition-colors p-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Xóa"
           >
-            {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {updating ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="material-symbols-outlined text-[20px]">delete</span>}
           </button>
+        </div>
+        
+        <div className="flex justify-between items-end mt-4">
+          <div className="text-title-lg font-title-lg text-primary">{formatCurrency(item.totalPrice)}</div>
+          <div className="flex items-center h-9 bg-surface-container-low border border-outline-variant rounded-lg">
+            <button
+              type="button"
+              onClick={() => onDecrease(item.productId, item.quantity - 1)}
+              disabled={updating || item.quantity <= 1}
+              className="w-9 h-full flex items-center justify-center text-on-surface hover:text-primary transition-colors disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-[16px]">remove</span>
+            </button>
+            <div className="w-10 h-full flex items-center justify-center text-body-md font-medium text-on-surface border-x border-outline-variant">
+              {item.quantity}
+            </div>
+            <button
+              type="button"
+              onClick={() => onIncrease(item.productId, item.quantity + 1)}
+              disabled={updating}
+              className="w-9 h-full flex items-center justify-center text-on-surface hover:text-primary transition-colors disabled:opacity-40"
+            >
+              <span className="material-symbols-outlined text-[16px]">add</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

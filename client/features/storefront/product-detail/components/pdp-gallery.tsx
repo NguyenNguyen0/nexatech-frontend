@@ -27,9 +27,9 @@ export function PdpGallery({ images, productName }: PdpGalleryProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-4xl border border-border bg-bg-elevated shadow-sm">
-        <div className="aspect-square bg-bg-sunken">
+    <div className="flex flex-col gap-4 w-full">
+      <div className="relative w-full aspect-square md:aspect-[4/3] bg-surface-container rounded-2xl border border-outline-variant overflow-hidden group">
+        <div className="absolute inset-0 bg-surface-container">
           {activeImage ? (
             <Image
               src={activeImage}
@@ -37,7 +37,7 @@ export function PdpGallery({ images, productName }: PdpGalleryProps) {
               fill
               unoptimized
               sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-4xl font-black text-primary">NT</div>
@@ -49,45 +49,41 @@ export function PdpGallery({ images, productName }: PdpGalleryProps) {
             <button
               type="button"
               onClick={goPrev}
-              className="absolute left-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-bg-base/90 text-text-primary transition hover:border-primary hover:text-primary"
-              aria-label="Anh truoc"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-surface/80 hover:bg-surface text-on-surface rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-outline-variant shadow-sm"
+              aria-label="Ảnh trước"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <span className="material-symbols-outlined">chevron_left</span>
             </button>
             <button
               type="button"
               onClick={goNext}
-              className="absolute right-3 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-bg-base/90 text-text-primary transition hover:border-primary hover:text-primary"
-              aria-label="Anh tiep theo"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-surface/80 hover:bg-surface text-on-surface rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-outline-variant shadow-sm"
+              aria-label="Ảnh tiếp theo"
             >
-              <ChevronRight className="h-5 w-5" />
+              <span className="material-symbols-outlined">chevron_right</span>
             </button>
           </>
         )}
       </div>
 
       {sanitized.length > 1 && (
-        <div className="grid grid-cols-4 gap-3">
-          {sanitized.slice(0, 4).map((image, index) => {
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          {sanitized.map((image, index) => {
             const isActive = index === activeIndex;
-            const showMoreBadge = index === 3 && remainingCount > 0;
 
             return (
               <button
                 key={`${image}-${index}`}
                 type="button"
                 onClick={() => setActiveIndex(index)}
-                className={`relative overflow-hidden rounded-2xl border bg-bg-elevated transition ${
-                  isActive ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary'
+                className={`w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-xl overflow-hidden cursor-pointer transition-colors ${
+                  isActive ? 'border-2 border-primary' : 'border border-outline-variant hover:border-primary opacity-70 hover:opacity-100'
                 }`}
-                aria-label={`Anh ${index + 1}`}
+                aria-label={`Ảnh ${index + 1}`}
               >
-                <div className="relative aspect-square">
-                  <Image src={image} alt={productName} fill unoptimized sizes="160px" className="object-cover" />
+                <div className="w-full h-full relative bg-surface-container">
+                  <Image src={image} alt={productName} fill unoptimized sizes="96px" className="object-cover" />
                 </div>
-                {showMoreBadge && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/55 text-sm font-bold text-white">+{remainingCount}</div>
-                )}
               </button>
             );
           })}
