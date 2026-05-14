@@ -1,0 +1,306 @@
+[
+  {
+    "id": "prod-1",
+    "name": "Laptop ASUS ROG Strix G15 (2023)",
+    "slug": "laptop-asus-rog-strix-g15-2023",
+    "description": "Laptop gaming đỉnh cao với CPU AMD Ryzen 9 7945HX, GPU NVIDIA GeForce RTX 4070 8GB, màn hình 15.6 inch QHD 240Hz, RAM 16GB DDR5, SSD 1TB NVMe. Hệ thống tản nhiệt Tri-Fan công nghệ mới cho phép hiệu năng tối đa trong mọi điều kiện.",
+    "price": 35990000,
+    "originalPrice": 39990000,
+    "stockQuantity": 15,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-laptop",
+    "primaryCategoryName": "Laptop Gaming",
+    "categoryIds": ["cat-laptop"],
+    "categorySlugs": ["laptop"],
+    "brandId": "brand-asus",
+    "brandName": "ASUS",
+    "averageRating": 4.8,
+    "reviewCount": 24,
+    "status": "ACTIVE",
+    "specs": {
+      "CPU": "AMD Ryzen 9 7945HX",
+      "GPU": "NVIDIA GeForce RTX 4070 8GB",
+      "RAM": "16GB DDR5 4800MHz",
+      "Ổ cứng": "1TB PCIe Gen 4 NVMe SSD",
+      "Màn hình": "15.6\" QHD (2560×1440) 240Hz IPS",
+      "Pin": "90WHr, hỗ trợ sạc nhanh 100W",
+      "Trọng lượng": "2.3 kg",
+      "OS": "Windows 11 Home"
+    }
+  },
+  {
+    "id": "prod-2",
+    "name": "Laptop MSI Titan GT77 HX",
+    "slug": "laptop-msi-titan-gt77-hx",
+    "description": "Laptop gaming flagship với CPU Intel Core i9-13980HX thế hệ mới nhất, GPU RTX 4090 16GB, màn hình 17.3\" QHD 240Hz mini-LED. Thiết kế titan mạnh mẽ với đèn RGB Cherry MX bàn phím cơ.",
+    "price": 89990000,
+    "originalPrice": 99990000,
+    "stockQuantity": 5,
+    "stockStatus": "LOW_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-laptop",
+    "primaryCategoryName": "Laptop Gaming",
+    "categoryIds": ["cat-laptop"],
+    "categorySlugs": ["laptop"],
+    "brandId": "brand-msi",
+    "brandName": "MSI",
+    "averageRating": 4.9,
+    "reviewCount": 11,
+    "status": "ACTIVE",
+    "specs": {
+      "CPU": "Intel Core i9-13980HX (24 nhân)",
+      "GPU": "NVIDIA GeForce RTX 4090 16GB",
+      "RAM": "64GB DDR5 5200MHz",
+      "Ổ cứng": "2TB PCIe Gen 4 NVMe SSD",
+      "Màn hình": "17.3\" QHD 240Hz mini-LED",
+      "Bàn phím": "Cherry MX Ultra Low Profile cơ học có RGB"
+    }
+  },
+  {
+    "id": "prod-3",
+    "name": "Bàn phím cơ Keychron K8 Pro",
+    "slug": "ban-phim-co-keychron-k8-pro",
+    "description": "Bàn phím cơ không dây TKL (75%) với switch Gateron G Pro Red, hỗ trợ QMK/VIA firmware cho phép lập trình phím tùy ý. Kết nối Bluetooth 5.1 với 3 thiết bị, pin 4000mAh dùng được 2-3 tuần.",
+    "price": 2450000,
+    "originalPrice": 2850000,
+    "stockQuantity": 50,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-keyboard",
+    "primaryCategoryName": "Bàn phím",
+    "categoryIds": ["cat-keyboard"],
+    "categorySlugs": ["keyboard"],
+    "brandId": "brand-keychron",
+    "brandName": "Keychron",
+    "averageRating": 4.5,
+    "reviewCount": 42,
+    "status": "ACTIVE",
+    "specs": {
+      "Layout": "TKL 87 phím",
+      "Switch": "Gateron G Pro Red (Hot-swap)",
+      "Kết nối": "Bluetooth 5.1 / USB-C có dây",
+      "Firmware": "QMK / VIA",
+      "Pin": "4000mAh",
+      "Backlight": "RGB per-key"
+    }
+  },
+  {
+    "id": "prod-4",
+    "name": "Bàn phím Logitech G915 TKL",
+    "slug": "ban-phim-logitech-g915-tkl",
+    "description": "Bàn phím gaming không dây mỏng cao cấp với switch GL Linear siêu thấp, LIGHTSPEED 2.4GHz không độ trễ, RGB LIGHTSYNC theo từng phím, pin 40 giờ liên tục.",
+    "price": 3990000,
+    "originalPrice": 4490000,
+    "stockQuantity": 20,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-keyboard",
+    "primaryCategoryName": "Bàn phím",
+    "categoryIds": ["cat-keyboard"],
+    "categorySlugs": ["keyboard"],
+    "brandId": "brand-logitech",
+    "brandName": "Logitech",
+    "averageRating": 4.7,
+    "reviewCount": 56,
+    "status": "ACTIVE",
+    "specs": {
+      "Layout": "TKL không tenkeypad",
+      "Switch": "GL Linear (cơ học thấp)",
+      "Kết nối": "LIGHTSPEED 2.4GHz + Bluetooth",
+      "Pin": "40 giờ (không RGB) / 10 giờ (full RGB)",
+      "Backlight": "RGB LIGHTSYNC per-key"
+    }
+  },
+  {
+    "id": "prod-5",
+    "name": "Chuột Logitech G Pro X Superlight 2",
+    "slug": "chuot-logitech-g-pro-x-superlight-2",
+    "description": "Chuột gaming không dây siêu nhẹ chỉ 60g được thiết kế cho e-sports chuyên nghiệp. Cảm biến HERO 2 25K DPI chính xác tuyệt đối, pin 95 giờ, kết nối LIGHTSPEED 2.4GHz cực kỳ ổn định.",
+    "price": 3190000,
+    "originalPrice": 3690000,
+    "stockQuantity": 30,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1615663245857-ac93bb7c3c9c?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1527814050087-3793815479db?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-mouse",
+    "primaryCategoryName": "Chuột gaming",
+    "categoryIds": ["cat-mouse"],
+    "categorySlugs": ["mouse"],
+    "brandId": "brand-logitech",
+    "brandName": "Logitech",
+    "averageRating": 4.9,
+    "reviewCount": 85,
+    "status": "ACTIVE",
+    "specs": {
+      "Cảm biến": "HERO 2 (25,600 DPI)",
+      "Trọng lượng": "60g",
+      "Kết nối": "LIGHTSPEED 2.4GHz + USB-C",
+      "Pin": "95 giờ",
+      "Polling rate": "1000Hz",
+      "Switch": "Omron (50M lần nhấp)"
+    }
+  },
+  {
+    "id": "prod-6",
+    "name": "Chuột SteelSeries Rival 600",
+    "slug": "chuot-steelseries-rival-600",
+    "description": "Chuột gaming có dây với cảm biến dual TrueMove3+ với cảm biến độ sâu riêng biệt loại bỏ lift-off. Trọng lượng có thể tùy chỉnh từ 96g-128g bằng các thanh cân nặng thép không gỉ.",
+    "price": 1890000,
+    "originalPrice": 2200000,
+    "stockQuantity": 25,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1527814050087-3793815479db?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-mouse",
+    "primaryCategoryName": "Chuột gaming",
+    "categoryIds": ["cat-mouse"],
+    "categorySlugs": ["mouse"],
+    "brandId": "brand-steelseries",
+    "brandName": "SteelSeries",
+    "averageRating": 4.4,
+    "reviewCount": 33,
+    "status": "ACTIVE",
+    "specs": {
+      "Cảm biến": "Dual TrueMove3+ (12,000 DPI)",
+      "Trọng lượng": "96g-128g (tùy chỉnh)",
+      "Kết nối": "USB có dây 2m",
+      "Polling rate": "1000Hz",
+      "Switch": "SteelSeries (60M lần nhấp)"
+    }
+  },
+  {
+    "id": "prod-7",
+    "name": "Màn hình LG UltraGear 27GR95QE-B",
+    "slug": "man-hinh-lg-ultragear-27gr95qe-b",
+    "description": "Màn hình gaming OLED 27 inch QHD 240Hz với thời gian phản hồi 0.03ms, màu sắc sống động DCI-P3 98.5%, HDR10, FreeSync Premium Pro và G-Sync Compatible. Thiết kế ArcLine sang trọng.",
+    "price": 15900000,
+    "originalPrice": 18900000,
+    "stockQuantity": 8,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&q=80&w=800",
+      "https://images.unsplash.com/photo-1585770536735-27993a6f8cc3?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-monitor",
+    "primaryCategoryName": "Màn hình",
+    "categoryIds": ["cat-monitor"],
+    "categorySlugs": ["monitor"],
+    "brandId": "brand-lg",
+    "brandName": "LG",
+    "averageRating": 4.7,
+    "reviewCount": 31,
+    "status": "ACTIVE",
+    "specs": {
+      "Tấm nền": "OLED",
+      "Kích thước": "27 inch QHD (2560×1440)",
+      "Tần số quét": "240Hz",
+      "Thời gian phản hồi": "0.03ms GtG",
+      "Màu sắc": "DCI-P3 98.5%, HDR10",
+      "Kết nối": "2× HDMI 2.1, 1× DP 1.4, USB-A Hub"
+    }
+  },
+  {
+    "id": "prod-8",
+    "name": "Màn hình Samsung Odyssey G7 32\"",
+    "slug": "man-hinh-samsung-odyssey-g7-32",
+    "description": "Màn hình gaming cong 32\" WQHD 240Hz với tấm nền VA Quantum Dot, độ cong 1000R, HDR600, G-Sync Compatible, thời gian phản hồi 1ms. Thiết kế gaming mạnh mẽ với hệ thống tản nhiệt phía sau.",
+    "price": 12900000,
+    "originalPrice": 15500000,
+    "stockQuantity": 12,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1585770536735-27993a6f8cc3?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-monitor",
+    "primaryCategoryName": "Màn hình",
+    "categoryIds": ["cat-monitor"],
+    "categorySlugs": ["monitor"],
+    "brandId": "brand-samsung",
+    "brandName": "Samsung",
+    "averageRating": 4.6,
+    "reviewCount": 49,
+    "status": "ACTIVE",
+    "specs": {
+      "Tấm nền": "VA Quantum Dot",
+      "Kích thước": "32\" WQHD (2560×1440) Curved 1000R",
+      "Tần số quét": "240Hz",
+      "Thời gian phản hồi": "1ms GtG",
+      "HDR": "HDR600",
+      "Kết nối": "2× HDMI 2.0, 1× DP 1.4"
+    }
+  },
+  {
+    "id": "prod-9",
+    "name": "Ghế gaming DXRacer Formula Series",
+    "slug": "ghe-gaming-dxracer-formula-series",
+    "description": "Ghế gaming cao cấp kiểu dáng bucket seat của đua xe F1, vải lưới thoáng khí, tựa đầu và gối lưng 4D điều chỉnh, khung thép trọng tải 150kg, cần tựa tay 4D cao cấp.",
+    "price": 8900000,
+    "originalPrice": 10500000,
+    "stockQuantity": 0,
+    "stockStatus": "OUT_OF_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-chair",
+    "primaryCategoryName": "Ghế gaming",
+    "categoryIds": ["cat-chair"],
+    "categorySlugs": ["chair"],
+    "brandId": "brand-dxracer",
+    "brandName": "DXRacer",
+    "averageRating": 4.3,
+    "reviewCount": 67,
+    "status": "ACTIVE",
+    "specs": {
+      "Chất liệu": "Da PU + lưới thoáng khí",
+      "Trọng tải tối đa": "150 kg",
+      "Điều chỉnh lưng": "90° - 135°",
+      "Cần tựa tay": "4D",
+      "Gas lift": "Class 4"
+    }
+  },
+  {
+    "id": "prod-10",
+    "name": "Ghế gaming SecretLab Titan Evo 2022",
+    "slug": "ghe-gaming-secretlab-titan-evo-2022",
+    "description": "Ghế gaming cao cấp hàng đầu với da Neo Hybrid PU mềm mại bền bỉ, cột sống lưng bốn chiều hỗ trợ tư thế, nút điều chỉnh tựa đầu tích hợp, khung thép 4D tùy chỉnh trọn vẹn.",
+    "price": 14900000,
+    "originalPrice": 16900000,
+    "stockQuantity": 7,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-chair",
+    "primaryCategoryName": "Ghế gaming",
+    "categoryIds": ["cat-chair"],
+    "categorySlugs": ["chair"],
+    "brandId": "brand-secretlab",
+    "brandName": "SecretLab",
+    "averageRating": 4.8,
+    "reviewCount": 120,
+    "status": "ACTIVE",
+    "specs": {
+      "Chất liệu": "Neo Hybrid PU Leather",
+      "Trọng tải tối đa": "130 kg",
+      "Điều chỉnh lưng": "85° - 165°",
+      "Cần tựa tay": "4D với bề mặt đệm",
+      "Đặc biệt": "Tựa đầu tích hợp điều chỉnh 4 chiều"
+    }
+  }
+]
