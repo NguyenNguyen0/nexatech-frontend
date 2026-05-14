@@ -2,24 +2,32 @@ import { auth } from '@/auth';
 
 /**
  * Next.js middleware — Auth.js session + route UX.
- * Bảo vệ route storefront; JWT access vẫn do backend xác thực khi gọi API.
+ * - `otpStepUpPending`: sau credentials login, chặn mọi URL trừ `/auth/login` cho đến khi
+ *   client gọi `update({ otpStepUpComplete: true })` sau verify OTP (tránh F5 bỏ qua OTP).
  */
 const PROTECTED_CLIENT_ROUTES = ['/cart/checkout', '/user'];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+  const session = req.auth;
+  const otpPending = session?.otpStepUpPending === true;
+  const onOtpResumePage = pathname === '/auth/login' || pathname.startsWith('/auth/login/');
+
+  if (otpPending && !onOtpResumePage) {
+    return Response.redirect(new URL('/auth/login', req.url));
+  }
+
   const isProtectedRoute = PROTECTED_CLIENT_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
-  const session = req.auth;
 
-  if (isProtectedRoute && !session) {
+  if (isProtectedRoute && (!session || otpPending)) {
     const loginUrl = new URL('/auth/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return Response.redirect(loginUrl);
   }
 
-  if (isAuthPage && session) {
+  if (isAuthPage && session && !otpPending) {
     return Response.redirect(new URL('/', req.url));
   }
 

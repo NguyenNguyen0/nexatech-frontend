@@ -5,10 +5,10 @@ import { Label } from '@/components/ui/label';
 import { IconBrandGoogle } from '@tabler/icons-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { fetchOnboardingStatus, getApiErrorMessage, login, persistTokensFromExchange, requestEmailOtp, verifyEmailOtp } from '@/services/authApi';
+import { getApiErrorMessage, login, persistTokensFromExchange, requestEmailOtp, verifyEmailOtp } from '@/services/authApi';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { useNavigate } from 'react-router-dom';
-import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken } from '@/services/authSession';
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isOtpStepUpPending, setOtpStepUpPending, clearOtpStepUpPending } from '@/services/authSession';
 
 interface LoginFormProps {
     toggleMode: () => void;
@@ -24,6 +24,12 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
     const [resendingOtp, setResendingOtp] = useState(false);
     const [resendCooldown, setResendCooldown] = useState(0);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (getAccessToken() && isOtpStepUpPending()) {
+            setOtpDialogOpen(true);
+        }
+    }, []);
 
     useEffect(() => {
         if (!otpDialogOpen || resendCooldown <= 0) return;
@@ -57,11 +63,13 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
             });
             persistTokensFromExchange(result);
 
+            setOtpStepUpPending();
+            /** Mỗi lần đăng nhập đều gửi OTP (step-up). `onBoarded` vẫn do backend set lần đầu verify. */
             await requestEmailOtp();
             setOtpCode('');
             setResendCooldown(30);
             setOtpDialogOpen(true);
-            toast.info('Vui lòng xác minh OTP để hoàn tất đăng nhập');
+            toast.info('Nhập OTP email vừa gửi để xác minh chính chủ (bắt buộc mỗi lần đăng nhập).');
         } catch (err) {
             toast.error(getApiErrorMessage(err, 'Login failed'));
         } finally {
@@ -77,6 +85,7 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
         setVerifyingOtp(true);
         try {
             await verifyEmailOtp(otpCode.trim());
+            clearOtpStepUpPending();
             setOtpDialogOpen(false);
             toast.success('Email verification successful');
             continueAfterLoginChecks();
@@ -152,7 +161,9 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                 <DialogContent showCloseButton={false}>
                     <DialogHeader>
                         <DialogTitle>Verify Email</DialogTitle>
-                        <DialogDescription>Enter the 6-character OTP sent to your email. This step is required before accessing the system.</DialogDescription>
+                        <DialogDescription>
+                            Mỗi lần đăng nhập cần nhập mã OTP 6 ký tự gửi tới email của bạn (xác minh chính chủ).
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-2">
                         <Input value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/\s+/g, ''))} placeholder="Enter OTP" maxLength={6} autoFocus />
@@ -160,7 +171,7 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={handleLogoutFromOtpDialog} disabled={verifyingOtp || resendingOtp}>
-                            Logout
+                            Hủy (xóa phiên)
                         </Button>
                         <Button variant="outline" onClick={handleResendOtp} disabled={resendingOtp || verifyingOtp || resendCooldown > 0}>
                             {resendingOtp ? 'Resending...' : 'Resend OTP'}

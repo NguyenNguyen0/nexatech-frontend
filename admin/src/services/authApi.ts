@@ -13,6 +13,7 @@ import type {
     UserInfoResult,
 } from "@/types/auth";
 
+/** Identity + user onboarding — cùng gateway với storefront (client). */
 const USER_API_BASE = "/api/v1/users";
 
 export interface OnboardingStatusResult {

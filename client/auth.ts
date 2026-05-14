@@ -116,8 +116,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
      *    `error: 'RefreshTokenError'` — cookie session vẫn tồn tại nhưng không còn
      *    Bearer dùng được. UI/middleware nên đọc `session.error` và gọi `signOut()`
      *    hoặc redirect login nếu cần hành vi “logout hẳn”.
+     * 5) Sau credentials login: `otp_step_up_pending: true` — middleware chỉ cho
+     *    `/auth/login` cho đến khi client `update({ otpStepUpComplete: true })` sau verify OTP.
      */
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         const u = user as {
           id: string;
@@ -130,7 +132,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           access_token: u.access_token,
           refresh_token: u.refresh_token,
           expires_at: u.expires_at,
+          otp_step_up_pending: true,
         };
+      }
+
+      if (
+        trigger === 'update' &&
+        (session as { otpStepUpComplete?: boolean } | null)?.otpStepUpComplete === true
+      ) {
+        return { ...token, otp_step_up_pending: false };
       }
 
       const exp = token.expires_at as number | undefined;
@@ -173,6 +183,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
+      session.otpStepUpPending = token.otp_step_up_pending === true;
       return session;
     },
   },

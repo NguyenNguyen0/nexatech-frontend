@@ -16,6 +16,11 @@ import type {
 
 const USER_API_BASE = '/api/v1/users';
 
+/**
+ * Onboarding / step-up OTP — gateway → user-service.
+ * - `requestEmailOtp` / `verifyEmailOtp`: dùng sau mỗi lần login (step-up).
+ * - `fetchOnboardingStatus`: `onBoarded` do backend set `true` lần đầu verify OTP thành công (có thể dùng chỗ khác trong app).
+ */
 export interface OnboardingStatusResult {
   userId: string;
   email?: string;

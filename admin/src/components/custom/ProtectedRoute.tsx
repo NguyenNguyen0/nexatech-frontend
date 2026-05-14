@@ -2,12 +2,11 @@ import { useEffect, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import {
     canAccessByPath,
-    clearAuthTokens,
     getAccessToken,
     getRefreshToken,
     getDefaultPathByRole,
     getRolesFromAccessToken,
-    isAccessTokenExpired,
+    isOtpStepUpPending,
 } from '@/services/authSession';
 
 interface ProtectedRouteProps {
@@ -48,6 +47,10 @@ export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteP
     const isAuthenticated = !!token || !!refreshToken;
 
     if (!isAuthenticated) {
+        return <Navigate to="/auth" replace />;
+    }
+
+    if (isOtpStepUpPending()) {
         return <Navigate to="/auth" replace />;
     }
 
