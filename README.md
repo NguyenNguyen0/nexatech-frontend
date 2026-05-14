@@ -17,10 +17,10 @@ nexatech-frontend/
 │   │   │   ├── order/page.tsx        /order       → Order tracking
 │   │   │   ├── user/page.tsx         /user        → User profile
 │   │   │   └── marketing/page.tsx    /marketing   → Promotions
-│   │       └── auth/
-│   │           ├── login/            /auth/login
-│   │           ├── register/         /auth/register
-│   │           └── forgot-password/  /auth/forgot-password
+│   │   └── auth/
+│   │       ├── login/                /auth/login
+│   │       ├── register/             /auth/register
+│   │       └── forgot-password/      /auth/forgot-password
 │   ├── components/          Shared UI (Header, Footer, Shadcn)
 │   ├── features/            Domain logic (auth, cart, home)
 │   ├── lib/                 Utilities (axios client, helpers)
@@ -54,7 +54,7 @@ nexatech-frontend/
 │   └── package.json
 │
 ├── .gitignore
-└── README.md                ← You are here
+└── README.md
 ```
 
 ## Quick Start
