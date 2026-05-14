@@ -2,7 +2,10 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
 /** Base URL qua API Gateway, ví dụ http://localhost:8080/api/v1 */
-const identityBase = () => process.env.IDENTITY_API_BASE_URL?.replace(/\/$/, '') ?? '';
+const identityBase = () => {
+  const base = process.env.NEXT_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '';
+  return base ? `${base}/api/v1` : '';
+};
 
 type TokenBundle = {
   access_token: string;
