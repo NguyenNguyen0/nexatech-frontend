@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { LoginForm } from '@/app/auth/login/components/login-form';
 import { BrandIllustration, BackgroundBranding } from '@/components/custom/auth/brand-illustration';
@@ -22,7 +23,9 @@ export default function LoginPage() {
                 <BrandIllustration />
 
                 <div className="flex justify-center lg:justify-end animate-in fade-in zoom-in-95 duration-500">
-                    <LoginForm />
+                    <Suspense fallback={<div className="w-full max-w-[450px] h-96 rounded-[20px] bg-card/40 animate-pulse" />}>
+                        <LoginForm />
+                    </Suspense>
                 </div>
             </div>
         </section>

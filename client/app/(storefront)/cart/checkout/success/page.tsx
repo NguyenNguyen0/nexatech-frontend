@@ -1,6 +1,5 @@
 'use client';
 
-import { CheckCircleOutline, Receipt, LocalShipping, Home } from '@mui/icons-material';
 import Link from 'next/link';
 
 export default function CheckoutSuccessPage() {

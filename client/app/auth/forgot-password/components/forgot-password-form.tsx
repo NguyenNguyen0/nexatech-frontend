@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function ForgotPasswordForm() {
@@ -12,7 +12,7 @@ export function ForgotPasswordForm() {
         <Card className="w-full max-w-[450px] shadow-2xl border-none overflow-hidden rounded-[20px]">
             <CardContent className="p-8 sm:p-10 space-y-8 relative">
                 <div className="flex items-center gap-4">
-                    <Link href="/login" className="text-primary hover:text-primary/80 transition-colors">
+                    <Link href="/auth/login" className="text-primary hover:text-primary/80 transition-colors">
                         <ArrowLeft className="h-6 w-6" />
                     </Link>
                     <h2 className="text-2xl font-semibold text-foreground">Đặt lại mật khẩu NexaTech</h2>
