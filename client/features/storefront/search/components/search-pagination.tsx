@@ -41,27 +41,36 @@ export function SearchPagination({
   if (!hasPrevious && !hasNext) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-bg-elevated px-5 py-4">
-      <p className="text-sm text-text-secondary">
-        Hiển thị {displayCount} / {totalItems.toLocaleString('vi-VN')} sản phẩm
+    <div className="flex flex-wrap items-center justify-between gap-4 bg-surface p-4 rounded-xl border border-outline-variant shadow-sm mt-8">
+      <p className="text-label-sm text-on-surface-variant font-medium">
+        Hiển thị <span className="text-on-surface font-bold">{displayCount}</span> / <span className="text-on-surface font-bold">{totalItems}</span> sản phẩm
       </p>
 
       <div className="flex items-center gap-2">
-        {hasPrevious && (
+        {hasPrevious ? (
           <Link
             href={`/search?${buildQuery(searchParams, { page: String(currentPage - 1) })}`}
-            className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-bg-base px-4 text-sm font-semibold text-text-primary transition hover:border-primary hover:text-primary"
+            className="h-10 px-4 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors text-label-sm font-medium"
           >
             Trang trước
           </Link>
+        ) : (
+          <span className="h-10 px-4 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed text-label-sm font-medium">
+            Trang trước
+          </span>
         )}
-        {hasNext && (
+        
+        {hasNext ? (
           <Link
             href={`/search?${buildQuery(searchParams, { page: String(currentPage + 1) })}`}
-            className="inline-flex h-10 items-center justify-center rounded-2xl bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary-dark"
+            className="h-10 px-4 flex items-center justify-center rounded-lg bg-primary text-on-primary hover:bg-primary/90 transition-colors text-label-sm font-medium"
           >
             Trang sau
           </Link>
+        ) : (
+          <span className="h-10 px-4 flex items-center justify-center rounded-lg bg-primary text-on-primary opacity-50 cursor-not-allowed text-label-sm font-medium">
+            Trang sau
+          </span>
         )}
       </div>
     </div>
