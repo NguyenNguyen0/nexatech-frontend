@@ -11,7 +11,9 @@ import type { NextRequest } from 'next/server';
  * Full JWT validation is done by the backend API.
  */
 
-const PROTECTED_CLIENT_ROUTES = ['/user', '/cart/checkout'];
+// DEV MODE: /cart/checkout accessible without login for mock testing
+// Restore '/cart/checkout' and '/user' to PROTECTED_CLIENT_ROUTES when real auth is ready
+const PROTECTED_CLIENT_ROUTES: string[] = [];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
 export function middleware(request: NextRequest) {
