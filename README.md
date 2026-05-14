@@ -17,7 +17,6 @@ nexatech-frontend/
 │   │   │   ├── order/page.tsx        /order       → Order tracking
 │   │   │   ├── user/page.tsx         /user        → User profile
 │   │   │   └── marketing/page.tsx    /marketing   → Promotions
-│   │   └── (auth)/          Auth pages (branded background, no chrome)
 │   │       └── auth/
 │   │           ├── login/            /auth/login
 │   │           ├── register/         /auth/register
