@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
 import { Toaster } from 'sonner';
+import { AuthSessionProvider } from '@/components/providers/auth-session-provider';
 import './globals.css';
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -35,7 +36,7 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${beVietnamPro.className} antialiased`}
       >
-        {children}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
         <Toaster
           duration={3000}
           closeButton

@@ -1,9 +1,7 @@
 'use client';
 
-import type { Metadata } from 'next';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
 

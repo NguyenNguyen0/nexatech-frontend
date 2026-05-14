@@ -49,7 +49,7 @@ function normalizeProduct(p: RawProduct) {
   };
 }
 
-const PRODUCTS = PRODUCTS_RAW.map(normalizeProduct);
+const PRODUCTS = (PRODUCTS_RAW as unknown as RawProduct[]).map(normalizeProduct);
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
