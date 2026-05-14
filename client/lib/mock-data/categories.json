@@ -1,0 +1,11 @@
+[
+  { "id": "cat-laptop", "name": "Laptop Gaming", "slug": "laptop", "parentId": null },
+  { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": null },
+  { "id": "cat-monitor", "name": "Màn hình", "slug": "monitor", "parentId": null },
+  { "id": "cat-keyboard", "name": "Bàn phím", "slug": "keyboard", "parentId": null },
+  { "id": "cat-mouse", "name": "Chuột gaming", "slug": "mouse", "parentId": null },
+  { "id": "cat-chair", "name": "Ghế gaming", "slug": "chair", "parentId": null },
+  { "id": "cat-headset", "name": "Tai nghe", "slug": "headset", "parentId": null },
+  { "id": "cat-gpu", "name": "Card màn hình", "slug": "gpu", "parentId": null },
+  { "id": "cat-ram", "name": "RAM", "slug": "ram", "parentId": null }
+]

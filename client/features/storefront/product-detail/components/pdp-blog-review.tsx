@@ -97,32 +97,41 @@ export function PdpBlogReview({ descriptionHtml }: PdpBlogReviewProps) {
   }
 
   return (
-    <section className="overflow-hidden rounded-4xl border border-border bg-bg-elevated shadow-sm">
-      <header className="border-b border-border px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-text-primary">Bài review chi tiết</h2>
-            <p className="mt-1 text-sm text-text-secondary">Nội dung review được hiển thị độc lập để giữ nguyên định dạng gốc.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setExpanded((prev) => !prev)}
-            className="text-xs font-semibold uppercase tracking-widest text-primary transition hover:text-primary-dark"
-          >
-            {expanded ? 'Thu gọn' : 'Xem đầy đủ'}
-          </button>
-        </div>
-      </header>
+    <section className="bg-surface rounded-2xl p-6 md:p-8 border border-outline-variant relative overflow-hidden">
+      <h2 className="text-headline-sm font-headline-sm text-on-surface mb-6">Thông tin sản phẩm</h2>
 
-      <div className="relative">
+      <div className={`relative transition-[height] duration-300 ${expanded ? 'h-[800px]' : 'h-[400px]'}`}>
         <iframe
           title="product-blog-review"
           srcDoc={buildSrcDoc(descriptionHtml)}
           sandbox="allow-same-origin"
-          className={`w-full border-0 bg-white transition-[height] duration-300 ${expanded ? 'h-215' : 'h-72'}`}
+          className="w-full h-full border-0 bg-white rounded-xl"
         />
-        {!expanded && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-white to-transparent" />}
+        
+        {!expanded && (
+          <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-surface to-transparent flex items-end justify-center pb-6">
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="px-6 py-2 bg-surface border border-primary text-primary rounded-full font-bold hover:bg-primary/5 transition-colors shadow-sm"
+            >
+              Xem thêm nội dung
+            </button>
+          </div>
+        )}
       </div>
+
+      {expanded && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="px-6 py-2 bg-surface border border-outline-variant text-on-surface-variant rounded-full font-bold hover:bg-surface-container transition-colors shadow-sm"
+          >
+            Thu gọn nội dung
+          </button>
+        </div>
+      )}
     </section>
   );
 }

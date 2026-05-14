@@ -19,69 +19,69 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
   const rating = typeof product.averageRating === 'number' ? product.averageRating : 0;
 
   return (
-    <Link href={`/product/${product.slug}`} className={cn('group block h-full', className)}>
-      <article className="flex h-full flex-col overflow-hidden rounded-[1.75rem] border border-border bg-bg-elevated shadow-sm transition duration-200 group-hover:-translate-y-1 group-hover:shadow-lg">
-        <div className={cn('relative overflow-hidden bg-bg-sunken', variant === 'compact' ? 'aspect-square' : 'aspect-[4/3]')}>
+    <Link href={`/product/${product.slug}`} className={cn('block h-full', className)}>
+      <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full">
+        {/* Image */}
+        <div className="relative w-full aspect-square bg-surface-container border-b border-outline-variant overflow-hidden">
           {product.thumbnail ? (
             <img
               src={product.thumbnail}
               alt={product.name}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-transparent text-5xl font-black text-primary/70">
-              NT
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+              <span className="material-symbols-outlined text-outline text-[48px]">inventory_2</span>
             </div>
           )}
 
-          <div className="absolute left-3 top-3 flex gap-2">
+          {/* Badges */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
             {discount ? (
-              <span className="rounded-full bg-danger px-3 py-1 text-xs font-bold text-white">
+              <span className="bg-error text-on-error text-[10px] font-bold px-2 py-1 rounded">
                 -{discount}%
               </span>
             ) : null}
             {product.stockStatus ? (
-              <span className={cn('rounded-full px-3 py-1 text-xs font-semibold', getStockStatusClassName(product.stockStatus))}>
+              <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-1 rounded">
                 {getStockStatusLabel(product.stockStatus)}
               </span>
             ) : null}
           </div>
         </div>
 
-        <div className={cn('flex flex-1 flex-col gap-3 p-4', variant === 'compact' && 'p-3')}>
-          <div className="space-y-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-tertiary">
-              {product.brandName ?? product.primaryCategoryName ?? product.categoryName ?? 'NexaTech'}
-            </p>
-            <h3 className={cn('font-display text-base font-bold leading-snug text-text-primary line-clamp-2', variant === 'compact' && 'text-sm')}>
-              {product.name}
-            </h3>
+        {/* Content */}
+        <div className={cn('p-4 flex flex-col flex-grow', variant === 'compact' && 'p-3')}>
+          <div className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold mb-1">
+            {product.brandName ?? product.primaryCategoryName ?? product.categoryName ?? 'NexaTech'}
           </div>
-
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <div className={cn('text-xl font-black text-primary', variant === 'compact' && 'text-lg')}>
+          <h3 className={cn('text-label-sm font-label-sm text-on-surface font-medium line-clamp-2 mb-2 group-hover:text-primary transition-colors', variant === 'compact' && 'text-[12px] leading-tight')}>
+            {product.name}
+          </h3>
+          
+          <div className="mt-auto">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn('text-body-md font-bold text-primary', variant === 'compact' && 'text-label-sm')}>
                 {formatCurrency(product.price)}
-              </div>
+              </span>
               {typeof product.compareAtPrice === 'number' && product.compareAtPrice > product.price ? (
-                <div className="text-xs text-text-tertiary line-through">
+                <span className="text-[11px] text-on-surface-variant line-through">
                   {formatCurrency(product.compareAtPrice)}
-                </div>
+                </span>
               ) : null}
             </div>
-
-            <div className="flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-semibold text-warning-dark">
-              <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-              {rating > 0 ? rating.toFixed(1) : '0.0'}
+            
+            <div className="flex items-center justify-between text-[11px] text-on-surface-variant">
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <span className="font-medium">{rating > 0 ? rating.toFixed(1) : '0.0'}</span>
+                <span>({product.reviewCount ?? 0})</span>
+              </div>
+              <span>{typeof product.stockQuantity === 'number' ? `${product.stockQuantity} kho` : 'Còn hàng'}</span>
             </div>
           </div>
-
-          <div className="mt-auto flex items-center justify-between border-t border-border pt-3 text-xs text-text-tertiary">
-            <span>{product.reviewCount ?? 0} đánh giá</span>
-            <span>{typeof product.stockQuantity === 'number' ? `${product.stockQuantity} còn lại` : 'Theo kho'}</span>
-          </div>
         </div>
-      </article>
+      </div>
     </Link>
   );
 }
