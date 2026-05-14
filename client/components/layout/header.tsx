@@ -1,9 +1,10 @@
 'use client';
 
-import { ChevronDown, Heart, Menu, ShoppingCart, Search, UserRound, X } from 'lucide-react';
+import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, Search, UserRound, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
+import { signOut, useSession } from 'next-auth/react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const navLinks = [
@@ -44,10 +45,38 @@ function getWishlistCount(): number {
 
 export function Header() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [logoutPending, setLogoutPending] = useState(false);
+
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [accountMenuOpen]);
+
+  const handleLogout = async () => {
+    setLogoutPending(true);
+    try {
+      await fetch('/api/auth/logout-keycloak', { method: 'POST' });
+    } catch {
+      /* vẫn signOut cục bộ */
+    }
+    setAccountMenuOpen(false);
+    setMobileMenuOpen(false);
+    await signOut({ callbackUrl: '/' });
+    setLogoutPending(false);
+  };
 
   const refreshCounts = useCallback(() => {
     setCartCount(getCartCount());
@@ -111,13 +140,56 @@ export function Header() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-1">
-            <Link
-              href="/user/account"
-              className="hidden items-center gap-1.5 rounded px-2.5 py-1.5 text-[13px] text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
-            >
-              <UserRound className="h-[18px] w-[18px]" />
-              <span className="hidden lg:inline">Tài khoản</span>
-            </Link>
+            {status === 'loading' ? (
+              <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
+                <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
+              </div>
+            ) : session ? (
+              <div className="relative" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((o) => !o)}
+                  className="flex h-9 w-9 items-center justify-center rounded text-[#333] transition hover:bg-[#f0f0f0]"
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Tài khoản"
+                >
+                  <UserRound className="h-[18px] w-[18px]" />
+                </button>
+                {accountMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 z-50 mt-1 min-w-[180px] rounded border border-[#e8e8e8] bg-white py-1 text-[13px] shadow-lg"
+                  >
+                    <Link
+                      href="/user/account"
+                      role="menuitem"
+                      className="block px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      Trang tài khoản
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={logoutPending}
+                      onClick={() => void handleLogout()}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-[#333] transition hover:bg-[#f5f5f5] disabled:opacity-50"
+                    >
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center rounded border border-[#004d75] bg-[#004d75] px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#003d5c]"
+              >
+                Đăng nhập
+              </Link>
+            )}
 
             <Link
               href="/user/wishlist"
@@ -226,14 +298,39 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              <Link
-                href="/user/account"
-                onClick={() => setMobileMenuOpen(false)}
-                className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
-              >
-                <UserRound className="h-4 w-4" />
-                Tài khoản
-              </Link>
+              {status === 'loading' ? (
+                <div className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] text-[#999]">
+                  Đang tải…
+                </div>
+              ) : session ? (
+                <>
+                  <Link
+                    href="/user/account"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+                  >
+                    <UserRound className="h-4 w-4" />
+                    Trang tài khoản
+                  </Link>
+                  <button
+                    type="button"
+                    disabled={logoutPending}
+                    onClick={() => void handleLogout()}
+                    className="flex w-full items-center gap-2 border-b border-[#f0f0f0] px-3 py-2.5 text-left text-[13px] font-medium text-[#333] hover:bg-[#f7f7f7] disabled:opacity-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#004d75] hover:bg-[#f7f7f7]"
+                >
+                  Đăng nhập
+                </Link>
+              )}
               <Link
                 href="/user/wishlist"
                 onClick={() => setMobileMenuOpen(false)}

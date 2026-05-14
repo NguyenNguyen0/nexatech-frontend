@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,12 @@ export function LoginForm() {
       if (result?.error) {
         toast.error('Đăng nhập thất bại. Kiểm tra tên đăng nhập và mật khẩu.');
         return;
+      }
+
+      const session = await getSession();
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[login] session sau đăng nhập:', session);
+        console.log('[login] accessToken:', session?.accessToken);
       }
 
       router.push(result?.url ?? callbackUrl);

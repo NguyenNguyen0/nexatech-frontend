@@ -1,3 +1,8 @@
+/**
+ * Cấu hình Auth.js (NextAuth v5) cho App Router.
+ * Đặt ở thư mục gốc app (cạnh `app/`) là convention chính thức — import `@/auth` từ middleware, server, route handlers.
+ * @see https://authjs.dev/getting-started/installation?framework=Next.js
+ */
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
