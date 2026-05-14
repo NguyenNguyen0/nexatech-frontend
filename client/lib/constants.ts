@@ -20,7 +20,8 @@ export function isPublicAuthRequestUrl(url: string | undefined): boolean {
   return (
     url.includes(authPaths.login) ||
     url.includes(authPaths.register) ||
-    url.includes(authPaths.refresh)
+    url.includes(authPaths.refresh) ||
+    url.includes(authPaths.logout)
   );
 }
 

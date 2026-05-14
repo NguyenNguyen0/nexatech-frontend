@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { authStorage } from '@/features/auth/utils/auth-storage';
 import { getSession, signIn } from 'next-auth/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,9 @@ export function LoginForm() {
       }
 
       const session = await getSession();
+      if (session?.accessToken && session.refreshToken) {
+        authStorage.setTokens(session.accessToken, session.refreshToken);
+      }
       if (process.env.NODE_ENV === 'development') {
         console.log('[login] session sau đăng nhập:', session);
         console.log('[login] accessToken:', session?.accessToken);

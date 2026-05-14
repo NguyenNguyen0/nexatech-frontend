@@ -3,6 +3,8 @@ import type { DefaultSession } from 'next-auth';
 declare module 'next-auth' {
   interface Session {
     accessToken?: string;
+    /** Chỉ để đồng bộ axios `authStorage` sau login; tránh lưu nơi khác. */
+    refreshToken?: string;
     error?: 'RefreshTokenError';
     user: {
       id: string;

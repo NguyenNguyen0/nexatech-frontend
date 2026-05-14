@@ -105,6 +105,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    /**
+     * JWT callback (chạy mỗi lần session được đọc / cập nhật):
+     *
+     * 1) access còn hạn (theo `expires_at`, buffer 15s): giữ nguyên token.
+     * 2) access sắp hết / hết: gọi `POST .../auth/refresh` với `refresh_token`.
+     * 3) Refresh OK: cập nhật access/refresh/expires, bỏ cờ `error`.
+     * 4) Không có refresh hoặc refresh lỗi: **không** gọi `signOut()` tự động (Auth.js
+     *    không làm vậy trong jwt callback). Ta xóa access/refresh khỏi JWT và gán
+     *    `error: 'RefreshTokenError'` — cookie session vẫn tồn tại nhưng không còn
+     *    Bearer dùng được. UI/middleware nên đọc `session.error` và gọi `signOut()`
+     *    hoặc redirect login nếu cần hành vi “logout hẳn”.
+     */
     async jwt({ token, user }) {
       if (user) {
         const u = user as {
@@ -128,12 +140,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       const rt = token.refresh_token as string | undefined;
       if (!rt) {
-        return { ...token, error: 'RefreshTokenError' as const };
+        const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
+        return { ...rest, error: 'RefreshTokenError' as const };
       }
 
       const refreshed = await refreshAccessToken(rt);
       if (!refreshed?.access_token) {
-        return { ...token, error: 'RefreshTokenError' as const };
+        const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
+        return { ...rest, error: 'RefreshTokenError' as const };
       }
 
       return {
@@ -147,6 +161,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (token.access_token) {
         session.accessToken = token.access_token as string;
+      } else {
+        delete session.accessToken;
+      }
+      if (token.refresh_token) {
+        session.refreshToken = token.refresh_token as string;
+      } else {
+        delete session.refreshToken;
       }
       session.error = token.error as 'RefreshTokenError' | undefined;
       if (session.user && token.sub) {
