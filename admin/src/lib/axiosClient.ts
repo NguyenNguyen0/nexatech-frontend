@@ -8,6 +8,7 @@ const PUBLIC_AUTH_PATHS = [
     authPaths.register,
     authPaths.refresh,
     authPaths.logout,
+    authPaths.forgotPassword,
 ];
 
 const axiosClient = axios.create({

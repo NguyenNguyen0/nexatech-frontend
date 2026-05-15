@@ -16,6 +16,7 @@ export const authPaths = {
   sessionsMe: `${AUTH_API_BASE}/sessions/me`,
   sessionsLogoutAll: `${AUTH_API_BASE}/sessions/logout-all`,
   sessionPing: `${AUTH_API_BASE}/session/ping`,
+  forgotPassword: `${AUTH_API_BASE}/forgot-password`,
 } as const;
 
 export function sessionByIdPath(id: string): string {
@@ -29,7 +30,8 @@ export function isPublicAuthRequestUrl(url: string | undefined): boolean {
     url.includes(authPaths.login) ||
     url.includes(authPaths.register) ||
     url.includes(authPaths.refresh) ||
-    url.includes(authPaths.logout)
+    url.includes(authPaths.logout) ||
+    url.includes(authPaths.forgotPassword)
   );
 }
 

@@ -48,10 +48,27 @@ export function isOtpStepUpPending(): boolean {
     return sessionStorage.getItem(OTP_STEP_UP_PENDING) === "1";
 }
 
+const PASSWORD_CHANGE_REQUIRED = "nexatech_admin_password_change_required";
+
+export function setPasswordChangeRequired(required: boolean): void {
+    if (typeof window === "undefined") return;
+    if (required) {
+        sessionStorage.setItem(PASSWORD_CHANGE_REQUIRED, "1");
+    } else {
+        sessionStorage.removeItem(PASSWORD_CHANGE_REQUIRED);
+    }
+}
+
+export function isPasswordChangeRequired(): boolean {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(PASSWORD_CHANGE_REQUIRED) === "1";
+}
+
 export function clearAuthTokens(): void {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     clearOtpStepUpPending();
+    setPasswordChangeRequired(false);
 }
 
 export function setAuthTokens(accessToken: string, refreshToken: string): void {

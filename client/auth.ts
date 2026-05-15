@@ -3,7 +3,31 @@
  * Đặt ở thư mục gốc app (cạnh `app/`) là convention chính thức — import `@/auth` từ middleware, server, route handlers.
  * @see https://authjs.dev/getting-started/installation?framework=Next.js
  */
-import NextAuth, { CredentialsSignin } from 'next-auth';
+import NextAuth, { CredentialsSignin, type DefaultSession } from 'next-auth';
+
+declare module 'next-auth' {
+  interface Session {
+    accessToken?: string;
+    refreshToken?: string;
+    error?: 'RefreshTokenError';
+    otpStepUpPending?: boolean;
+    requiresPasswordChange?: boolean;
+    user: {
+      id: string;
+    } & DefaultSession['user'];
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    access_token?: string;
+    refresh_token?: string;
+    expires_at?: number;
+    otp_step_up_pending?: boolean;
+    requires_password_change?: boolean;
+    error?: 'RefreshTokenError';
+  }
+}
 
 class AccessDeniedError extends CredentialsSignin {
   code = 'AccessDenied';
@@ -20,6 +44,7 @@ type TokenBundle = {
   access_token: string;
   refresh_token?: string;
   expires_in?: number;
+  requires_password_change?: boolean;
 };
 
 type ApiEnvelope<T> = {
@@ -91,7 +116,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const { access_token, refresh_token, expires_in } = data.result;
+        const { access_token, refresh_token, expires_in, requires_password_change } = data.result;
         const claims = decodeJwtPayload(access_token);
         const sub = (claims?.sub as string) ?? username;
         const name = (claims?.name as string) ?? (claims?.preferred_username as string) ?? username;
@@ -111,6 +136,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email,
           access_token,
           refresh_token,
+          requires_password_change: !!requires_password_change,
           expires_at: Math.floor(Date.now() / 1000 + (expires_in ?? 300)),
         };
       },
@@ -137,6 +163,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: string;
           access_token: string;
           refresh_token?: string;
+          requires_password_change: boolean;
           expires_at: number;
         };
         return {
@@ -144,15 +171,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           access_token: u.access_token,
           refresh_token: u.refresh_token,
           expires_at: u.expires_at,
-          otp_step_up_pending: true,
+          otp_step_up_pending: false,
+          requires_password_change: u.requires_password_change,
         };
       }
 
-      if (
-        trigger === 'update' &&
-        (session as { otpStepUpComplete?: boolean } | null)?.otpStepUpComplete === true
-      ) {
-        return { ...token, otp_step_up_pending: false };
+      if (trigger === 'update') {
+        const s = session as { otpStepUpComplete?: boolean; passwordChangeComplete?: boolean } | null;
+        if (s?.otpStepUpComplete === true) {
+          return { ...token, otp_step_up_pending: false };
+        }
+        if (s?.passwordChangeComplete === true) {
+          return { ...token, requires_password_change: false };
+        }
       }
 
       const exp = token.expires_at as number | undefined;
@@ -198,6 +229,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.sub;
       }
       session.otpStepUpPending = token.otp_step_up_pending === true;
+      session.requiresPasswordChange = token.requires_password_change === true;
       return session;
     },
     /**
