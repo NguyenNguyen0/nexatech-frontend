@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
   { label: 'Gaming PC', href: '/product/collection/gaming-pc' },
+  { label: 'Build PC', href: '/build-pc' },
   { label: 'Monitor', href: '/product/collection/monitor' },
   { label: 'Keyboard', href: '/product/collection/keyboard' },
   { label: 'Mouse', href: '/product/collection/mouse' },

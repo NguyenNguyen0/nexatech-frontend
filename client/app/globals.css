@@ -119,6 +119,11 @@
   --color-on-secondary-fixed: #410002;
   --color-inverse-on-surface: #f2f0f0;
 
+  /* Storefront accent colors */
+  --color-storefront-primary: #004d75;
+  --color-storefront-primary-hover: #003d5c;
+  --color-storefront-primary-soft: #e8f3f8;
+
   --spacing-card-padding: 12px;
   --spacing-stack-sm: 4px;
   --spacing-section-margin: 40px;
