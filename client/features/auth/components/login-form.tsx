@@ -28,10 +28,17 @@ export function LoginForm() {
     setLoading(true);
     try {
       const result = await login({ username, password });
+
+      // Chỉ cho phép CUSTOMER đăng nhập vào client
+      const roles = getRolesFromAccessToken(result.access_token);
+      if (!roles.includes('CUSTOMER')) {
+        toast.error('Tài khoản này không có quyền truy cập vào hệ thống khách hàng.');
+        return;
+      }
+
       persistTokensFromExchange(result);
       toast.success('Đăng nhập thành công!');
 
-      const roles = getRolesFromAccessToken(result.access_token);
       const targetPath = getDefaultPathByRole(roles);
       router.push(targetPath);
     } catch (err) {

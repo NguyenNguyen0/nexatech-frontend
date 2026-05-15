@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getSession, signIn, signOut, useSession } from 'next-auth/react';
+import { getSession, signIn, signOut } from 'next-auth/react';
 import { Eye, EyeOff, Loader2, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,6 @@ function normalizeUsername(raw: string): string {
 
 export function RegisterForm() {
   const router = useRouter();
-  const { update } = useSession();
   const [step, setStep] = useState<Step>('credentials');
 
   // Step 1
@@ -169,16 +168,12 @@ export function RegisterForm() {
     setVerifyingOtp(true);
     try {
       await verifyEmailOtp(otpCode.trim());
-      try {
-        await update({ otpStepUpComplete: true });
-      } catch {
-        toast.error('Đã xác minh OTP nhưng không cập nhật được phiên. F5 trang rồi thử lại.');
-        return;
-      }
+      // Đăng ký hoàn tất — đăng xuất session tạm và yêu cầu user đăng nhập lại bằng password
+      authStorage.clear();
+      await signOut({ redirect: false });
       setOtpOpen(false);
-      toast.success('Đăng ký thành công! Chào mừng bạn đến NexaTech.');
-      router.push('/');
-      router.refresh();
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.');
+      router.push('/auth/login');
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'OTP không hợp lệ hoặc đã hết hạn'));
     } finally {

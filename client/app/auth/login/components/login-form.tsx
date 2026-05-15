@@ -76,7 +76,11 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        toast.error('Đăng nhập thất bại. Kiểm tra tên đăng nhập và mật khẩu.');
+        if (result.error.includes('AccessDenied') || result.code === 'AccessDenied') {
+          toast.error('Tài khoản này không có quyền truy cập vào hệ thống khách hàng.');
+        } else {
+          toast.error('Đăng nhập thất bại. Kiểm tra tên đăng nhập và mật khẩu.');
+        }
         return;
       }
 

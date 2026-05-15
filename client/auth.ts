@@ -3,7 +3,11 @@
  * Đặt ở thư mục gốc app (cạnh `app/`) là convention chính thức — import `@/auth` từ middleware, server, route handlers.
  * @see https://authjs.dev/getting-started/installation?framework=Next.js
  */
-import NextAuth from 'next-auth';
+import NextAuth, { CredentialsSignin } from 'next-auth';
+
+class AccessDeniedError extends CredentialsSignin {
+  code = 'AccessDenied';
+}
 import Credentials from 'next-auth/providers/credentials';
 
 /** Base URL qua API Gateway, ví dụ http://localhost:8080/api/v1 */
@@ -93,6 +97,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const name = (claims?.name as string) ?? (claims?.preferred_username as string) ?? username;
         const email = (claims?.email as string) ?? undefined;
 
+        // Chỉ có CUSTOMER mới được đăng nhập vào Client — chặn Staff/Admin ngay ở tầng server
+        const realmRoles = ((claims?.realm_access as { roles?: string[] })?.roles ?? []).map(
+          (r: string) => r.toUpperCase(),
+        );
+        if (!realmRoles.includes('CUSTOMER')) {
+          throw new AccessDeniedError();
+        }
+
         return {
           id: sub,
           name,
@@ -150,12 +162,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       const rt = token.refresh_token as string | undefined;
       if (!rt) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
         return { ...rest, error: 'RefreshTokenError' as const };
       }
 
       const refreshed = await refreshAccessToken(rt);
       if (!refreshed?.access_token) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
         return { ...rest, error: 'RefreshTokenError' as const };
       }
