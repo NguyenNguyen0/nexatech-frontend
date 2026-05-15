@@ -58,9 +58,6 @@ function SessionCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Monitor className="h-4 w-4 text-primary" />
-          </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               {session.current && (
