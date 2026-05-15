@@ -453,14 +453,6 @@ export function RegisterForm() {
                   'Tạo tài khoản'
                 )}
               </Button>
-
-              <p className="text-center text-xs text-muted-foreground">
-                Bằng cách đăng ký, bạn đồng ý với{' '}
-                <Link href="#" className="text-primary hover:underline">
-                  Điều khoản dịch vụ
-                </Link>{' '}
-                của chúng tôi.
-              </p>
             </form>
           )}
         </CardContent>

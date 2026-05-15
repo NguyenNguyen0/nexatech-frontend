@@ -162,14 +162,14 @@ export function LoginForm() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
               <label htmlFor="auth-identifier" className="sr-only">
-                Email/Số điện thoại/Tên đăng nhập
+                Tên đăng nhập
               </label>
               <Input
                 id="auth-identifier"
                 type="text"
                 name="username"
                 autoComplete="username"
-                placeholder="Email/Số điện thoại/Tên đăng nhập"
+                placeholder="Tên đăng nhập"
                 className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
                 required
                 value={username}
@@ -202,16 +202,9 @@ export function LoginForm() {
               {pending ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </Button>
 
-            <div className="flex justify-between text-xs text-primary font-medium">
+            <div className="flex justify-end text-xs text-primary font-medium">
               <Link href="/auth/forgot-password" className="hover:underline">
                 Quên mật khẩu
-              </Link>
-              <Link
-                onClick={() => toast.info('Tính năng này chưa được triển khai')}
-                href="#"
-                className="hover:underline"
-              >
-                Đăng nhập với SMS
               </Link>
             </div>
           </form>

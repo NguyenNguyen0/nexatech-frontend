@@ -120,9 +120,9 @@
   --color-inverse-on-surface: #f2f0f0;
 
   /* Storefront accent colors */
-  --color-storefront-primary: #004d75;
-  --color-storefront-primary-hover: #003d5c;
-  --color-storefront-primary-soft: #e8f3f8;
+  --color-storefront-primary: var(--color-primary);
+  --color-storefront-primary-hover: var(--color-primary-dark);
+  --color-storefront-primary-soft: var(--color-primary-subtle);
 
   --spacing-card-padding: 12px;
   --spacing-stack-sm: 4px;

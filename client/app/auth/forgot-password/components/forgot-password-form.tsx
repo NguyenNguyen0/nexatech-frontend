@@ -40,16 +40,6 @@ export function ForgotPasswordForm() {
                         Gửi
                     </Button>
                 </form>
-
-                <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/40">
-                    <Link href="/login" className="text-primary font-semibold hover:underline">
-                        Đăng nhập
-                    </Link>{' '}
-                    |{' '}
-                    <Link href="/register" className="text-primary font-semibold hover:underline">
-                        Đăng ký
-                    </Link>
-                </div>
             </CardContent>
         </Card>
     );

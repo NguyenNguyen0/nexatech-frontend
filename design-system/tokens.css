@@ -16,26 +16,26 @@
 /* ─── Light Mode (Default) ─────────────────────────────────── */
 :root {
 	/* --- Brand Colors --- */
-	--color-primary: #0052FF;
+	--color-primary: #004d75;
 	/* Main CTA, links, active states */
-	--color-primary-light: #3B7BFF;
+	--color-primary-light: #006699;
 	/* Hover state */
-	--color-primary-dark: #003DCC;
+	--color-primary-dark: #003d5c;
 	/* Pressed state */
-	--color-primary-subtle: #E8EFFE;
+	--color-primary-subtle: #e8f3f8;
 	/* Tag backgrounds, light badges */
 
-	--color-secondary: #00C2FF;
+	--color-secondary: #006699;
 	/* Accent — gradient partner with primary */
-	--color-secondary-light: #5DDEFF;
-	--color-secondary-dark: #008FBF;
+	--color-secondary-light: #3385ad;
+	--color-secondary-dark: #004d75;
 
 	/* --- Gradient Presets --- */
-	--gradient-brand: linear-gradient(135deg, #0052FF 0%, #00C2FF 100%);
-	--gradient-brand-hover: linear-gradient(135deg, #003DCC 0%, #0099CC 100%);
-	--gradient-hero: linear-gradient(160deg, #001A66 0%, #0052FF 50%, #00C2FF 100%);
+	--gradient-brand: linear-gradient(135deg, #004d75 0%, #006699 100%);
+	--gradient-brand-hover: linear-gradient(135deg, #003d5c 0%, #004d75 100%);
+	--gradient-hero: linear-gradient(160deg, #00263a 0%, #004d75 50%, #006699 100%);
 	--gradient-card-shine: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 60%);
-	--gradient-text: linear-gradient(90deg, #0052FF, #00C2FF);
+	--gradient-text: linear-gradient(90deg, #004d75, #006699);
 
 	/* --- Semantic / Functional --- */
 	--color-success: #00B96B;
@@ -44,8 +44,8 @@
 	--color-warning-subtle: #FFF4E6;
 	--color-danger: #FF3B30;
 	--color-danger-subtle: #FFEBEA;
-	--color-info: #0052FF;
-	--color-info-subtle: #E8EFFE;
+	--color-info: #004d75;
+	--color-info-subtle: #e8f3f8;
 
 	/* --- Neutral Palette --- */
 	--color-white: #FFFFFF;
@@ -77,8 +77,8 @@
 	--color-text-tertiary: #9AA3C2;
 	--color-text-disabled: #C2C8E0;
 	--color-text-inverse: #FFFFFF;
-	--color-text-link: #0052FF;
-	--color-text-link-hover: #003DCC;
+	--color-text-link: #004d75;
+	--color-text-link-hover: #003d5c;
 
 	/* --- Borders --- */
 	--color-border: #DDE1F0;
@@ -219,17 +219,17 @@
 .dark,
 [data-theme="dark"] {
 	/* Brand colors stay consistent */
-	--color-primary: #3B7BFF;
-	--color-primary-light: #6699FF;
-	--color-primary-dark: #0052FF;
-	--color-primary-subtle: #0A1A4D;
+	--color-primary: #3385ad;
+	--color-primary-light: #4da3d1;
+	--color-primary-dark: #004d75;
+	--color-primary-subtle: #00263a;
 
-	--color-secondary: #00C2FF;
-	--color-secondary-light: #5DDEFF;
-	--color-secondary-dark: #0090CC;
+	--color-secondary: #006699;
+	--color-secondary-light: #3385ad;
+	--color-secondary-dark: #004d75;
 
 	/* Gradients */
-	--gradient-hero: linear-gradient(160deg, #000B33 0%, #001566 50%, #0033AA 100%);
+	--gradient-hero: linear-gradient(160deg, #00121d 0%, #00263a 50%, #004d75 100%);
 
 	/* Surface */
 	--color-bg-base: #080C1F;

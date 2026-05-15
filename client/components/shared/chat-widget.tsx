@@ -333,7 +333,7 @@ export function ChatWidget() {
           type="button"
           onClick={() => setWidgetState('open')}
           aria-label="Mở chat hỗ trợ"
-          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-storefront-primary)] text-white shadow-[0_14px_32px_rgba(0,77,117,0.28)] transition hover:-translate-y-0.5 hover:bg-[var(--color-storefront-primary-hover)]"
+          className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_14px_32px_rgba(0,77,117,0.28)] transition hover:-translate-y-0.5 hover:bg-primary-dark"
         >
           <MessageCircle className="h-6 w-6" />
           {totalUnread > 0 ? (
@@ -351,7 +351,7 @@ export function ChatWidget() {
             onClick={() => setWidgetState('open')}
             className="flex items-center gap-2 rounded-full px-2 py-1 text-[13px] font-medium text-on-surface"
           >
-            <MessageCircle className="h-4 w-4 text-[var(--color-storefront-primary)]" />
+            <MessageCircle className="h-4 w-4 text-primary" />
             Chat hỗ trợ
             {totalUnread > 0 ? (
               <span className="grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[10px] font-bold text-white">
@@ -372,7 +372,7 @@ export function ChatWidget() {
 
       {widgetState === 'open' ? (
         <section className="flex h-[480px] w-[min(360px,calc(100vw-24px))] flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-[0_24px_60px_rgba(15,23,42,0.24)]">
-          <header className="flex items-center justify-between border-b border-outline-variant bg-[var(--color-storefront-primary)] px-4 py-3 text-white">
+          <header className="flex items-center justify-between border-b border-outline-variant bg-primary px-4 py-3 text-white">
             <div>
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/70">NexaTech</p>
               <h2 className="text-sm font-semibold">Chat hỗ trợ</h2>
@@ -436,7 +436,7 @@ export function ChatWidget() {
                   <div
                     className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
                       isMine
-                        ? 'bg-[var(--color-storefront-primary)] text-white'
+                        ? 'bg-primary text-white'
                         : 'bg-surface text-on-surface'
                     }`}
                   >
@@ -468,14 +468,14 @@ export function ChatWidget() {
                 }}
                 placeholder={activeConversationId ? 'Nhập tin nhắn...' : 'Nhắn cho NexaTech...'}
                 disabled={!activeConversationId}
-                className="h-10 flex-1 rounded-xl border border-outline-variant bg-white px-3 text-sm text-on-surface outline-none transition focus:border-[var(--color-storefront-primary)] disabled:cursor-not-allowed disabled:bg-surface-container-low"
+                className="h-10 flex-1 rounded-xl border border-outline-variant bg-white px-3 text-sm text-on-surface outline-none transition focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-container-low"
               />
               <button
                 type="button"
                 onClick={() => void handleSend()}
                 disabled={!activeConversationId || !inputValue.trim()}
                 aria-label="Gửi tin nhắn"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-storefront-primary)] text-white transition hover:bg-[var(--color-storefront-primary-hover)] disabled:cursor-not-allowed disabled:bg-outline"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-outline"
               >
                 <Send className="h-4 w-4" />
               </button>

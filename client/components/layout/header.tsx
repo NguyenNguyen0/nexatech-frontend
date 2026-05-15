@@ -128,11 +128,11 @@ export function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm sản phẩm..."
-                className="h-[38px] w-full rounded-sm border border-[#004d75] bg-white px-3 pr-11 text-[13px] text-[#1b1c1c] placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-[#004d75]"
+                className="h-[38px] w-full rounded-sm border border-primary bg-white px-3 pr-11 text-[13px] text-text-primary placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-primary"
               />
               <button
                 type="submit"
-                className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-[#004d75] text-white transition hover:bg-[#003d5c]"
+                className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-primary text-white transition hover:bg-primary-dark"
               >
                 <Search className="h-4 w-4" />
               </button>
@@ -230,7 +230,7 @@ export function Header() {
             ) : (
               <Link
                 href="/auth/login"
-                className="inline-flex items-center rounded border border-[#004d75] bg-[#004d75] px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#003d5c]"
+                className="inline-flex items-center rounded border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-primary-dark"
               >
                 Đăng nhập
               </Link>
@@ -278,11 +278,11 @@ export function Header() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm sản phẩm..."
-              className="h-9 w-full rounded-sm border border-[#004d75] bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
+              className="h-9 w-full rounded-sm border border-primary bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
             />
             <button
               type="submit"
-              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-[#004d75] text-white"
+              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-primary text-white"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -291,7 +291,7 @@ export function Header() {
       </div>
 
       {/* Second Tier - Category Navigation */}
-      <div className="bg-[#004d75] text-white">
+      <div className="bg-primary text-white">
         <div className="mx-auto flex max-w-[1200px] items-center px-4">
           {/* Category Dropdown Button */}
           <button
