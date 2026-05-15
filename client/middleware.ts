@@ -12,7 +12,12 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
   const otpPending = session?.otpStepUpPending === true;
-  const onOtpResumePage = pathname === '/auth/login' || pathname.startsWith('/auth/login/');
+  /** Cho phép login và register trong lúc chờ OTP (đăng ký xong `signIn` vẫn ở `/auth/register`). */
+  const onOtpResumePage =
+    pathname === '/auth/login' ||
+    pathname.startsWith('/auth/login/') ||
+    pathname === '/auth/register' ||
+    pathname.startsWith('/auth/register/');
 
   if (otpPending && !onOtpResumePage) {
     return Response.redirect(new URL('/auth/login', req.url));

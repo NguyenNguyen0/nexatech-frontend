@@ -57,6 +57,9 @@ export interface RegisterRequestBody {
   emailVerified: boolean;
   firstName?: string;
   lastName?: string;
+  phone?: string;
+  dob?: string;
+  gender?: string;
   role?: string;
   credentials: RegisterCredential[];
 }
