@@ -11,4 +11,5 @@ export const authPaths = {
     sessionsMe: `${AUTH_API_BASE}/sessions/me`,
     sessionsLogoutAll: `${AUTH_API_BASE}/sessions/logout-all`,
     sessionById: (id: string) => `${AUTH_API_BASE}/sessions/${id}`,
+    sessionPing: `${AUTH_API_BASE}/session/ping`,
 } as const;

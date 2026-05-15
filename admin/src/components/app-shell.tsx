@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './sidebar'
 import useIsCollapsed from '@/hooks/use-is-collapsed'
+import { useSessionHeartbeat } from '@/hooks/use-session-heartbeat'
 import SkipToMain from './skip-to-main'
 import { Search } from '@/components/search'
 import ThemeSwitch from '@/components/theme-switch'
@@ -8,6 +9,7 @@ import { UserNav } from '@/components/user-nav'
 
 export default function AppShell() {
   const [isCollapsed, setIsCollapsed] = useIsCollapsed()
+  useSessionHeartbeat()
   return (
     <div className='relative h-full overflow-hidden bg-background'>
       <SkipToMain />

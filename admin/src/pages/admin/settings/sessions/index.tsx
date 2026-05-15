@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   IconDeviceDesktop,
   IconLoader2,
@@ -11,6 +12,8 @@ import { toast } from 'sonner'
 import { Button } from '@/components/custom/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { getApiErrorMessage, logout } from '@/services/authApi'
+import { clearAuthTokens, getRefreshToken } from '@/services/authSession'
 import { fetchMySessions, signOutAllDevices, signOutSession } from '@/services/sessionApi'
 import type { SessionItem } from '@/types/session'
 
@@ -127,6 +130,7 @@ function SessionCard({
 }
 
 export default function SettingsSessions() {
+  const navigate = useNavigate()
   const [sessions, setSessions] = useState<SessionItem[]>([])
   const [loading, setLoading] = useState(true)
   const [signingOutId, setSigningOutId] = useState<string | null>(null)
@@ -169,15 +173,35 @@ export default function SettingsSessions() {
   }
 
   const handleSignOutAll = async () => {
-    if (!window.confirm('Sign out all other devices? You will stay logged in on this device.')) return
+    if (
+      !window.confirm(
+        'This will sign out ALL devices including this one.\nYou will be redirected to the login page.',
+      )
+    )
+      return
+
     setSigningOutAll(true)
     try {
+      // 1. Kill all Keycloak sessions for this user (refresh tokens die immediately)
       await signOutAllDevices()
-      toast.success('Signed out from all devices')
-      await load()
-    } catch {
-      toast.error('Failed to sign out all devices')
-    } finally {
+
+      // 2. Best-effort: call the OIDC logout endpoint with the current refresh token
+      //    so Keycloak sends back-channel logout to registered clients.
+      //    May fail silently if the session was already terminated above.
+      const refreshToken = getRefreshToken()
+      if (refreshToken) {
+        await logout(refreshToken).catch(() => {})
+      }
+
+      // 3. Wipe local tokens immediately — current device is logged out right now.
+      //    Other devices: their refresh tokens are dead; the next 401 → refresh attempt
+      //    will get invalid_grant → axiosClient clears their tokens → redirect /auth.
+      clearAuthTokens()
+
+      toast.success('Signed out from all devices. Please log in again.')
+      navigate('/auth', { replace: true })
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Failed to sign out all devices'))
       setSigningOutAll(false)
     }
   }
