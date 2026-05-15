@@ -6,10 +6,10 @@ import { MessageCircle } from 'lucide-react';
 /* ── Footer data matching Stitch design exactly ── */
 
 const supportLinks = [
-  { label: 'Trung tâm trợ giúp', href: '#' },
-  { label: 'Hướng dẫn mua hàng', href: '#' },
-  { label: 'Tra cứu đơn hàng', href: '#' },
-  { label: 'Liên hệ', href: '#' },
+  { label: 'Trung tâm trợ giúp', href: '/help' },
+  { label: 'Hướng dẫn mua hàng', href: '/help#buying-guide' },
+  { label: 'Tra cứu đơn hàng', href: '/user/orders' },
+  { label: 'Liên hệ', href: '/help#contact' },
 ];
 
 const policyLinks = [

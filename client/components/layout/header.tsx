@@ -140,133 +140,134 @@ export function Header() {
           </form>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-1">
-            {status === 'loading' ? (
-              <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
-                <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
-              </div>
-            ) : session ? (
-              <div className="relative" ref={accountMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setAccountMenuOpen((o) => !o)}
-                  className="flex h-9 w-9 items-center justify-center rounded text-[#333] transition hover:bg-[#f0f0f0]"
-                  aria-expanded={accountMenuOpen}
-                  aria-haspopup="menu"
-                  aria-label="Tài khoản"
-                >
-                  <UserRound className="h-[18px] w-[18px]" />
-                </button>
-                {accountMenuOpen && (
-                  <div
-                    role="menu"
-                    className="absolute right-0 z-50 mt-1 min-w-[210px] rounded-xl border border-[#e8e8e8] bg-white py-1.5 text-[13px] shadow-xl"
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              {status === 'loading' ? (
+                <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
+                  <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
+                </div>
+              ) : session ? (
+                <div className="relative" ref={accountMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setAccountMenuOpen((o) => !o)}
+                    className="flex h-9 w-9 items-center justify-center rounded text-[#333] transition hover:bg-[#f0f0f0]"
+                    aria-expanded={accountMenuOpen}
+                    aria-haspopup="menu"
+                    aria-label="Tài khoản"
                   >
-                    {/* User info header */}
-                    {session.user?.name && (
-                      <div className="px-3 pb-1.5 pt-1 border-b border-[#f0f0f0] mb-1">
-                        <p className="font-semibold text-[#1b1c1c] truncate">{session.user.name}</p>
-                        {session.user.email && (
-                          <p className="text-[11px] text-[#888] truncate">{session.user.email}</p>
-                        )}
-                      </div>
-                    )}
-
-                    <Link
-                      href="/user"
-                      role="menuitem"
-                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                      onClick={() => setAccountMenuOpen(false)}
+                    <UserRound className="h-[18px] w-[18px]" />
+                  </button>
+                  {accountMenuOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 z-50 mt-1 min-w-[210px] rounded-xl border border-[#e8e8e8] bg-white py-1.5 text-[13px] shadow-xl"
                     >
-                      <UserRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
-                      Hồ sơ cá nhân
-                    </Link>
+                      {/* User info header */}
+                      {session.user?.name && (
+                        <div className="px-3 pb-1.5 pt-1 border-b border-[#f0f0f0] mb-1">
+                          <p className="font-semibold text-[#1b1c1c] truncate">{session.user.name}</p>
+                          {session.user.email && (
+                            <p className="text-[11px] text-[#888] truncate">{session.user.email}</p>
+                          )}
+                        </div>
+                      )}
 
-                    <Link
-                      href="/user/account"
-                      role="menuitem"
-                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                      onClick={() => setAccountMenuOpen(false)}
-                    >
-                      <KeyRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
-                      Đổi mật khẩu
-                    </Link>
+                      <Link
+                        href="/user"
+                        role="menuitem"
+                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <UserRound className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        Hồ sơ cá nhân
+                      </Link>
 
-                    <Link
-                      href="/user/sessions"
-                      role="menuitem"
-                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                      onClick={() => setAccountMenuOpen(false)}
-                    >
-                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
-                      Phiên đăng nhập
-                    </Link>
+                      <Link
+                        href="/user/account"
+                        role="menuitem"
+                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <KeyRound className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        Đổi mật khẩu
+                      </Link>
 
-                    <Link
-                      href="/user/notifications"
-                      role="menuitem"
-                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                      onClick={() => setAccountMenuOpen(false)}
-                    >
-                      <Settings className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
-                      Cài đặt
-                    </Link>
+                      <Link
+                        href="/user/sessions"
+                        role="menuitem"
+                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        Phiên đăng nhập
+                      </Link>
 
-                    <div className="my-1 border-t border-[#f0f0f0]" />
+                      <Link
+                        href="/user/notifications"
+                        role="menuitem"
+                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                        onClick={() => setAccountMenuOpen(false)}
+                      >
+                        <Settings className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        Cài đặt
+                      </Link>
 
-                    <button
-                      type="button"
-                      role="menuitem"
-                      disabled={logoutPending}
-                      onClick={() => void handleLogout()}
-                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[#e30019] transition hover:bg-[#fff5f5] disabled:opacity-50"
-                    >
-                      <LogOut className="h-3.5 w-3.5 shrink-0" />
-                      Đăng xuất
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
+                      <div className="my-1 border-t border-[#f0f0f0]" />
+
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={logoutPending}
+                        onClick={() => void handleLogout()}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[#e30019] transition hover:bg-[#fff5f5] disabled:opacity-50"
+                      >
+                        <LogOut className="h-3.5 w-3.5 shrink-0" />
+                        Đăng xuất
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="inline-flex items-center rounded border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-primary-dark"
+                >
+                  Đăng nhập
+                </Link>
+              )}
+
               <Link
-                href="/auth/login"
-                className="inline-flex items-center rounded border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-primary-dark"
+                href="/user/wishlist"
+                className="relative hidden rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
               >
-                Đăng nhập
+                <Heart className="h-[18px] w-[18px]" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
+                    {wishlistCount > 99 ? '99+' : wishlistCount}
+                  </span>
+                )}
               </Link>
-            )}
 
-            <Link
-              href="/user/wishlist"
-              className="relative hidden rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
-            >
-              <Heart className="h-[18px] w-[18px]" />
-              {wishlistCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
-                  {wishlistCount > 99 ? '99+' : wishlistCount}
-                </span>
-              )}
-            </Link>
+              <Link
+                href="/cart"
+                className="relative flex items-center rounded p-2 text-[#333] transition hover:bg-[#f0f0f0]"
+              >
+                <ShoppingCart className="h-[18px] w-[18px]" />
+                {cartCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </span>
+                )}
+              </Link>
 
-            <Link
-              href="/cart"
-              className="relative flex items-center rounded p-2 text-[#333] transition hover:bg-[#f0f0f0]"
-            >
-              <ShoppingCart className="h-[18px] w-[18px]" />
-              {cartCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
-                  {cartCount > 99 ? '99+' : cartCount}
-                </span>
-              )}
-            </Link>
-
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] lg:hidden"
-              type="button"
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] lg:hidden"
+                type="button"
+              >
+              </button>
+            </div>
           </div>
         </div>
 
