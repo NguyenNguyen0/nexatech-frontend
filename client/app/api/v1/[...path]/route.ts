@@ -201,6 +201,93 @@ function handleBrands() {
   return ok(brands);
 }
 
+// ── BACKEND PROXY ─────────────────────────────────────────────────────────────
+
+const SERVICE_BASES: Record<string, string> = {
+  // order-service (8084)
+  orders:   'http://localhost:8084',
+  checkout: 'http://localhost:8084',
+  returns:  'http://localhost:8084',
+  admin:    'http://localhost:8084',   // /api/v1/admin/orders — order admin endpoints
+  // payment-service (8086)
+  payments: 'http://localhost:8086',
+  // shipping-service (8091)
+  shipping: 'http://localhost:8091',
+};
+
+// Hop-by-hop headers that must not be forwarded to upstream
+const HOP_BY_HOP = new Set([
+  'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+  'te', 'trailers', 'transfer-encoding', 'upgrade', 'host',
+]);
+
+/** Decode the `sub` claim from a Bearer JWT without verifying the signature. */
+function decodeJwtSub(authHeader: string | null): string | null {
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  try {
+    const token = authHeader.slice(7);
+    const [, payloadB64] = token.split('.');
+    if (!payloadB64) return null;
+    const padded = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const padLen = (4 - (padded.length % 4)) % 4;
+    const json = atob(padded + '='.repeat(padLen));
+    const obj = JSON.parse(json) as { sub?: string };
+    return obj.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function proxyToBackend(
+  request: Request,
+  upstreamBase: string,
+  segments: string[],
+  searchString: string,
+): Promise<Response> {
+  const upstreamUrl = `${upstreamBase}/api/v1/${segments.join('/')}${searchString}`;
+
+  // Forward headers, skipping hop-by-hop ones
+  const forwardHeaders: Record<string, string> = {};
+  request.headers.forEach((value, key) => {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) {
+      forwardHeaders[key] = value;
+    }
+  });
+
+  // Extract user UUID from JWT sub and inject as X-User-Id (simulates Kong behaviour)
+  const authHeader = request.headers.get('authorization');
+  const userId = decodeJwtSub(authHeader);
+  if (userId) {
+    forwardHeaders['X-User-Id'] = userId;
+  }
+
+  const hasBody = !['GET', 'HEAD', 'DELETE'].includes(request.method);
+  const body = hasBody ? await request.text() : undefined;
+
+  try {
+    const upstream = await fetch(upstreamUrl, {
+      method: request.method,
+      headers: forwardHeaders,
+      body,
+    });
+
+    const text = await upstream.text();
+    return new Response(text, {
+      status: upstream.status,
+      headers: {
+        'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json',
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upstream service unavailable';
+    return new Response(
+      JSON.stringify({ code: 503, message }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+}
+
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 
 async function handleRequest(
@@ -214,6 +301,12 @@ async function handleRequest(
   if (base === 'products') return handleProducts(sub, url);
   if (base === 'categories') return handleCategories(sub);
   if (base === 'brands') return handleBrands();
+
+  // Proxy order-service, payment-service, shipping-service
+  const upstreamBase = SERVICE_BASES[base];
+  if (upstreamBase) {
+    return proxyToBackend(request, upstreamBase, path, url.search);
+  }
 
   return ok({});
 }
