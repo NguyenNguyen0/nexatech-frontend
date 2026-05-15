@@ -35,9 +35,9 @@ export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteP
         const isAdminPath = location.pathname.startsWith('/admin');
 
         if (isAdminPath && !isImplemented) {
-            alert('CHÚ Ý: Chào Developer! Trang này hiện đang sử dụng dữ liệu mẫu (Mock data) và chưa được triển khai gọi API thực tế.');
+            alert('Mock Data Page');
             alert(
-                '*** Nếu bạn đã hoàn thành trang team Leader giao thì vào \n nexatech-frontend/admin/src/components/custom/ProtectedRoute.tsx \n (thêm path vào mảng implementedPaths) \n để tắt Alert. \n Thanks! ***',
+                '*** Go to nexatech-frontend/admin/src/components/custom/ProtectedRoute.tsx \n (thêm path vào mảng implementedPaths) \n để tắt Alert.***',
             );
         }
     }, [location.pathname]);
