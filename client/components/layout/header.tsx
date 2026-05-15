@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, Search, UserRound, X } from 'lucide-react';
+import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, Search, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -160,24 +160,68 @@ export function Header() {
                 {accountMenuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 z-50 mt-1 min-w-[180px] rounded border border-[#e8e8e8] bg-white py-1 text-[13px] shadow-lg"
+                    className="absolute right-0 z-50 mt-1 min-w-[210px] rounded-xl border border-[#e8e8e8] bg-white py-1.5 text-[13px] shadow-xl"
                   >
+                    {/* User info header */}
+                    {session.user?.name && (
+                      <div className="px-3 pb-1.5 pt-1 border-b border-[#f0f0f0] mb-1">
+                        <p className="font-semibold text-[#1b1c1c] truncate">{session.user.name}</p>
+                        {session.user.email && (
+                          <p className="text-[11px] text-[#888] truncate">{session.user.email}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <Link
+                      href="/user"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Hồ sơ cá nhân
+                    </Link>
+
                     <Link
                       href="/user/account"
                       role="menuitem"
-                      className="block px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
                       onClick={() => setAccountMenuOpen(false)}
                     >
-                      Trang tài khoản
+                      <KeyRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Đổi mật khẩu
                     </Link>
+
+                    <Link
+                      href="/user/sessions"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Phiên đăng nhập
+                    </Link>
+
+                    <Link
+                      href="/user/notifications"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <Settings className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Cài đặt
+                    </Link>
+
+                    <div className="my-1 border-t border-[#f0f0f0]" />
+
                     <button
                       type="button"
                       role="menuitem"
                       disabled={logoutPending}
                       onClick={() => void handleLogout()}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-[#333] transition hover:bg-[#f5f5f5] disabled:opacity-50"
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[#e30019] transition hover:bg-[#fff5f5] disabled:opacity-50"
                     >
-                      <LogOut className="h-4 w-4 shrink-0" />
+                      <LogOut className="h-3.5 w-3.5 shrink-0" />
                       Đăng xuất
                     </button>
                   </div>
@@ -306,18 +350,34 @@ export function Header() {
               ) : session ? (
                 <>
                   <Link
+                    href="/user"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+                  >
+                    <UserRound className="h-4 w-4 text-[#004d75]" />
+                    Hồ sơ cá nhân
+                  </Link>
+                  <Link
                     href="/user/account"
                     onClick={() => setMobileMenuOpen(false)}
                     className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
                   >
-                    <UserRound className="h-4 w-4" />
-                    Trang tài khoản
+                    <KeyRound className="h-4 w-4 text-[#004d75]" />
+                    Đổi mật khẩu
+                  </Link>
+                  <Link
+                    href="/user/sessions"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-[#004d75]" />
+                    Phiên đăng nhập
                   </Link>
                   <button
                     type="button"
                     disabled={logoutPending}
                     onClick={() => void handleLogout()}
-                    className="flex w-full items-center gap-2 border-b border-[#f0f0f0] px-3 py-2.5 text-left text-[13px] font-medium text-[#333] hover:bg-[#f7f7f7] disabled:opacity-50"
+                    className="flex w-full items-center gap-2 border-b border-[#f0f0f0] px-3 py-2.5 text-left text-[13px] font-medium text-[#e30019] hover:bg-[#fff5f5] disabled:opacity-50"
                   >
                     <LogOut className="h-4 w-4" />
                     Đăng xuất
