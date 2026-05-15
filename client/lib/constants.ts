@@ -12,7 +12,15 @@ export const authPaths = {
   logout: `${AUTH_API_BASE}/logout`,
   userinfo: `${AUTH_API_BASE}/userinfo`,
   introspect: `${AUTH_API_BASE}/introspect`,
+  changePassword: `${AUTH_API_BASE}/change-password`,
+  sessionsMe: `${AUTH_API_BASE}/sessions/me`,
+  sessionsLogoutAll: `${AUTH_API_BASE}/sessions/logout-all`,
+  sessionPing: `${AUTH_API_BASE}/session/ping`,
 } as const;
+
+export function sessionByIdPath(id: string): string {
+  return `${AUTH_API_BASE}/sessions/${id}`;
+}
 
 /** Routes that do NOT require an Authorization header. */
 export function isPublicAuthRequestUrl(url: string | undefined): boolean {
