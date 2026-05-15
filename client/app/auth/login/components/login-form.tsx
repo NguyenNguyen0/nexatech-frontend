@@ -217,22 +217,11 @@ export function LoginForm() {
             <div className="grow border-t border-border/60"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center justify-center w-full">
             <Button
               onClick={() => toast.info('Tính năng này chưa được triển khai')}
               variant="outline"
-              className="h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
-              aria-label="Đăng nhập với Facebook"
-              type="button"
-              disabled={otpOpen}
-            >
-              <FaFacebook className="h-5 w-5 text-[#1877F2]" />
-              Facebook
-            </Button>
-            <Button
-              onClick={() => toast.info('Tính năng này chưa được triển khai')}
-              variant="outline"
-              className="h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
+              className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
               aria-label="Đăng nhập với Google"
               type="button"
               disabled={otpOpen}

@@ -306,21 +306,14 @@ export function RegisterForm() {
                 <div className="grow border-t border-border/60" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-center w-full">
                 <Button
-                  type="button"
                   onClick={() => toast.info('Tính năng này chưa được triển khai')}
                   variant="outline"
-                  className="h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
-                >
-                  <FaFacebook className="h-5 w-5 text-[#1877F2]" />
-                  Facebook
-                </Button>
-                <Button
+                  className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
+                  aria-label="Đăng nhập với Google"
                   type="button"
-                  onClick={() => toast.info('Tính năng này chưa được triển khai')}
-                  variant="outline"
-                  className="h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
+                  disabled={otpOpen}
                 >
                   <FcGoogle className="h-5 w-5" />
                   Google
