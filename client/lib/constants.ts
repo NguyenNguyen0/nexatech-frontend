@@ -1,9 +1,13 @@
 /** Gateway route prefix: identity-service */
-export const AUTH_API_BASE = '/api/v1/auth';
-export const USER_API_BASE = '/api/v1/users';
-export const PRODUCT_API_BASE = '/api/v1/products';
-export const CART_API_BASE = '/api/v1/cart';
-export const ORDER_API_BASE = '/api/v1/orders';
+export const AUTH_API_BASE     = '/api/v1/auth';
+export const USER_API_BASE     = '/api/v1/users';
+export const PRODUCT_API_BASE  = '/api/v1/products';
+export const CART_API_BASE     = '/api/v1/cart';
+export const ORDER_API_BASE    = '/api/v1/orders';
+export const CHECKOUT_API_BASE = '/api/v1/checkout';
+export const PAYMENT_API_BASE  = '/api/v1/payments';
+export const SHIPPING_API_BASE = '/api/v1/shipping';
+export const RETURN_API_BASE   = '/api/v1/returns';
 
 export const authPaths = {
   login: `${AUTH_API_BASE}/login`,
