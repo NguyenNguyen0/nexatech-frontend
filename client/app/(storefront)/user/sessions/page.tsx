@@ -78,7 +78,6 @@ function SessionCard({
                 {session.type === 'OFFLINE' ? 'Offline' : 'REGULAR'}
               </span>
             </div>
-            <p className="mt-1 text-xs text-text-tertiary">{clientNames}</p>
           </div>
         </div>
 
@@ -165,7 +164,7 @@ export default function SessionsPage() {
       await signOutAllDevices();
       const refreshToken = authStorage.getRefreshToken();
       if (refreshToken) {
-        await logout(refreshToken).catch(() => {});
+        await logout(refreshToken).catch(() => { });
       }
       authStorage.clear();
       toast.success('Đã đăng xuất tất cả thiết bị. Đang chuyển đến trang đăng nhập...');
