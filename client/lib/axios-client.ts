@@ -83,7 +83,8 @@ async function clearSessionAndSignOut(): Promise<void> {
   authStorage.clear();
   if (typeof window === 'undefined') return;
   const { signOut } = await import('next-auth/react');
-  await signOut({ redirect: true, callbackUrl: '/auth/login' });
+  // Chú ý: Không dùng redirect: true ở đây để tránh bị văng ra login khi đang ở trang public
+  await signOut({ redirect: false });
 }
 
 /**

@@ -200,5 +200,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.otpStepUpPending = token.otp_step_up_pending === true;
       return session;
     },
+    /**
+     * Authorized callback: Mặc định cho phép mọi request đi qua middleware.
+     * Logic bảo vệ route sẽ được xử lý tập trung tại `middleware.ts`.
+     */
+    authorized({ auth }) {
+      // Ta trả về true ở đây để middleware.ts không bị chặn mặc định bởi NextAuth.
+      // Việc chặn route nào sẽ do logic trong middleware.ts quyết định.
+      return true;
+    },
   },
 });

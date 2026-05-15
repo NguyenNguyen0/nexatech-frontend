@@ -5,33 +5,32 @@ import { auth } from '@/auth';
  * - `otpStepUpPending`: sau credentials login, chặn mọi URL trừ `/auth/login` cho đến khi
  *   client gọi `update({ otpStepUpComplete: true })` sau verify OTP (tránh F5 bỏ qua OTP).
  */
-const PROTECTED_CLIENT_ROUTES = ['/cart/checkout', '/user'];
+const PROTECTED_CLIENT_ROUTES = ['/cart/checkout', '/user', '/checkout'];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
   const otpPending = session?.otpStepUpPending === true;
-  /** Cho phép login và register trong lúc chờ OTP (đăng ký xong `signIn` vẫn ở `/auth/register`). */
-  const onOtpResumePage =
-    pathname === '/auth/login' ||
-    pathname.startsWith('/auth/login/') ||
-    pathname === '/auth/register' ||
-    pathname.startsWith('/auth/register/');
-
-  if (otpPending && !onOtpResumePage) {
-    return Response.redirect(new URL('/auth/login', req.url));
-  }
 
   const isProtectedRoute = PROTECTED_CLIENT_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
 
-  if (isProtectedRoute && (!session || otpPending)) {
+  // 1. Chặn OTP: Chỉ chặn các route được bảo vệ nếu đang trong trạng thái chờ OTP
+  if (otpPending && isProtectedRoute) {
     const loginUrl = new URL('/auth/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return Response.redirect(loginUrl);
   }
 
+  // 2. Chặn Guest: Nếu là route bảo vệ mà không có session, bắt login
+  if (isProtectedRoute && !session) {
+    const loginUrl = new URL('/auth/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return Response.redirect(loginUrl);
+  }
+
+  // 3. Chặn Auth Page: Nếu đã login và xong OTP, không cho vào trang login/register nữa
   if (isAuthPage && session && !otpPending) {
     return Response.redirect(new URL('/', req.url));
   }

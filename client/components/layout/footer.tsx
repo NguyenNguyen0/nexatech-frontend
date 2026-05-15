@@ -7,16 +7,17 @@ import { MessageCircle } from 'lucide-react';
 
 const supportLinks = [
   { label: 'Trung tâm trợ giúp', href: '/help' },
-  { label: 'Hướng dẫn mua hàng', href: '/help#buying-guide' },
+  { label: 'Hướng dẫn mua hàng', href: '/help/guide' },
   { label: 'Tra cứu đơn hàng', href: '/user/orders' },
-  { label: 'Liên hệ', href: '/help#contact' },
+  { label: 'Liên hệ', href: '/help/contact' },
+  { label: 'Câu hỏi thường gặp', href: '/help/faq' },
 ];
 
 const policyLinks = [
-  { label: 'Chính sách bảo hành', href: '#' },
-  { label: 'Chính sách đổi trả', href: '#' },
-  { label: 'Chính sách vận chuyển', href: '#' },
-  { label: 'Chính sách bảo mật', href: '#' },
+  { label: 'Chính sách bảo hành', href: '/policy/warranty' },
+  { label: 'Chính sách đổi trả', href: '/policy/returns' },
+  { label: 'Chính sách vận chuyển', href: '/policy/shipping' },
+  { label: 'Chính sách bảo mật', href: '/policy/privacy' },
 ];
 
 const paymentMethods = [

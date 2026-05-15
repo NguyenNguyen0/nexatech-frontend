@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   Search, 
   Package, 
@@ -26,37 +27,37 @@ const helpCategories = [
     icon: <Package className="h-6 w-6 text-primary" />,
     title: 'Đơn hàng & Giao hàng',
     description: 'Theo dõi đơn hàng, thời gian vận chuyển và phí giao hàng.',
-    slug: 'orders'
+    href: '/policy/shipping'
   },
   {
     icon: <RefreshCcw className="h-6 w-6 text-primary" />,
     title: 'Trả hàng & Hoàn tiền',
     description: 'Quy trình đổi trả sản phẩm và chính sách hoàn tiền.',
-    slug: 'returns'
+    href: '/policy/returns'
   },
   {
     icon: <CreditCard className="h-6 w-6 text-primary" />,
     title: 'Thanh toán',
     description: 'Các phương thức thanh toán và xử lý lỗi giao dịch.',
-    slug: 'payments'
+    href: '/help/faq'
   },
   {
     icon: <User className="h-6 w-6 text-primary" />,
     title: 'Tài khoản & Bảo mật',
     description: 'Quản lý thông tin cá nhân và bảo mật tài khoản.',
-    slug: 'account'
+    href: '/help/faq'
   },
   {
     icon: <ShieldCheck className="h-6 w-6 text-primary" />,
     title: 'Chính sách bảo hành',
     description: 'Thông tin bảo hành chính hãng và hỗ trợ kỹ thuật.',
-    slug: 'warranty'
+    href: '/policy/warranty'
   },
   {
     icon: <Zap className="h-6 w-6 text-primary" />,
     title: 'Khuyến mãi & Voucher',
     description: 'Cách sử dụng mã giảm giá và chương trình khách hàng thân thiết.',
-    slug: 'promos'
+    href: '/help/faq'
   }
 ];
 
@@ -123,22 +124,24 @@ export default function HelpPage() {
         {/* Quick Help Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {helpCategories.map((cat, idx) => (
-            <Card key={idx} className="group hover:shadow-xl transition-all duration-300 border-none rounded-2xl overflow-hidden active:scale-[0.98]">
-              <CardContent className="p-6 flex items-start gap-5">
-                <div className="shrink-0 w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-                  {cat.icon}
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-bold text-lg text-gray-900 flex items-center gap-1">
-                    {cat.title}
-                    <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    {cat.description}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <Link href={cat.href} key={idx}>
+              <Card className="group hover:shadow-xl transition-all duration-300 border-none rounded-2xl overflow-hidden active:scale-[0.98] h-full">
+                <CardContent className="p-6 flex items-start gap-5">
+                  <div className="shrink-0 w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+                    {cat.icon}
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-lg text-gray-900 flex items-center gap-1">
+                      {cat.title}
+                      <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                    </h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      {cat.description}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 
@@ -155,9 +158,11 @@ export default function HelpPage() {
             <p className="text-gray-500 leading-relaxed">
               Chúng tôi đã tổng hợp những câu hỏi phổ biến nhất để giúp bạn tìm thấy câu trả lời nhanh chóng.
             </p>
-            <Button variant="outline" className="rounded-full border-primary text-primary hover:bg-primary hover:text-white h-12 px-8 font-semibold">
-              Xem tất cả FAQ
-            </Button>
+            <Link href="/help/faq">
+              <Button variant="outline" className="rounded-full border-primary text-primary hover:bg-primary hover:text-white h-12 px-8 font-semibold">
+                Xem tất cả FAQ
+              </Button>
+            </Link>
           </div>
 
           <div className="lg:col-span-2 space-y-4">

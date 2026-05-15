@@ -266,6 +266,7 @@ export function Header() {
                 className="rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] lg:hidden"
                 type="button"
               >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
             </div>
           </div>
