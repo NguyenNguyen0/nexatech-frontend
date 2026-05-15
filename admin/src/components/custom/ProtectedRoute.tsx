@@ -29,7 +29,7 @@ export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteP
     */
     useEffect(() => {
         // Danh sách các trang đã được triển khai (không hiện alert)
-        const implementedPaths = ['/admin/users', '/admin/settings', '/admin/settings/account', '/admin/settings/appearance', '/admin/roles', '/admin/permissions'];
+        const implementedPaths = ['/admin/users', '/admin/settings', '/admin/settings/account', '/admin/settings/appearance', '/admin/roles', '/admin/permissions', '/admin/sessions'];
 
         const isImplemented = implementedPaths.includes(location.pathname);
         const isAdminPath = location.pathname.startsWith('/admin');

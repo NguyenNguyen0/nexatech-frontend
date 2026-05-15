@@ -4,6 +4,7 @@ import {
   IconExclamationCircle,
   IconNotification,
   IconPalette,
+  IconShieldLock,
   IconTool,
   IconUser,
 } from '@tabler/icons-react'
@@ -57,5 +58,10 @@ const sidebarNavItems = [
     title: 'Notifications',
     icon: <IconNotification size={18} />,
     href: '/admin/settings/notifications',
-  }
+  },
+  {
+    title: 'Sessions',
+    icon: <IconShieldLock size={18} />,
+    href: '/admin/settings/sessions',
+  },
 ]

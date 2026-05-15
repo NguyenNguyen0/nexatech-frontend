@@ -193,7 +193,13 @@ export const admin: RouteObject[] = [
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/settings/notifications')).default,
                         }),
-                    }
+                    },
+                    {
+                        path: 'sessions',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/settings/sessions')).default,
+                        }),
+                    },
                 ],
             },
         ],

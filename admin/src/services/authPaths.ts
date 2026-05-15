@@ -8,4 +8,7 @@ export const authPaths = {
     userinfo: `${AUTH_API_BASE}/userinfo`,
     introspect: `${AUTH_API_BASE}/introspect`,
     changePassword: `${AUTH_API_BASE}/change-password`,
+    sessionsMe: `${AUTH_API_BASE}/sessions/me`,
+    sessionsLogoutAll: `${AUTH_API_BASE}/sessions/logout-all`,
+    sessionById: (id: string) => `${AUTH_API_BASE}/sessions/${id}`,
 } as const;
