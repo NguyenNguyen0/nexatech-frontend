@@ -14,6 +14,10 @@ type EmailOtpGateProps = {
   onVerify: () => void;
   onResend: () => void;
   onAbort: () => void;
+  /** Mặc định: copy đăng nhập. Truyền khi dùng sau bước đăng ký. */
+  title?: string;
+  description?: string;
+  abortLabel?: string;
 };
 
 /**
@@ -31,6 +35,9 @@ export function EmailOtpGate({
   onVerify,
   onResend,
   onAbort,
+  title = 'Xác minh email',
+  description = 'Mỗi lần đăng nhập cần nhập mã OTP 6 ký tự vừa gửi tới email của bạn.',
+  abortLabel = 'Hủy (xóa phiên đăng nhập)',
 }: EmailOtpGateProps) {
   if (!open) return null;
 
@@ -44,11 +51,9 @@ export function EmailOtpGate({
       <Card className="w-full max-w-md border-border shadow-2xl">
         <CardHeader className="space-y-1 pb-2">
           <h2 id="email-otp-title" className="text-lg font-semibold text-foreground">
-            Xác minh email
+            {title}
           </h2>
-          <p className="text-sm text-text-tertiary">
-            Mỗi lần đăng nhập cần nhập mã OTP 6 ký tự vừa gửi tới email của bạn.
-          </p>
+          <p className="text-sm text-text-tertiary">{description}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input
@@ -67,7 +72,7 @@ export function EmailOtpGate({
           </p>
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" onClick={onAbort} disabled={verifying || resending}>
-              Hủy (xóa phiên đăng nhập)
+              {abortLabel}
             </Button>
             <Button
               type="button"
