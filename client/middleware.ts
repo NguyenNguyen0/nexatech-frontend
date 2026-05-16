@@ -4,7 +4,7 @@ import { auth } from '@/auth';
  * - `otpStepUpPending`: chặn route bảo vệ cho đến khi verify OTP (vẫn cho xem /, /product).
  * - Guest: truy cập tự do storefront.
  */
-const PROTECTED_CLIENT_ROUTES = ['/cart/checkout', '/user', '/checkout'];
+const PROTECTED_CLIENT_ROUTES = ['/user'];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
 export default auth((req) => {
