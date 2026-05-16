@@ -67,7 +67,14 @@ export function LoginForm() {
 
   useEffect(() => {
     const authError = searchParams.get('error');
-    if (authError && !googleErrorHandled.current) {
+    const reason = searchParams.get('reason');
+    if (reason === 'sessionRevoked' && !googleErrorHandled.current) {
+      googleErrorHandled.current = true;
+      toast.error('Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.');
+    } else if (reason === 'accountDisabled' && !googleErrorHandled.current) {
+      googleErrorHandled.current = true;
+      toast.error('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');
+    } else if (authError && !googleErrorHandled.current) {
       googleErrorHandled.current = true;
       if (authError === 'AccountDisabled') {
         toast.error('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');

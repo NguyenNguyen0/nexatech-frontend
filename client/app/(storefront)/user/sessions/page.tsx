@@ -16,7 +16,6 @@ import {
   signOutSession,
   signOutAllDevices,
 } from '@/features/storefront/account/services/session-api';
-import { useSessionHeartbeat } from '@/features/auth/hooks/use-session-heartbeat';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { logout } from '@/features/auth/services/auth-api';
 import type { SessionItem } from '@/types/session';
@@ -113,8 +112,6 @@ function SessionCard({
 }
 
 export default function SessionsPage() {
-  useSessionHeartbeat();
-
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
