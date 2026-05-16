@@ -69,7 +69,9 @@ export function LoginForm() {
     const authError = searchParams.get('error');
     if (authError && !googleErrorHandled.current) {
       googleErrorHandled.current = true;
-      if (authError === 'AccessDenied') {
+      if (authError === 'AccountDisabled') {
+        toast.error('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      } else if (authError === 'AccessDenied') {
         toast.error('Tài khoản này không có quyền truy cập vào hệ thống khách hàng.');
       } else {
         toast.error('Đăng nhập Google thất bại. Vui lòng thử lại.');
@@ -91,7 +93,11 @@ export function LoginForm() {
     if (session?.error && !session.accessToken) {
       if (!googleErrorHandled.current) {
         googleErrorHandled.current = true;
-        toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
+        if (session.error === 'AccountDisabled') {
+          toast.error('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');
+        } else {
+          toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
+        }
       }
       void signOut({ redirect: false });
       return;
@@ -126,7 +132,9 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        if (result.error.includes('AccessDenied') || result.code === 'AccessDenied') {
+        if (result.error.includes('AccountDisabled') || result.code === 'AccountDisabled') {
+          toast.error('Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');
+        } else if (result.error.includes('AccessDenied') || result.code === 'AccessDenied') {
           toast.error('Tài khoản này không có quyền truy cập vào hệ thống khách hàng.');
         } else {
           toast.error('Đăng nhập thất bại. Kiểm tra thông tin đăng nhập và mật khẩu.');

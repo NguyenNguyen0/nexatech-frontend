@@ -8,7 +8,7 @@ declare module 'next-auth' {
   interface Session {
     accessToken?: string;
     refreshToken?: string;
-    error?: 'RefreshTokenError';
+    error?: 'RefreshTokenError' | 'AccountDisabled';
     otpStepUpPending?: boolean;
     requiresPasswordChange?: boolean;
     googleNewRegistration?: boolean;
@@ -26,7 +26,7 @@ declare module 'next-auth/jwt' {
     otp_step_up_pending?: boolean;
     requires_password_change?: boolean;
     google_new_registration?: boolean;
-    error?: 'RefreshTokenError';
+    error?: 'RefreshTokenError' | 'AccountDisabled';
     email?: string;
     name?: string;
   }
@@ -35,6 +35,12 @@ declare module 'next-auth/jwt' {
 class AccessDeniedError extends CredentialsSignin {
   code = 'AccessDenied';
 }
+
+class AccountDisabledError extends CredentialsSignin {
+  code = 'AccountDisabled';
+}
+
+const ACCOUNT_DISABLED_CODE = 2036;
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 
@@ -95,9 +101,15 @@ type GoogleSocialProfile = {
   avatarUrl?: string | null;
 };
 
-async function exchangeGoogleEmailForTokens(profile: GoogleSocialProfile) {
+type SocialTokenResult =
+  | ({ ok: true } & TokenBundle & { new_user?: boolean })
+  | { ok: false; reason: 'disabled' | 'failed' };
+
+async function exchangeGoogleEmailForTokens(
+  profile: GoogleSocialProfile,
+): Promise<SocialTokenResult> {
   const base = identityBase();
-  if (!base) return null;
+  if (!base) return { ok: false, reason: 'failed' };
 
   const res = await fetch(`${base}/auth/social-media`, {
     method: 'POST',
@@ -112,15 +124,20 @@ async function exchangeGoogleEmailForTokens(profile: GoogleSocialProfile) {
   });
 
   const data = (await res.json()) as ApiEnvelope<TokenBundle>;
+  if (data.code === ACCOUNT_DISABLED_CODE) {
+    return { ok: false, reason: 'disabled' };
+  }
   const tokens = pickTokens(data.result);
   if (!res.ok || data.code !== 1000 || !tokens) {
-    return null;
+    return { ok: false, reason: 'failed' };
   }
   const new_user = data.result?.new_user ?? data.result?.newUser;
-  return { ...tokens, new_user: new_user === true };
+  return { ok: true, ...tokens, new_user: new_user === true };
 }
 
-async function refreshAccessToken(refreshToken: string): Promise<TokenBundle | null> {
+async function refreshAccessToken(
+  refreshToken: string,
+): Promise<TokenBundle | null | 'ACCOUNT_DISABLED'> {
   const base = identityBase();
   if (!base) return null;
 
@@ -131,6 +148,9 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenBundle | n
   });
 
   const data = (await res.json()) as ApiEnvelope<TokenBundle>;
+  if (data.code === ACCOUNT_DISABLED_CODE) {
+    return 'ACCOUNT_DISABLED';
+  }
   const tokens = pickTokens(data.result);
   if (!res.ok || data.code !== 1000 || !tokens) {
     return null;
@@ -171,6 +191,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         const data = (await res.json()) as ApiEnvelope<TokenBundle>;
+        if (data.code === ACCOUNT_DISABLED_CODE) {
+          throw new AccountDisabledError();
+        }
         const tokens = pickTokens(data.result);
         if (!res.ok || data.code !== 1000 || !tokens) {
           return null;
@@ -231,11 +254,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           lastName,
           avatarUrl: googleUser.image?.trim() || undefined,
         });
-        if (!tokens) {
-          return { ...token, error: 'RefreshTokenError' as const };
+        if (!tokens.ok) {
+          return {
+            ...token,
+            error: tokens.reason === 'disabled' ? ('AccountDisabled' as const) : ('RefreshTokenError' as const),
+          };
         }
 
         const { access_token, refresh_token, expires_in, requires_password_change, new_user } = tokens;
+        if (!access_token) {
+          return { ...token, error: 'RefreshTokenError' as const };
+        }
         const claims = decodeJwtPayload(access_token);
         const sub = (claims?.sub as string) ?? user.id;
         const realmRoles = ((claims?.realm_access as { roles?: string[] })?.roles ?? []).map(
@@ -310,6 +339,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       const refreshed = await refreshAccessToken(rt);
+      if (refreshed === 'ACCOUNT_DISABLED') {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
+        return { ...rest, error: 'AccountDisabled' as const };
+      }
       if (!refreshed?.access_token) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
@@ -338,7 +372,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       } else {
         delete session.refreshToken;
       }
-      session.error = token.error as 'RefreshTokenError' | undefined;
+      session.error = token.error as 'RefreshTokenError' | 'AccountDisabled' | undefined;
       if (session.user) {
         if (token.sub) {
           session.user.id = token.sub;

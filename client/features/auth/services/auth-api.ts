@@ -38,8 +38,14 @@ export function getApiErrorMessage(
   const data = error.response?.data as ApiResponse<unknown> | undefined;
   const message = data?.message || error.message || '';
   const normalized = message.toLowerCase();
+  if (data?.code === 2036) {
+    return 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.';
+  }
   if (normalized.includes('invalid_grant')) {
     return 'Your account is locked or the login information is incorrect.';
+  }
+  if (normalized.includes('disabled')) {
+    return 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.';
   }
   if (data?.message) return data.message;
   return error.message || fallback;
