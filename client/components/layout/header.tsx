@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCurrentUserProfile } from '@/features/auth/hooks/use-current-user-profile';
+import { UserAvatar } from '@/components/custom/user-avatar';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
@@ -47,6 +49,7 @@ function getWishlistCount(): number {
 export function Header() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { profile, loading: profileLoading } = useCurrentUserProfile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -142,7 +145,7 @@ export function Header() {
           {/* Right Actions */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              {status === 'loading' ? (
+              {status === 'loading' || (session?.accessToken && profileLoading) ? (
                 <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
                   <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
                 </div>
@@ -151,12 +154,20 @@ export function Header() {
                   <button
                     type="button"
                     onClick={() => setAccountMenuOpen((o) => !o)}
-                    className="flex h-9 w-9 items-center justify-center rounded text-[#333] transition hover:bg-[#f0f0f0]"
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-1 ring-[#e8e8e8] transition hover:ring-primary/40"
                     aria-expanded={accountMenuOpen}
                     aria-haspopup="menu"
                     aria-label="Tài khoản"
                   >
-                    <UserRound className="h-[18px] w-[18px]" />
+                    <UserAvatar
+                      avatarUrl={profile?.avatarUrl}
+                      name={
+                        [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
+                        session.user?.name
+                      }
+                      size="sm"
+                      className="h-9 w-9"
+                    />
                   </button>
                   {accountMenuOpen && (
                     <div
@@ -164,14 +175,27 @@ export function Header() {
                       className="absolute right-0 z-50 mt-1 min-w-[210px] rounded-xl border border-[#e8e8e8] bg-white py-1.5 text-[13px] shadow-xl"
                     >
                       {/* User info header */}
-                      {session.user?.name && (
-                        <div className="px-3 pb-1.5 pt-1 border-b border-[#f0f0f0] mb-1">
-                          <p className="font-semibold text-[#1b1c1c] truncate">{session.user.name}</p>
-                          {session.user.email && (
-                            <p className="text-[11px] text-[#888] truncate">{session.user.email}</p>
+                      <div className="flex items-center gap-2.5 px-3 pb-2 pt-1 border-b border-[#f0f0f0] mb-1">
+                        <UserAvatar
+                          avatarUrl={profile?.avatarUrl}
+                          name={
+                            [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
+                            session.user?.name
+                          }
+                          size="md"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[#1b1c1c] truncate">
+                            {[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
+                              session.user?.name}
+                          </p>
+                          {(profile?.email || session.user?.email) && (
+                            <p className="text-[11px] text-[#888] truncate">
+                              {profile?.email || session.user?.email}
+                            </p>
                           )}
                         </div>
-                      )}
+                      </div>
 
                       <Link
                         href="/user"
@@ -345,7 +369,7 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              {status === 'loading' ? (
+              {status === 'loading' || (session?.accessToken && profileLoading) ? (
                 <div className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] text-[#999]">
                   Đang tải…
                 </div>
