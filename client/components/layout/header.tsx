@@ -146,7 +146,7 @@ export function Header() {
                 <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
                   <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
                 </div>
-              ) : session ? (
+              ) : session?.accessToken ? (
                 <div className="relative" ref={accountMenuRef}>
                   <button
                     type="button"
@@ -349,7 +349,7 @@ export function Header() {
                 <div className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] text-[#999]">
                   Đang tải…
                 </div>
-              ) : session ? (
+              ) : session?.accessToken ? (
                 <>
                   <Link
                     href="/user"

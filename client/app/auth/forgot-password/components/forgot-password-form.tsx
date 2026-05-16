@@ -9,6 +9,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axiosClient from '@/lib/axios-client';
 import { authPaths } from '@/lib/constants';
+import type { ApiResponse } from '@/types/auth';
 
 export function ForgotPasswordForm() {
     const [identifier, setIdentifier] = useState('');
@@ -24,12 +25,22 @@ export function ForgotPasswordForm() {
 
         setIsLoading(true);
         try {
-            await axiosClient.post(authPaths.forgotPassword, { identifier });
+            const { data } = await axiosClient.post<ApiResponse<void>>(
+                authPaths.forgotPassword,
+                { identifier: identifier.trim() },
+            );
+            if (data.code !== 1000) {
+                throw new Error(data.message || 'Có lỗi xảy ra, vui lòng thử lại sau');
+            }
             setIsSuccess(true);
             toast.success('Yêu cầu đã được gửi!');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Forgot password error:', error);
-            const message = error.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại sau';
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : (error as { response?: { data?: { message?: string } } })?.response?.data
+                          ?.message || 'Có lỗi xảy ra, vui lòng thử lại sau';
             toast.error(message);
         } finally {
             setIsLoading(false);

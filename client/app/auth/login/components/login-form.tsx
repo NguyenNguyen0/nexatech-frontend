@@ -10,21 +10,20 @@ import {
   verifyEmailOtp,
 } from '@/features/auth/services/auth-api';
 import { getSession, signIn, signOut, useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { FaFacebook } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/';
-  const { update } = useSession();
+  const { data: session, status, update } = useSession();
 
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [otpOpen, setOtpOpen] = useState(false);
@@ -32,6 +31,31 @@ export function LoginForm() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const googleErrorHandled = useRef(false);
+  const otpBootstrapStarted = useRef(false);
+
+  function otpSentStorageKey(userId: string | undefined) {
+    return userId ? `nexatech:otp-sent:${userId}` : null;
+  }
+
+  function markOtpSent(userId: string | undefined) {
+    const key = otpSentStorageKey(userId);
+    if (key) sessionStorage.setItem(key, String(Date.now()));
+  }
+
+  function hasRecentOtpSent(userId: string | undefined, withinMs = 60_000) {
+    const key = otpSentStorageKey(userId);
+    if (!key) return false;
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return false;
+    const ts = Number(raw);
+    return Number.isFinite(ts) && Date.now() - ts < withinMs;
+  }
+
+  function clearOtpSent(userId: string | undefined) {
+    const key = otpSentStorageKey(userId);
+    if (key) sessionStorage.removeItem(key);
+  }
 
   useEffect(() => {
     if (!otpOpen || resendCooldown <= 0) return;
@@ -41,23 +65,49 @@ export function LoginForm() {
     return () => window.clearInterval(timer);
   }, [otpOpen, resendCooldown]);
 
-  /** F5 / quay lại: phiên vẫn `otpStepUpPending` — mở lại bước OTP, đồng bộ Bearer cho axios. */
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const s = await getSession();
-      if (cancelled || !s?.otpStepUpPending) return;
-      if (s.accessToken && s.refreshToken) {
-        authStorage.setTokens(s.accessToken, s.refreshToken);
+    const authError = searchParams.get('error');
+    if (authError && !googleErrorHandled.current) {
+      googleErrorHandled.current = true;
+      if (authError === 'AccessDenied') {
+        toast.error('Tài khoản này không có quyền truy cập vào hệ thống khách hàng.');
+      } else {
+        toast.error('Đăng nhập Google thất bại. Vui lòng thử lại.');
       }
+    }
+  }, [searchParams]);
+
+  /** OTP chỉ sau đăng nhập mật khẩu (`otpStepUpPending`). Google không qua bước này. */
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      otpBootstrapStarted.current = false;
+      return;
+    }
+
+    if (session?.googleNewRegistration) {
+      return;
+    }
+
+    if (session?.error && !session.accessToken) {
+      if (!googleErrorHandled.current) {
+        googleErrorHandled.current = true;
+        toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
+      }
+      void signOut({ redirect: false });
+      return;
+    }
+
+    if (!session?.accessToken || !session.refreshToken) return;
+    if (session.otpStepUpPending !== true) return;
+
+    authStorage.setTokens(session.accessToken, session.refreshToken);
+
+    const userId = session.user?.id;
+
+    if (hasRecentOtpSent(userId)) {
       setOtpOpen(true);
-      setOtpCode('');
-      setResendCooldown(0);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    }
+  }, [status, session?.user?.id, session?.otpStepUpPending, session?.accessToken, session?.refreshToken, session?.error]);
 
   function finishLoginRedirect() {
     router.push(callbackUrl);
@@ -69,7 +119,7 @@ export function LoginForm() {
     setPending(true);
     try {
       const result = await signIn('credentials', {
-        username,
+        username: identifier.trim(),
         password,
         redirect: false,
         callbackUrl,
@@ -79,7 +129,7 @@ export function LoginForm() {
         if (result.error.includes('AccessDenied') || result.code === 'AccessDenied') {
           toast.error('Tài khoản này không có quyền truy cập vào hệ thống khách hàng.');
         } else {
-          toast.error('Đăng nhập thất bại. Kiểm tra tên đăng nhập và mật khẩu.');
+          toast.error('Đăng nhập thất bại. Kiểm tra thông tin đăng nhập và mật khẩu.');
         }
         return;
       }
@@ -92,7 +142,19 @@ export function LoginForm() {
         return;
       }
 
-      /** Mỗi lần đăng nhập đều OTP (step-up). `onBoarded` vẫn do backend set khi verify lần đầu. */
+      if (session.otpStepUpPending !== true) {
+        finishLoginRedirect();
+        return;
+      }
+
+      const userId = session.user?.id;
+      if (hasRecentOtpSent(userId)) {
+        setOtpOpen(true);
+        return;
+      }
+
+      otpBootstrapStarted.current = true;
+      markOtpSent(userId);
       await requestEmailOtp();
       setOtpCode('');
       setResendCooldown(30);
@@ -119,6 +181,8 @@ export function LoginForm() {
         toast.error('Đã xác minh OTP nhưng không cập nhật được phiên. F5 trang rồi thử lại.');
         return;
       }
+      clearOtpSent(session?.user?.id);
+      otpBootstrapStarted.current = false;
       setOtpOpen(false);
       toast.success('Xác minh email thành công');
       finishLoginRedirect();
@@ -134,6 +198,7 @@ export function LoginForm() {
     setResendingOtp(true);
     try {
       await requestEmailOtp();
+      markOtpSent(session?.user?.id);
       setResendCooldown(30);
       toast.success('Đã gửi lại OTP tới email của bạn');
     } catch (err) {
@@ -143,8 +208,19 @@ export function LoginForm() {
     }
   }
 
+  function handleGoogleSignIn() {
+    googleErrorHandled.current = false;
+    otpBootstrapStarted.current = false;
+    clearOtpSent(session?.user?.id);
+    setOtpOpen(false);
+    const loginCallback = `/auth/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+    void signIn('google', { callbackUrl: loginCallback });
+  }
+
   async function handleAbortOtp() {
     authStorage.clear();
+    clearOtpSent(session?.user?.id);
+    otpBootstrapStarted.current = false;
     setOtpOpen(false);
     setOtpCode('');
     await signOut({ redirect: false });
@@ -162,18 +238,18 @@ export function LoginForm() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
               <label htmlFor="auth-identifier" className="sr-only">
-                Tên đăng nhập
+                Tên đăng nhập, email hoặc số điện thoại
               </label>
               <Input
                 id="auth-identifier"
                 type="text"
                 name="username"
                 autoComplete="username"
-                placeholder="Tên đăng nhập"
+                placeholder="Tên đăng nhập / Email / Số điện thoại"
                 className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
                 required
-                value={username}
-                onChange={(ev) => setUsername(ev.target.value)}
+                value={identifier}
+                onChange={(ev) => setIdentifier(ev.target.value)}
                 disabled={pending || otpOpen}
               />
             </div>
@@ -219,12 +295,12 @@ export function LoginForm() {
 
           <div className="flex items-center justify-center w-full">
             <Button
-              onClick={() => toast.info('Tính năng này chưa được triển khai')}
+              onClick={handleGoogleSignIn}
               variant="outline"
               className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
               aria-label="Đăng nhập với Google"
               type="button"
-              disabled={otpOpen}
+              disabled={pending || otpOpen}
             >
               <FcGoogle className="h-5 w-5" />
               Google

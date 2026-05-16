@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,21 +17,27 @@ import { toast } from 'sonner';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import axiosClient from '@/lib/axios-client';
 import { authPaths } from '@/lib/constants';
+import { authStorage } from '@/features/auth/utils/auth-storage';
 
 export function ForceChangePasswordModal() {
   const { data: session, update } = useSession();
-  const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Hiển thị modal nếu user login thành công nhưng requiresPasswordChange = true
-  const isOpen = !!session?.user && !!session.requiresPasswordChange && !isSuccess;
+  const isOpen =
+    !!session?.user && !!session.requiresPasswordChange && !isSuccess;
+
+  useEffect(() => {
+    if (session?.accessToken && session.refreshToken) {
+      authStorage.setTokens(session.accessToken, session.refreshToken);
+    }
+  }, [session?.accessToken, session?.refreshToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (newPassword !== confirmPassword) {
       toast.error('Mật khẩu mới không khớp');
       return;
@@ -42,20 +48,38 @@ export function ForceChangePasswordModal() {
       return;
     }
 
+    const accessToken =
+      session?.accessToken ?? authStorage.getAccessToken() ?? undefined;
+    if (!accessToken) {
+      toast.error('Phiên đăng nhập chưa sẵn sàng. Tải lại trang rồi thử lại.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await axiosClient.post(authPaths.changePassword, {
-        oldPassword,
-        newPassword,
-      });
-      
-      toast.success('Đổi mật khẩu thành công!');
+      const { data } = await axiosClient.post<{ code: number; message?: string }>(
+        authPaths.changePassword,
+        {
+          newPassword,
+          initialSetup: true,
+        },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
+
+      if (data.code !== 1000) {
+        throw new Error(data.message || 'Không thể đặt mật khẩu');
+      }
+
+      toast.success('Đặt mật khẩu thành công!');
       setIsSuccess(true);
-      // Cập nhật session để ẩn modal
       await update({ passwordChangeComplete: true });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Change password error:', error);
-      const message = error.response?.data?.message || 'Không thể đổi mật khẩu, vui lòng kiểm tra lại mật khẩu hiện tại';
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || 'Không thể đặt mật khẩu, vui lòng thử lại';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -69,25 +93,13 @@ export function ForceChangePasswordModal() {
           <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
             <ShieldCheck className="h-6 w-6 text-primary" />
           </div>
-          <DialogTitle className="text-center text-xl">Yêu cầu đổi mật khẩu</DialogTitle>
+          <DialogTitle className="text-center text-xl">Đặt mật khẩu NexaTech</DialogTitle>
           <DialogDescription className="text-center">
-            Vì lý do bảo mật, bạn cần đổi mật khẩu mới sau khi reset tài khoản trước khi tiếp tục.
+            Tạo mật khẩu đăng nhập cho NexaTech.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="old-password">Mật khẩu hiện tại (vừa nhận qua email)</Label>
-            <Input
-              id="old-password"
-              type="password"
-              placeholder="••••••••"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              required
-              disabled={submitting}
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="new-password">Mật khẩu mới</Label>
             <Input
@@ -100,7 +112,7 @@ export function ForceChangePasswordModal() {
               disabled={submitting}
             />
             <p className="text-[10px] text-muted-foreground">
-              Mật khẩu phải dài ít nhất 8 ký tự, bao gồm chữ và số.
+              Ít nhất 8 ký tự, có chữ và số (ví dụ: Abc@123456789).
             </p>
           </div>
           <div className="space-y-2">
@@ -124,7 +136,7 @@ export function ForceChangePasswordModal() {
                   Đang xử lý...
                 </>
               ) : (
-                'Đổi mật khẩu & Tiếp tục'
+                'Lưu mật khẩu & Tiếp tục'
               )}
             </Button>
           </DialogFooter>

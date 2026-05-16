@@ -1,6 +1,5 @@
 /**
  * Cấu hình Auth.js (NextAuth v5) cho App Router.
- * Đặt ở thư mục gốc app (cạnh `app/`) là convention chính thức — import `@/auth` từ middleware, server, route handlers.
  * @see https://authjs.dev/getting-started/installation?framework=Next.js
  */
 import NextAuth, { CredentialsSignin, type DefaultSession } from 'next-auth';
@@ -12,6 +11,7 @@ declare module 'next-auth' {
     error?: 'RefreshTokenError';
     otpStepUpPending?: boolean;
     requiresPasswordChange?: boolean;
+    googleNewRegistration?: boolean;
     user: {
       id: string;
     } & DefaultSession['user'];
@@ -25,7 +25,10 @@ declare module 'next-auth/jwt' {
     expires_at?: number;
     otp_step_up_pending?: boolean;
     requires_password_change?: boolean;
+    google_new_registration?: boolean;
     error?: 'RefreshTokenError';
+    email?: string;
+    name?: string;
   }
 }
 
@@ -33,6 +36,7 @@ class AccessDeniedError extends CredentialsSignin {
   code = 'AccessDenied';
 }
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
 
 /** Base URL qua API Gateway, ví dụ http://localhost:8080/api/v1 */
 const identityBase = () => {
@@ -41,11 +45,29 @@ const identityBase = () => {
 };
 
 type TokenBundle = {
-  access_token: string;
+  access_token?: string;
+  accessToken?: string;
   refresh_token?: string;
+  refreshToken?: string;
   expires_in?: number;
+  expiresIn?: number;
   requires_password_change?: boolean;
+  requiresPasswordChange?: boolean;
+  new_user?: boolean;
+  newUser?: boolean;
 };
+
+function pickTokens(bundle: TokenBundle | undefined) {
+  if (!bundle) return null;
+  const access_token = bundle.access_token ?? bundle.accessToken;
+  if (!access_token) return null;
+  return {
+    access_token,
+    refresh_token: bundle.refresh_token ?? bundle.refreshToken,
+    expires_in: bundle.expires_in ?? bundle.expiresIn,
+    requires_password_change: bundle.requires_password_change ?? bundle.requiresPasswordChange,
+  };
+}
 
 type ApiEnvelope<T> = {
   code: number;
@@ -66,6 +88,38 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   }
 }
 
+type GoogleSocialProfile = {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  avatarUrl?: string | null;
+};
+
+async function exchangeGoogleEmailForTokens(profile: GoogleSocialProfile) {
+  const base = identityBase();
+  if (!base) return null;
+
+  const res = await fetch(`${base}/auth/social-media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'GOOGLE',
+      username: profile.email,
+      firstName: profile.firstName ?? undefined,
+      lastName: profile.lastName ?? undefined,
+      avatarUrl: profile.avatarUrl ?? undefined,
+    }),
+  });
+
+  const data = (await res.json()) as ApiEnvelope<TokenBundle>;
+  const tokens = pickTokens(data.result);
+  if (!res.ok || data.code !== 1000 || !tokens) {
+    return null;
+  }
+  const new_user = data.result?.new_user ?? data.result?.newUser;
+  return { ...tokens, new_user: new_user === true };
+}
+
 async function refreshAccessToken(refreshToken: string): Promise<TokenBundle | null> {
   const base = identityBase();
   if (!base) return null;
@@ -77,10 +131,11 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenBundle | n
   });
 
   const data = (await res.json()) as ApiEnvelope<TokenBundle>;
-  if (!res.ok || data.code !== 1000 || !data.result?.access_token) {
+  const tokens = pickTokens(data.result);
+  if (!res.ok || data.code !== 1000 || !tokens) {
     return null;
   }
-  return data.result;
+  return tokens;
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -90,39 +145,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: { strategy: 'jwt' },
   providers: [
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }),
     Credentials({
       name: 'credentials',
       credentials: {
-        username: { label: 'Username' },
+        username: { label: 'Username / Email / Phone' },
         password: { label: 'Password', type: 'password' },
       },
       authorize: async (credentials) => {
-        const username = credentials?.username as string | undefined;
+        const identifier = credentials?.username as string | undefined;
         const password = credentials?.password as string | undefined;
         const base = identityBase();
 
-        if (!username || !password || !base) {
+        if (!identifier || !password || !base) {
           return null;
         }
 
         const res = await fetch(`${base}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ username: identifier.trim(), password }),
         });
 
         const data = (await res.json()) as ApiEnvelope<TokenBundle>;
-        if (!res.ok || data.code !== 1000 || !data.result?.access_token) {
+        const tokens = pickTokens(data.result);
+        if (!res.ok || data.code !== 1000 || !tokens) {
           return null;
         }
 
-        const { access_token, refresh_token, expires_in, requires_password_change } = data.result;
+        const { access_token, refresh_token, expires_in, requires_password_change } = tokens;
         const claims = decodeJwtPayload(access_token);
-        const sub = (claims?.sub as string) ?? username;
-        const name = (claims?.name as string) ?? (claims?.preferred_username as string) ?? username;
+        const sub = (claims?.sub as string) ?? identifier;
+        const name = (claims?.name as string) ?? (claims?.preferred_username as string) ?? identifier;
         const email = (claims?.email as string) ?? undefined;
 
-        // Chỉ có CUSTOMER mới được đăng nhập vào Client — chặn Staff/Admin ngay ở tầng server
         const realmRoles = ((claims?.realm_access as { roles?: string[] })?.roles ?? []).map(
           (r: string) => r.toUpperCase(),
         );
@@ -143,22 +202,65 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    /**
-     * JWT callback (chạy mỗi lần session được đọc / cập nhật):
-     *
-     * 1) access còn hạn (theo `expires_at`, buffer 15s): giữ nguyên token.
-     * 2) access sắp hết / hết: gọi `POST .../auth/refresh` với `refresh_token`.
-     * 3) Refresh OK: cập nhật access/refresh/expires, bỏ cờ `error`.
-     * 4) Không có refresh hoặc refresh lỗi: **không** gọi `signOut()` tự động (Auth.js
-     *    không làm vậy trong jwt callback). Ta xóa access/refresh khỏi JWT và gán
-     *    `error: 'RefreshTokenError'` — cookie session vẫn tồn tại nhưng không còn
-     *    Bearer dùng được. UI/middleware nên đọc `session.error` và gọi `signOut()`
-     *    hoặc redirect login nếu cần hành vi “logout hẳn”.
-     * 5) Sau credentials login: `otp_step_up_pending: true` — middleware chỉ cho
-     *    `/auth/login` cho đến khi client `update({ otpStepUpComplete: true })` sau verify OTP.
-     */
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google') {
+        return !!user.email;
+      }
+      return true;
+    },
+    async jwt({ token, user, account, trigger, session }) {
+      // Google OAuth: dùng email Google → POST /auth/social-media → Keycloak JWT
+      if (account?.provider === 'google' && user?.email) {
+        const email = user.email.trim().toLowerCase();
+        const googleUser = user as {
+          name?: string | null;
+          image?: string | null;
+          given_name?: string | null;
+          family_name?: string | null;
+        };
+        let firstName = googleUser.given_name?.trim() || undefined;
+        let lastName = googleUser.family_name?.trim() || undefined;
+        if (!firstName && user.name) {
+          const parts = user.name.trim().split(/\s+/);
+          firstName = parts[0];
+          lastName = parts.length > 1 ? parts.slice(1).join(' ') : undefined;
+        }
+        const tokens = await exchangeGoogleEmailForTokens({
+          email,
+          firstName,
+          lastName,
+          avatarUrl: googleUser.image?.trim() || undefined,
+        });
+        if (!tokens) {
+          return { ...token, error: 'RefreshTokenError' as const };
+        }
+
+        const { access_token, refresh_token, expires_in, requires_password_change, new_user } = tokens;
+        const claims = decodeJwtPayload(access_token);
+        const sub = (claims?.sub as string) ?? user.id;
+        const realmRoles = ((claims?.realm_access as { roles?: string[] })?.roles ?? []).map(
+          (r: string) => r.toUpperCase(),
+        );
+        if (!realmRoles.includes('CUSTOMER')) {
+          return { ...token, error: 'RefreshTokenError' as const };
+        }
+
+        return {
+          ...token,
+          sub,
+          name: user.name ?? token.name,
+          email,
+          access_token,
+          refresh_token,
+          expires_at: Math.floor(Date.now() / 1000 + (expires_in ?? 300)),
+          otp_step_up_pending: false,
+          requires_password_change: !!requires_password_change,
+          google_new_registration: new_user === true,
+          error: undefined,
+        };
+      }
+
+      if (user && account?.provider === 'credentials') {
         const u = user as {
           id: string;
           access_token: string;
@@ -168,11 +270,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
         return {
           ...token,
+          sub: u.id,
           access_token: u.access_token,
           refresh_token: u.refresh_token,
           expires_at: u.expires_at,
-          otp_step_up_pending: false,
+          otp_step_up_pending: true,
           requires_password_change: u.requires_password_change,
+          error: undefined,
         };
       }
 
@@ -182,7 +286,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return { ...token, otp_step_up_pending: false };
         }
         if (s?.passwordChangeComplete === true) {
-          return { ...token, requires_password_change: false };
+          return {
+            ...token,
+            requires_password_change: false,
+            requiresPasswordChange: false,
+          };
         }
       }
 
@@ -192,6 +300,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       const rt = token.refresh_token as string | undefined;
+      if (!rt && !token.access_token) {
+        return token;
+      }
       if (!rt) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { access_token: _a, refresh_token: _r, expires_at: _e, ...rest } = token;
@@ -211,6 +322,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         refresh_token: refreshed.refresh_token ?? rt,
         expires_at: Math.floor(Date.now() / 1000 + (refreshed.expires_in ?? 300)),
         error: undefined,
+        otp_step_up_pending: token.otp_step_up_pending,
+        google_new_registration: token.google_new_registration,
+        requires_password_change: token.requires_password_change,
       };
     },
     async session({ session, token }) {
@@ -225,20 +339,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         delete session.refreshToken;
       }
       session.error = token.error as 'RefreshTokenError' | undefined;
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+      if (session.user) {
+        if (token.sub) {
+          session.user.id = token.sub;
+        }
+        if (typeof token.name === 'string') {
+          session.user.name = token.name;
+        }
+        if (typeof token.email === 'string') {
+          session.user.email = token.email;
+        }
       }
       session.otpStepUpPending = token.otp_step_up_pending === true;
       session.requiresPasswordChange = token.requires_password_change === true;
+      session.googleNewRegistration = token.google_new_registration === true;
       return session;
     },
-    /**
-     * Authorized callback: Mặc định cho phép mọi request đi qua middleware.
-     * Logic bảo vệ route sẽ được xử lý tập trung tại `middleware.ts`.
-     */
-    authorized({ auth }) {
-      // Ta trả về true ở đây để middleware.ts không bị chặn mặc định bởi NextAuth.
-      // Việc chặn route nào sẽ do logic trong middleware.ts quyết định.
+    authorized() {
       return true;
     },
   },
