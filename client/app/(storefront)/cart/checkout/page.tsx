@@ -71,6 +71,7 @@ export default function CheckoutPage() {
     const cartItems = cart.items.map((item) => ({
       productId: item.productId,
       quantity: item.quantity,
+      unitPrice: item.price,  // Send price from localStorage cart as fallback for product-service
     }));
 
     setSubmitting(true);
