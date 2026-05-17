@@ -25,7 +25,7 @@ export function PdpRelatedProducts({ products }: PdpRelatedProductsProps) {
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-outline-variant bg-surface px-6 py-10 text-center text-body-md text-on-surface-variant">
+        <div className="rounded-md border border-dashed border-outline-variant bg-surface px-6 py-10 text-center text-body-md text-on-surface-variant">
           Chưa có sản phẩm liên quan để hiển thị.
         </div>
       )}

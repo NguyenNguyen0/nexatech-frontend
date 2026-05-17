@@ -32,7 +32,7 @@ export function PdpSpecs({ description, specs }: PdpSpecsProps) {
   const specEntries = Object.entries(specs ?? {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
 
   return (
-    <div className="bg-surface-container-lowest rounded-2xl p-6 border border-outline-variant sticky top-6">
+    <div className="bg-surface-container-lowest rounded-md p-6 border border-outline-variant sticky top-6">
       <h3 className="text-title-lg font-title-lg text-on-surface mb-6">Thông số kỹ thuật</h3>
       
       {specEntries.length > 0 ? (
