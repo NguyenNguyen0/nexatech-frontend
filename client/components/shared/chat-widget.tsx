@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 'use client';
 
 import { Client, type StompSubscription } from '@stomp/stompjs';
