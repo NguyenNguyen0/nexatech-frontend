@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCurrentUserProfile } from '@/features/auth/hooks/use-current-user-profile';
-import { UserAvatar } from '@/components/custom/user-avatar';
+import { authStorage } from '@/features/auth/utils/auth-storage';
+import { CategoryDialog } from './category-dialog';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
   { label: 'Gaming PC', href: '/product/collection/gaming-pc' },
   { label: 'Build PC', href: '/build-pc' },
-  { label: 'Monitor', href: '/product/collection/monitor' },
-  { label: 'Keyboard', href: '/product/collection/keyboard' },
-  { label: 'Mouse', href: '/product/collection/mouse' },
+  { label: 'Màn hình', href: '/product/collection/monitor' },
+  { label: 'Bàn phím', href: '/product/collection/keyboard' },
+  { label: 'Chuột', href: '/product/collection/mouse' },
   { label: 'Ghế', href: '/product/collection/chair' },
 ];
 
@@ -49,14 +49,21 @@ function getWishlistCount(): number {
 export function Header() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { profile, loading: profileLoading } = useCurrentUserProfile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [logoutPending, setLogoutPending] = useState(false);
+
+  // Close category menu when account or mobile menu opens
+  useEffect(() => {
+    if (accountMenuOpen || mobileMenuOpen) {
+      setCategoryMenuOpen(false);
+    }
+  }, [accountMenuOpen, mobileMenuOpen]);
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -71,6 +78,7 @@ export function Header() {
 
   const handleLogout = async () => {
     setLogoutPending(true);
+    authStorage.clear();
     try {
       await fetch('/api/auth/logout-keycloak', { method: 'POST' });
     } catch {
@@ -78,9 +86,15 @@ export function Header() {
     }
     setAccountMenuOpen(false);
     setMobileMenuOpen(false);
+    setCategoryMenuOpen(false);
     await signOut({ callbackUrl: '/' });
     setLogoutPending(false);
   };
+
+  const handleCategoryMenuToggle = useCallback(() => {
+    setAccountMenuOpen(false);
+    setCategoryMenuOpen((prev) => !prev);
+  }, []);
 
   const refreshCounts = useCallback(() => {
     setCartCount(getCartCount());
@@ -131,11 +145,11 @@ export function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm kiếm sản phẩm..."
-                className="h-[38px] w-full rounded-sm border border-primary bg-white px-3 pr-11 text-[13px] text-text-primary placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-primary"
+                className="h-[38px] w-full rounded-sm border border-[#004d75] bg-white px-3 pr-11 text-[13px] text-[#1b1c1c] placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-[#004d75]"
               />
               <button
                 type="submit"
-                className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-primary text-white transition hover:bg-primary-dark"
+                className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-[#004d75] text-white transition hover:bg-[#003d5c]"
               >
                 <Search className="h-4 w-4" />
               </button>
@@ -143,156 +157,133 @@ export function Header() {
           </form>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              {status === 'loading' || (session?.accessToken && profileLoading) ? (
-                <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
-                  <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
-                </div>
-              ) : session?.accessToken ? (
-                <div className="relative" ref={accountMenuRef}>
-                  <button
-                    type="button"
-                    onClick={() => setAccountMenuOpen((o) => !o)}
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-1 ring-[#e8e8e8] transition hover:ring-primary/40"
-                    aria-expanded={accountMenuOpen}
-                    aria-haspopup="menu"
-                    aria-label="Tài khoản"
-                  >
-                    <UserAvatar
-                      avatarUrl={profile?.avatarUrl}
-                      name={
-                        [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
-                        session.user?.name
-                      }
-                      size="sm"
-                      className="h-9 w-9"
-                    />
-                  </button>
-                  {accountMenuOpen && (
-                    <div
-                      role="menu"
-                      className="absolute right-0 z-50 mt-1 min-w-[210px] rounded-xl border border-[#e8e8e8] bg-white py-1.5 text-[13px] shadow-xl"
-                    >
-                      {/* User info header */}
-                      <div className="flex items-center gap-2.5 px-3 pb-2 pt-1 border-b border-[#f0f0f0] mb-1">
-                        <UserAvatar
-                          avatarUrl={profile?.avatarUrl}
-                          name={
-                            [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
-                            session.user?.name
-                          }
-                          size="md"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[#1b1c1c] truncate">
-                            {[profile?.firstName, profile?.lastName].filter(Boolean).join(' ') ||
-                              session.user?.name}
-                          </p>
-                          {(profile?.email || session.user?.email) && (
-                            <p className="text-[11px] text-[#888] truncate">
-                              {profile?.email || session.user?.email}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <Link
-                        href="/user"
-                        role="menuitem"
-                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        <UserRound className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        Hồ sơ cá nhân
-                      </Link>
-
-                      <Link
-                        href="/user/account"
-                        role="menuitem"
-                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        <KeyRound className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        Đổi mật khẩu
-                      </Link>
-
-                      <Link
-                        href="/user/sessions"
-                        role="menuitem"
-                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        Phiên đăng nhập
-                      </Link>
-
-                      <Link
-                        href="/user/notifications"
-                        role="menuitem"
-                        className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
-                        onClick={() => setAccountMenuOpen(false)}
-                      >
-                        <Settings className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        Cài đặt
-                      </Link>
-
-                      <div className="my-1 border-t border-[#f0f0f0]" />
-
-                      <button
-                        type="button"
-                        role="menuitem"
-                        disabled={logoutPending}
-                        onClick={() => void handleLogout()}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[#e30019] transition hover:bg-[#fff5f5] disabled:opacity-50"
-                      >
-                        <LogOut className="h-3.5 w-3.5 shrink-0" />
-                        Đăng xuất
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  href="/auth/login"
-                  className="inline-flex items-center rounded border border-primary bg-primary px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-primary-dark"
+          <div className="flex items-center gap-1">
+            {status === 'loading' ? (
+              <div className="flex h-9 w-9 items-center justify-center rounded" aria-hidden>
+                <UserRound className="h-[18px] w-[18px] animate-pulse text-[#ccc]" />
+              </div>
+            ) : session ? (
+              <div className="relative" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setAccountMenuOpen((o) => !o)}
+                  className="flex h-9 w-9 items-center justify-center rounded text-[#333] transition hover:bg-[#f0f0f0]"
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Tài khoản"
                 >
-                  Đăng nhập
-                </Link>
+                  <UserRound className="h-[18px] w-[18px]" />
+                </button>
+                {accountMenuOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 z-50 mt-1 min-w-[210px] rounded-xl border border-[#e8e8e8] bg-white py-1.5 text-[13px] shadow-xl"
+                  >
+                    {/* User info header */}
+                    {session.user?.name && (
+                      <div className="px-3 pb-1.5 pt-1 border-b border-[#f0f0f0] mb-1">
+                        <p className="font-semibold text-[#1b1c1c] truncate">{session.user.name}</p>
+                        {session.user.email && (
+                          <p className="text-[11px] text-[#888] truncate">{session.user.email}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <Link
+                      href="/user"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Hồ sơ cá nhân
+                    </Link>
+
+                    <Link
+                      href="/user/account"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <KeyRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Đổi mật khẩu
+                    </Link>
+
+                    <Link
+                      href="/user/sessions"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Phiên đăng nhập
+                    </Link>
+
+                    <Link
+                      href="/user/notifications"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <Settings className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Cài đặt
+                    </Link>
+
+                    <div className="my-1 border-t border-[#f0f0f0]" />
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={logoutPending}
+                      onClick={() => void handleLogout()}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[#e30019] transition hover:bg-[#fff5f5] disabled:opacity-50"
+                    >
+                      <LogOut className="h-3.5 w-3.5 shrink-0" />
+                      Đăng xuất
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/auth/login"
+                className="inline-flex items-center rounded border border-[#004d75] bg-[#004d75] px-3 py-1.5 text-[13px] font-medium text-white transition hover:bg-[#003d5c]"
+              >
+                Đăng nhập
+              </Link>
+            )}
+
+            <Link
+              href="/user/wishlist"
+              className="relative hidden rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
+            >
+              <Heart className="h-[18px] w-[18px]" />
+              {wishlistCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
               )}
+            </Link>
 
-              <Link
-                href="/user/wishlist"
-                className="relative hidden rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] sm:flex"
-              >
-                <Heart className="h-[18px] w-[18px]" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
-                    {wishlistCount > 99 ? '99+' : wishlistCount}
-                  </span>
-                )}
-              </Link>
+            <Link
+              href="/cart"
+              className="relative flex items-center rounded p-2 text-[#333] transition hover:bg-[#f0f0f0]"
+            >
+              <ShoppingCart className="h-[18px] w-[18px]" />
+              {cartCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
+            </Link>
 
-              <Link
-                href="/cart"
-                className="relative flex items-center rounded p-2 text-[#333] transition hover:bg-[#f0f0f0]"
-              >
-                <ShoppingCart className="h-[18px] w-[18px]" />
-                {cartCount > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e30019] px-0.5 text-[9px] font-bold text-white">
-                    {cartCount > 99 ? '99+' : cartCount}
-                  </span>
-                )}
-              </Link>
-
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] lg:hidden"
-                type="button"
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-            </div>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="rounded p-2 text-[#333] transition hover:bg-[#f0f0f0] lg:hidden"
+              type="button"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
@@ -304,11 +295,11 @@ export function Header() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm kiếm sản phẩm..."
-              className="h-9 w-full rounded-sm border border-primary bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
+              className="h-9 w-full rounded-sm border border-[#004d75] bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
             />
             <button
               type="submit"
-              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-primary text-white"
+              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-[#004d75] text-white"
             >
               <Search className="h-4 w-4" />
             </button>
@@ -317,16 +308,24 @@ export function Header() {
       </div>
 
       {/* Second Tier - Category Navigation */}
-      <div className="bg-primary text-white">
+      <div className="bg-[#004d75] text-white relative">
         <div className="mx-auto flex max-w-[1200px] items-center px-4">
           {/* Category Dropdown Button */}
           <button
             type="button"
-            className="flex items-center gap-2 border-r border-white/20 py-2.5 pr-4 text-[13px] font-semibold transition hover:bg-white/10"
+            onClick={handleCategoryMenuToggle}
+            onMouseEnter={() => !categoryMenuOpen && setCategoryMenuOpen(true)}
+            className={`flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition ${
+              categoryMenuOpen ? 'bg-white/20' : 'hover:bg-white/10'
+            }`}
+            aria-expanded={categoryMenuOpen}
+            aria-controls="category-menu"
           >
             <Menu className="h-4 w-4" />
             Danh mục
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+              categoryMenuOpen ? 'rotate-180' : ''
+            }`} />
           </button>
 
           {/* Nav Links */}
@@ -369,11 +368,11 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              {status === 'loading' || (session?.accessToken && profileLoading) ? (
+              {status === 'loading' ? (
                 <div className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] text-[#999]">
                   Đang tải…
                 </div>
-              ) : session?.accessToken ? (
+              ) : session ? (
                 <>
                   <Link
                     href="/user"
@@ -430,6 +429,14 @@ export function Header() {
           </div>
         </div>
       )}
+
+      {/* Category Dialog */}
+      <div id="category-menu" className="hidden lg:block relative">
+        <CategoryDialog
+          open={categoryMenuOpen}
+          onClose={() => setCategoryMenuOpen(false)}
+        />
+      </div>
     </header>
   );
 }

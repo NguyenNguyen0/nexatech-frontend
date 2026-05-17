@@ -97,7 +97,7 @@ export function PdpBlogReview({ descriptionHtml }: PdpBlogReviewProps) {
   }
 
   return (
-    <section className="bg-surface rounded-2xl p-6 md:p-8 border border-outline-variant relative overflow-hidden">
+    <section className="bg-surface rounded-md p-6 md:p-8 border border-outline-variant relative overflow-hidden">
       <h2 className="text-headline-sm font-headline-sm text-on-surface mb-6">Thông tin sản phẩm</h2>
 
       <div className={`relative transition-[height] duration-300 ${expanded ? 'h-[800px]' : 'h-[400px]'}`}>
@@ -105,7 +105,7 @@ export function PdpBlogReview({ descriptionHtml }: PdpBlogReviewProps) {
           title="product-blog-review"
           srcDoc={buildSrcDoc(descriptionHtml)}
           sandbox="allow-same-origin"
-          className="w-full h-full border-0 bg-white rounded-xl"
+          className="w-full h-full border-0 bg-white rounded"
         />
         
         {!expanded && (
@@ -113,7 +113,7 @@ export function PdpBlogReview({ descriptionHtml }: PdpBlogReviewProps) {
             <button
               type="button"
               onClick={() => setExpanded(true)}
-              className="px-6 py-2 bg-surface border border-primary text-primary rounded-full font-bold hover:bg-primary/5 transition-colors shadow-sm"
+              className="px-5 py-2 bg-surface border border-primary text-primary rounded-sm font-bold hover:bg-primary/5 transition-colors shadow-sm"
             >
               Xem thêm nội dung
             </button>
@@ -126,7 +126,7 @@ export function PdpBlogReview({ descriptionHtml }: PdpBlogReviewProps) {
           <button
             type="button"
             onClick={() => setExpanded(false)}
-            className="px-6 py-2 bg-surface border border-outline-variant text-on-surface-variant rounded-full font-bold hover:bg-surface-container transition-colors shadow-sm"
+            className="px-5 py-2 bg-surface border border-outline-variant text-on-surface-variant rounded-sm font-bold hover:bg-surface-container transition-colors shadow-sm"
           >
             Thu gọn nội dung
           </button>

@@ -83,8 +83,7 @@ async function clearSessionAndSignOut(): Promise<void> {
   authStorage.clear();
   if (typeof window === 'undefined') return;
   const { signOut } = await import('next-auth/react');
-  // Chú ý: Không dùng redirect: true ở đây để tránh bị văng ra login khi đang ở trang public
-  await signOut({ redirect: false });
+  await signOut({ redirect: true, callbackUrl: '/auth/login' });
 }
 
 /**
@@ -94,7 +93,9 @@ async function clearSessionAndSignOut(): Promise<void> {
 async function performRefreshToken(): Promise<string> {
   const storedRefresh = authStorage.getRefreshToken();
   if (!storedRefresh) {
-    await clearSessionAndSignOut();
+    // No refresh token means the user was never authenticated (or already logged out).
+    // Just clear any stale storage and reject — do NOT redirect to login.
+    authStorage.clear();
     throw new Error('No refresh token');
   }
 

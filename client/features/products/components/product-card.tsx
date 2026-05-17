@@ -20,7 +20,7 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
 
   return (
     <Link href={`/product/${product.slug}`} className={cn('block h-full', className)}>
-      <div className="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full">
+      <div className="bg-surface rounded-md border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full">
         {/* Image */}
         <div className="relative w-full aspect-square bg-surface-container border-b border-outline-variant overflow-hidden">
           {product.thumbnail ? (

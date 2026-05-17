@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SlidersHorizontal, MessageCircle, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, MessageCircle } from 'lucide-react';
 import { fetchSubcategories } from '../services/products-api';
 import type { ProductBrand, ProductCategory, ProductSubcategory } from '../types';
 
@@ -76,7 +76,7 @@ export function CatalogFiltersForm({
     <aside className="w-full lg:w-64 shrink-0">
       <div className="sticky top-24 space-y-4">
         {/* ── Filter panel ──────────────────────────────────── */}
-        <div className="bg-surface rounded-xl border border-outline-variant p-4 md:p-6 mb-6 lg:mb-0 shadow-sm">
+        <div className="bg-surface rounded-md border border-outline-variant p-4 md:p-6 mb-6 lg:mb-0 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-title-md font-title-md text-on-surface flex items-center gap-2">
               <SlidersHorizontal className="h-5 w-5 text-on-surface-variant" />
@@ -97,7 +97,7 @@ export function CatalogFiltersForm({
                   name="keyword"
                   defaultValue={current.keyword ?? ''}
                   placeholder="Tìm sản phẩm..."
-                  className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
+                  className="h-10 w-full rounded border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
                 />
               </div>
             ) : current.keyword ? (
@@ -241,7 +241,7 @@ export function CatalogFiltersForm({
                   step="10000"
                   defaultValue={current.minPrice ?? ''}
                   placeholder="Từ"
-                  className="h-10 w-full min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
+                  className="h-10 w-full min-w-0 rounded border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
                 />
                 <span className="shrink-0 text-on-surface-variant">—</span>
                 <input
@@ -251,7 +251,7 @@ export function CatalogFiltersForm({
                   step="10000"
                   defaultValue={current.maxPrice ?? ''}
                   placeholder="Đến"
-                  className="h-10 w-full min-w-0 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
+                  className="h-10 w-full min-w-0 rounded border border-outline-variant bg-surface-container-lowest px-3 text-body-md outline-none transition focus:border-primary text-on-surface"
                 />
               </div>
             </div>
@@ -319,13 +319,13 @@ export function CatalogFiltersForm({
             <div className="flex flex-col gap-3 pt-4 border-t border-outline-variant">
               <button
                 type="submit"
-                className="w-full h-10 rounded-lg bg-primary text-on-primary text-label-lg font-label-lg transition hover:bg-primary/90 active:scale-95"
+                className="w-full h-10 rounded bg-primary text-on-primary text-label-lg font-label-lg transition hover:bg-primary/90 active:scale-95"
               >
                 Áp dụng
               </button>
               <Link
                 href={action}
-                className="w-full flex items-center justify-center h-10 rounded-lg border border-outline-variant bg-surface text-on-surface-variant text-label-lg font-label-lg transition hover:border-primary hover:text-primary"
+                className="w-full flex items-center justify-center h-10 rounded border border-outline-variant bg-surface text-on-surface-variant text-label-lg font-label-lg transition hover:border-primary hover:text-primary"
               >
                 Xóa bộ lọc
               </Link>
@@ -334,7 +334,7 @@ export function CatalogFiltersForm({
         </div>
 
         {/* ── Expert Advice card ─────────────────────────── */}
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+        <div className="rounded-md border border-primary/20 bg-primary/5 p-5">
           <div className="mb-2 flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
             <p className="text-label-lg font-label-lg text-primary">Tư vấn chuyên gia</p>
@@ -346,7 +346,7 @@ export function CatalogFiltersForm({
           <button
             type="button"
             disabled
-            className="w-full rounded-lg bg-primary py-2.5 text-label-sm font-label-sm text-on-primary transition hover:bg-primary/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded bg-primary py-2.5 text-label-sm font-label-sm text-on-primary transition hover:bg-primary/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             title="Tính năng sắp ra mắt"
           >
             Chat tư vấn

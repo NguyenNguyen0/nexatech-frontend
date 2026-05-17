@@ -23,6 +23,7 @@
  * - Components using these fields will continue to work but should migrate to new primary category fields
  */
 
+import { featureFlags, getMockApiIndicator } from '@/lib/feature-flags';
 import { buildProductQuery, normalizeCollection, normalizePageResult, unwrapProductApiResponse } from '../utils';
 import type {
   PageResult,
@@ -40,6 +41,7 @@ const PRODUCT_API_BASE = '/api/v1/products';
 const CATEGORY_API_BASE = '/api/v1/categories';
 const BRAND_API_BASE = '/api/v1/brands';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
+const FRONTEND_BASE_URL = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
 
 type SubcategoryTreeNode = {
   id?: string;
@@ -108,8 +110,21 @@ function flattenSubcategoryTree(nodes: SubcategoryTreeNode[]): ProductSubcategor
 }
 
 function resolveApiPath(path: string): string {
-  // Server-side fetch does not reliably support relative URLs for external rewrites.
-  if (typeof window === 'undefined' && path.startsWith('/')) {
+  // Feature flag: USE_MOCK_API controls which API source to use
+  // - true: Use local mock API routes (/api/v1/...)
+  // - false (default): Use real API Gateway
+
+  if (featureFlags.USE_MOCK_API) {
+    // Use mock API via the Next.js app origin on the server, and relative paths in the browser.
+    if (typeof window === 'undefined' && path.startsWith('/')) {
+      return `${FRONTEND_BASE_URL}${path}`;
+    }
+    return path;
+  }
+
+  // Default behavior: Always use real API Gateway
+  // Both client-side and server-side requests go to the actual backend
+  if (path.startsWith('/')) {
     return `${API_GATEWAY_URL}${path}`;
   }
 
@@ -117,7 +132,14 @@ function resolveApiPath(path: string): string {
 }
 
 async function requestProductApi<T>(path: string): Promise<T> {
-  const response = await fetch(resolveApiPath(path), {
+  const resolvedPath = resolveApiPath(path);
+  
+  // Log for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.debug(`${getMockApiIndicator()} [Products API] GET ${resolvedPath}`);
+  }
+
+  const response = await fetch(resolvedPath, {
     method: 'GET',
     cache: 'no-store',
     credentials: 'include',
@@ -143,6 +165,23 @@ export async function fetchProducts(params?: ProductListParams): Promise<PageRes
   return normalizePageResult<ProductSummary>(payload);
 }
 
+export async function fetchProductsByTags(
+  tags: string[] = ['hot', 'new'],
+  params?: ProductListParams,
+): Promise<PageResult<ProductSummary>> {
+  const payload = await requestProductApi<unknown>(
+    `${PRODUCT_API_BASE}/tags${buildProductQuery({
+      ...params,
+      page: params?.page ?? 0,
+      size: params?.size ?? 8,
+      sort: params?.sort ?? 'createdAt,desc',
+      tags,
+    })}`,
+  );
+
+  return normalizePageResult<ProductSummary>(payload);
+}
+
 export async function fetchProductsByCategorySlug(slug: string, params?: ProductListParams): Promise<PageResult<ProductSummary>> {
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
@@ -154,8 +193,7 @@ export async function fetchProductsByCategorySlug(slug: string, params?: Product
 }
 
 export async function fetchFeaturedProducts(params?: ProductListParams): Promise<PageResult<ProductSummary>> {
-  const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/featured${buildProductQuery(params)}`);
-  return normalizePageResult<ProductSummary>(payload);
+  return fetchProductsByTags(['hot', 'new'], params);
 }
 
 export async function searchProducts(keyword: string, params?: ProductListParams): Promise<PageResult<ProductSummary>> {
