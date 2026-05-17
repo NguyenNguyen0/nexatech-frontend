@@ -279,8 +279,9 @@ export function ChatWidget() {
   }, []);
 
   useEffect(() => {
+    if (!userId) return;
     loadConversations();
-  }, [loadConversations]);
+  }, [loadConversations, userId]);
 
   useEffect(() => {
     if (!activeConversationId) return;

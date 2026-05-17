@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { authStorage } from '@/features/auth/utils/auth-storage';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
@@ -68,6 +69,7 @@ export function Header() {
 
   const handleLogout = async () => {
     setLogoutPending(true);
+    authStorage.clear();
     try {
       await fetch('/api/auth/logout-keycloak', { method: 'POST' });
     } catch {

@@ -93,7 +93,9 @@ async function clearSessionAndSignOut(): Promise<void> {
 async function performRefreshToken(): Promise<string> {
   const storedRefresh = authStorage.getRefreshToken();
   if (!storedRefresh) {
-    await clearSessionAndSignOut();
+    // No refresh token means the user was never authenticated (or already logged out).
+    // Just clear any stale storage and reject — do NOT redirect to login.
+    authStorage.clear();
     throw new Error('No refresh token');
   }
 
