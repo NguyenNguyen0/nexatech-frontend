@@ -146,6 +146,22 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Roles management */
+            {
+                path: 'roles',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/roles')).default,
+                }),
+            },
+
+            /** Permissions management */
+            {
+                path: 'permissions',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/permissions')).default,
+                }),
+            },
+
             /** Settings with sub-sections (profile/account/appearance/...) */
             {
                 path: 'settings',
@@ -179,17 +195,10 @@ export const admin: RouteObject[] = [
                         }),
                     },
                     {
-                        path: 'display',
+                        path: 'sessions',
                         lazy: async () => ({
-                            Component: (await import('@/pages/admin/settings/display')).default,
+                            Component: (await import('@/pages/admin/settings/sessions')).default,
                         }),
-                    },
-                    {
-                        path: 'error-example',
-                        lazy: async () => ({
-                            Component: (await import('@/pages/admin/settings/error-example')).default,
-                        }),
-                        errorElement: <GeneralError className="h-[50svh]" minimal />,
                     },
                 ],
             },

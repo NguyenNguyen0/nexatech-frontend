@@ -1,9 +1,13 @@
 /** Gateway route prefix: identity-service */
-export const AUTH_API_BASE = '/api/v1/auth';
-export const USER_API_BASE = '/api/v1/users';
-export const PRODUCT_API_BASE = '/api/v1/products';
-export const CART_API_BASE = '/api/v1/cart';
-export const ORDER_API_BASE = '/api/v1/orders';
+export const AUTH_API_BASE     = '/api/v1/auth';
+export const USER_API_BASE     = '/api/v1/users';
+export const PRODUCT_API_BASE  = '/api/v1/products';
+export const CART_API_BASE     = '/api/v1/cart';
+export const ORDER_API_BASE    = '/api/v1/orders';
+export const CHECKOUT_API_BASE = '/api/v1/checkout';
+export const PAYMENT_API_BASE  = '/api/v1/payments';
+export const SHIPPING_API_BASE = '/api/v1/shipping';
+export const RETURN_API_BASE   = '/api/v1/returns';
 
 export const authPaths = {
   login: `${AUTH_API_BASE}/login`,
@@ -12,7 +16,16 @@ export const authPaths = {
   logout: `${AUTH_API_BASE}/logout`,
   userinfo: `${AUTH_API_BASE}/userinfo`,
   introspect: `${AUTH_API_BASE}/introspect`,
+  changePassword: `${AUTH_API_BASE}/change-password`,
+  sessionsMe: `${AUTH_API_BASE}/sessions/me`,
+  sessionsLogoutAll: `${AUTH_API_BASE}/sessions/logout-all`,
+  sessionPing: `${AUTH_API_BASE}/session/ping`,
+  forgotPassword: `${AUTH_API_BASE}/forgot-password`,
 } as const;
+
+export function sessionByIdPath(id: string): string {
+  return `${AUTH_API_BASE}/sessions/${id}`;
+}
 
 /** Routes that do NOT require an Authorization header. */
 export function isPublicAuthRequestUrl(url: string | undefined): boolean {
@@ -20,7 +33,9 @@ export function isPublicAuthRequestUrl(url: string | undefined): boolean {
   return (
     url.includes(authPaths.login) ||
     url.includes(authPaths.register) ||
-    url.includes(authPaths.refresh)
+    url.includes(authPaths.refresh) ||
+    url.includes(authPaths.logout) ||
+    url.includes(authPaths.forgotPassword)
   );
 }
 

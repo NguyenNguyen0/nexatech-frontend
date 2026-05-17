@@ -1,46 +1,44 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { auth } from '@/auth';
 
 /**
- * Next.js Edge Middleware — Client (storefront) only.
- *
- * Admin panel is a separate Vite+React SPA (in admin/),
- * so this middleware only handles client-side route protection.
- *
- * Checks for the `access_token` cookie as a UX guard.
- * Full JWT validation is done by the backend API.
+ * - `otpStepUpPending`: chặn route bảo vệ cho đến khi verify OTP (vẫn cho xem /, /product).
+ * - Guest: truy cập tự do storefront.
  */
-
-const PROTECTED_CLIENT_ROUTES = ['/user', '/cart/checkout'];
+const PROTECTED_CLIENT_ROUTES = ['/user'];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const session = req.auth;
+  const hasSession = !!session?.accessToken;
+  const otpPending = session?.otpStepUpPending === true;
 
-  const isProtectedRoute = PROTECTED_CLIENT_ROUTES.some((route) =>
-    pathname.startsWith(route),
-  );
+  const isProtectedRoute = PROTECTED_CLIENT_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
 
-  const accessToken = request.cookies.get('access_token')?.value;
-
-  // Redirect to login if accessing protected routes without auth
-  if (isProtectedRoute && !accessToken) {
-    const loginUrl = new URL('/auth/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+  if (otpPending && hasSession && isProtectedRoute) {
+    const loginUrl = new URL('/auth/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return Response.redirect(loginUrl);
   }
 
-  // Redirect away from auth pages if already logged in
-  if (isAuthPage && accessToken) {
-    return NextResponse.redirect(new URL('/', request.url));
+  if (isProtectedRoute && !hasSession) {
+    const loginUrl = new URL('/auth/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return Response.redirect(loginUrl);
   }
 
-  return NextResponse.next();
-}
+  const googleRegistrationPending = session?.googleNewRegistration === true;
+
+  if (isAuthPage && hasSession && !otpPending && !googleRegistrationPending) {
+    return Response.redirect(new URL('/', req.url));
+  }
+
+  return undefined;
+});
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|logo|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|logo|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

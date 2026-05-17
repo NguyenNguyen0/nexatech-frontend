@@ -9,6 +9,8 @@ import { DataTableRowActions } from './data-table-row-actions'
 import LongText from '@/components/long-text'
 import dayjs from 'dayjs'
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
 export const columns: ColumnDef<User>[] = [
   {
     id: 'select',
@@ -41,6 +43,24 @@ export const columns: ColumnDef<User>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: 'avatarUrl',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Avatar' />
+    ),
+    cell: ({ row }) => (
+      <div className='flex items-center justify-center'>
+        <Avatar className='h-8 w-8'>
+          <AvatarImage src={row.getValue('avatarUrl') || ''} alt='avatar' />
+          <AvatarFallback className='text-[10px] font-bold'>
+            {(row.original.firstName?.[0] || '') + (row.original.lastName?.[0] || '')}
+          </AvatarFallback>
+        </Avatar>
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: true,
+  },
+  {
     accessorKey: 'username',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Username' />
@@ -68,6 +88,14 @@ export const columns: ColumnDef<User>[] = [
       return <LongText className='max-w-36'>{fullName}</LongText>
     },
     meta: { className: 'w-36' },
+  },
+  {
+    accessorKey: 'gender',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Gender' />
+    ),
+    cell: ({ row }) => <span className='capitalize'>{row.getValue('gender') || '-'}</span>,
+    enableSorting: false,
   },
   {
     accessorKey: 'email',

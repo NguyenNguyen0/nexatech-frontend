@@ -13,6 +13,8 @@ import {
     IconShoppingCart,
     IconMail,
     IconUsers,
+    IconShieldLock,
+    IconKey,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -28,12 +30,6 @@ export interface SideLink extends NavLink {
 
 export const sidelinks: SideLink[] = [
     {
-        title: 'Home',
-        label: '',
-        href: '/admin',
-        icon: <IconHome size={18} />,
-    },
-    {
         title: 'Dashboard',
         label: '',
         href: '/admin/dashboard',
@@ -42,8 +38,28 @@ export const sidelinks: SideLink[] = [
     {
         title: 'Users',
         label: '',
-        href: '/admin/users',
+        href: '',
         icon: <IconUsers size={18} />,
+        sub: [
+            {
+                title: 'User List',
+                label: '',
+                href: '/admin/users',
+                icon: <IconUsers size={18} />,
+            },
+            {
+                title: 'Role List',
+                label: '',
+                href: '/admin/roles',
+                icon: <IconShieldLock size={18} />,
+            },
+            {
+                title: 'Permission List',
+                label: '',
+                href: '/admin/permissions',
+                icon: <IconKey size={18} />,
+            },
+        ],
     },
     {
         title: 'Kanban',

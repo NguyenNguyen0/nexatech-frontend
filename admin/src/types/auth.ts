@@ -14,6 +14,7 @@ export interface TokenExchangeResult {
     "not-before-policy"?: number;
     session_state?: string;
     scope?: string;
+    requires_password_change?: boolean;
 }
 
 export interface LoginRequestBody {
@@ -63,6 +64,7 @@ export interface UserInfoResult {
     given_name?: string;
     family_name?: string;
     email?: string;
+    requires_password_change?: boolean;
 }
 
 export interface RealmAccess {

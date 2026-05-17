@@ -13,6 +13,7 @@ import type {
     UserInfoResult,
 } from "@/types/auth";
 
+/** Identity + user onboarding — cùng gateway với storefront (client). */
 const USER_API_BASE = "/api/v1/users";
 
 export interface OnboardingStatusResult {
@@ -100,5 +101,19 @@ export async function verifyEmailOtp(otp: string): Promise<void> {
     const { data } = await axiosClient.post<ApiResponse<void>>(`${USER_API_BASE}/me/onboarding/verify-otp`, { otp });
     if (data.code !== 1000) {
         throw new Error(data.message || "OTP verification failed");
+    }
+}
+
+export async function forgotPassword(identifier: string): Promise<void> {
+    const { data } = await axiosClient.post<ApiResponse<void>>(authPaths.forgotPassword, { identifier });
+    if (data.code !== 1000) {
+        throw new Error(data.message || "Quên mật khẩu thất bại");
+    }
+}
+
+export async function changePassword(body: any): Promise<void> {
+    const { data } = await axiosClient.post<ApiResponse<void>>(authPaths.changePassword, body);
+    if (data.code !== 1000) {
+        throw new Error(data.message || "Đổi mật khẩu thất bại");
     }
 }

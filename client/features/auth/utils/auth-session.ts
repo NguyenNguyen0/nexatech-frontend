@@ -1,5 +1,6 @@
 type JwtPayload = {
   exp?: number;
+  sub?: string;
   realm_access?: {
     roles?: string[];
   };
@@ -42,6 +43,14 @@ export function isAccessTokenExpired(token: string | null): boolean {
   const exp = decodeJwtPayload(token)?.exp;
   if (!exp) return false;
   return exp <= Math.floor(Date.now() / 1000);
+}
+
+/**
+ * Extract user id (JWT subject) from an access token.
+ */
+export function getUserIdFromAccessToken(token: string | null): string | null {
+  if (!token) return null;
+  return decodeJwtPayload(token)?.sub ?? null;
 }
 
 const ROLE_PRIORITY = ['ADMIN', 'MANAGER', 'STAFF', 'WAREHOUSE', 'ACCOUNTANT', 'CUSTOMER'];

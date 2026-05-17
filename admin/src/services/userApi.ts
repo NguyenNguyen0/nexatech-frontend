@@ -1,5 +1,6 @@
 import axiosClient from '@/lib/axiosClient'
 import type { ApiResponse } from '@/types/auth'
+import { authPaths } from './authPaths'
 
 const USERS_API_BASE = '/api/v1/users'
 
@@ -51,6 +52,8 @@ export interface AdminUserCreatePayload {
   enabled?: boolean
   emailVerified?: boolean
   onBoarded?: boolean
+  dob?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
 }
 
 export interface AdminUserUpdatePayload {
@@ -61,6 +64,8 @@ export interface AdminUserUpdatePayload {
   phone?: string
   role?: string
   onBoarded?: boolean
+  dob?: string
+  gender?: 'MALE' | 'FEMALE' | 'OTHER'
 }
 
 export async function getUsers(page = 1, size = 10, filters: UserListFilters = {}): Promise<UsersPageResult> {
@@ -86,6 +91,14 @@ export async function createAdminUser(payload: AdminUserCreatePayload): Promise<
   const { data } = await axiosClient.post<ApiResponse<UserRecord>>(USERS_API_BASE, payload)
   if (data.code !== 1000 || !data.result) {
     throw new Error(data.message || 'Khong the tao user')
+  }
+  return data.result
+}
+
+export async function getUser(userId: string): Promise<UserRecord> {
+  const { data } = await axiosClient.get<ApiResponse<UserRecord>>(`${USERS_API_BASE}/${userId}`)
+  if (data.code !== 1000 || !data.result) {
+    throw new Error(data.message || 'Khong the tai thong tin user')
   }
   return data.result
 }
@@ -116,5 +129,18 @@ export async function enableUser(userId: string): Promise<void> {
   const { data } = await axiosClient.put<ApiResponse<void>>(`${USERS_API_BASE}/${userId}/enable`)
   if (data.code !== 1000) {
     throw new Error(data.message || 'Khong the enable user')
+  }
+}
+
+export interface ChangePasswordPayload {
+  oldPassword: string
+  newPassword: string
+}
+
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
+  const { data } = await axiosClient.post<ApiResponse<void>>(authPaths.changePassword, payload)
+  if (data.code !== 1000) {
+    throw new Error(data.message || 'Khong the doi mat khau')
   }
 }
