@@ -234,7 +234,7 @@ export function ProductReviewSection({
   };
 
   return (
-    <section className="bg-surface rounded-2xl p-6 md:p-8 border border-outline-variant">
+    <section className="bg-surface rounded-md p-6 md:p-8 border border-outline-variant">
       <div className="flex flex-col gap-5 border-b border-outline-variant pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-label-sm font-bold uppercase tracking-wider text-primary">Đánh giá sản phẩm</p>
@@ -249,13 +249,13 @@ export function ProductReviewSection({
         </div>
 
         {hasAccessToken ? (
-          <div className="rounded-xl bg-surface-container-low border border-outline-variant px-4 py-3 text-label-sm text-on-surface-variant">
+          <div className="rounded bg-surface-container-low border border-outline-variant px-4 py-3 text-label-sm text-on-surface-variant">
             Bạn có thể gửi đánh giá mới hoặc chỉnh sửa đánh giá đã tạo.
           </div>
         ) : (
           <a
             href="/auth/login"
-            className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-label-sm font-bold text-primary transition hover:bg-surface-container"
+            className="inline-flex items-center gap-2 rounded-md border border-outline-variant bg-surface px-4 py-3 text-label-sm font-bold text-primary transition hover:bg-surface-container"
           >
             <LogIn className="h-4 w-4" />
             Đăng nhập để đánh giá
@@ -264,14 +264,14 @@ export function ProductReviewSection({
       </div>
 
       {hasAccessToken ? (
-        <form onSubmit={handleCreateReview} className="mt-6 grid gap-4 rounded-2xl border border-outline-variant bg-surface-container-lowest p-5">
+        <form onSubmit={handleCreateReview} className="mt-6 grid gap-4 rounded-md border border-outline-variant bg-surface-container-lowest p-5">
           <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
             <label className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Chấm điểm</span>
               <select
                 value={form.rating}
                 onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                className="h-11 w-full rounded-xl border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
+                className="h-11 w-full rounded border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
               >
                 {[5, 4, 3, 2, 1].map((rating) => (
                   <option key={rating} value={rating}>
@@ -287,7 +287,7 @@ export function ProductReviewSection({
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                 placeholder="Sản phẩm tốt, đóng gói chắc chắn..."
-                className="h-11 w-full rounded-xl border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
+                className="h-11 w-full rounded border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
                 required
               />
             </label>
@@ -300,7 +300,7 @@ export function ProductReviewSection({
               onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
               rows={4}
               placeholder="Chia sẻ trải nghiệm của bạn..."
-              className="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
+              className="w-full rounded border border-outline-variant bg-surface px-4 py-3 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
               required
             />
           </label>
@@ -311,7 +311,7 @@ export function ProductReviewSection({
               value={form.images.join(', ')}
               onChange={(event) => setForm((current) => ({ ...current, images: parseImages(event.target.value) }))}
               placeholder="https://... , https://..."
-              className="h-11 w-full rounded-xl border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
+              className="h-11 w-full rounded border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
             />
           </label>
 
@@ -319,7 +319,7 @@ export function ProductReviewSection({
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-label-sm font-bold text-on-primary transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-5 text-label-sm font-bold text-on-primary transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
             </button>
@@ -337,7 +337,7 @@ export function ProductReviewSection({
               key={String(rating)}
               type="button"
               onClick={() => applyRatingFilter(rating)}
-              className={`inline-flex h-9 items-center justify-center rounded-full border px-4 text-label-sm font-bold transition ${
+              className={`inline-flex h-9 items-center justify-center rounded-sm border px-4 text-label-sm font-bold transition ${
                 selected
                   ? 'border-primary bg-primary text-on-primary'
                   : 'border-outline-variant bg-surface text-on-surface-variant hover:border-primary hover:text-primary'
@@ -351,7 +351,7 @@ export function ProductReviewSection({
 
       <div className="mt-6 space-y-4">
         {loadingReviews ? (
-          <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-8 text-center text-body-md text-on-surface-variant">
+          <div className="rounded border border-dashed border-outline-variant bg-surface p-8 text-center text-body-md text-on-surface-variant">
             Đang tải đánh giá...
           </div>
         ) : sortedReviews.length > 0 ? (
@@ -359,7 +359,7 @@ export function ProductReviewSection({
             const isEditing = editingId === review.id;
 
             return (
-              <article key={review.id} className="rounded-2xl border border-outline-variant bg-surface p-5">
+              <article key={review.id} className="rounded-md border border-outline-variant bg-surface p-5">
                 {isEditing ? (
                   <form onSubmit={(event) => handleEditSubmit(event, review.id)} className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
@@ -368,7 +368,7 @@ export function ProductReviewSection({
                         <select
                           value={draft.rating}
                           onChange={(event) => setDraft((current) => ({ ...current, rating: Number(event.target.value) }))}
-                          className="h-11 w-full rounded-2xl border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
+                          className="h-11 w-full rounded border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
                         >
                           {[5, 4, 3, 2, 1].map((rating) => (
                             <option key={rating} value={rating}>
@@ -382,7 +382,7 @@ export function ProductReviewSection({
                         <input
                           value={draft.title}
                           onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-                          className="h-11 w-full rounded-2xl border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
+                          className="h-11 w-full rounded border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
                           required
                         />
                       </label>
@@ -394,7 +394,7 @@ export function ProductReviewSection({
                         value={draft.content}
                         onChange={(event) => setDraft((current) => ({ ...current, content: event.target.value }))}
                         rows={4}
-                        className="w-full rounded-2xl border border-border bg-bg-elevated px-4 py-3 outline-none transition focus:border-primary"
+                        className="w-full rounded border border-border bg-bg-elevated px-4 py-3 outline-none transition focus:border-primary"
                         required
                       />
                     </label>
@@ -404,21 +404,21 @@ export function ProductReviewSection({
                       <input
                         value={draft.images.join(', ')}
                         onChange={(event) => setDraft((current) => ({ ...current, images: parseImages(event.target.value) }))}
-                        className="h-11 w-full rounded-2xl border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
-                      />
-                    </label>
+                          className="h-11 w-full rounded border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
+                        />
+                      </label>
 
                     <div className="flex items-center justify-end gap-3">
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}
-                        className="inline-flex h-10 items-center justify-center rounded-2xl border border-border bg-bg-base px-4 text-sm font-semibold text-text-primary"
+                        className="inline-flex h-10 items-center justify-center rounded border border-border bg-bg-base px-4 text-sm font-semibold text-text-primary"
                       >
                         Hủy
                       </button>
                       <button
                         type="submit"
-                        className="inline-flex h-10 items-center justify-center rounded-2xl bg-primary px-4 text-sm font-semibold text-white"
+                        className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-white"
                       >
                         Lưu thay đổi
                       </button>
@@ -441,7 +441,7 @@ export function ProductReviewSection({
                         <button
                           type="button"
                           onClick={() => handleHelpful(review.id)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-4 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
+                          className="inline-flex items-center gap-2 rounded border border-outline-variant bg-surface px-4 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
                         >
                           <ThumbsUp className="h-4 w-4" />
                           Hữu ích ({review.helpfulCount})
@@ -460,7 +460,7 @@ export function ProductReviewSection({
                                     images: review.images ?? [],
                                   });
                                 }}
-                                className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
+                                className="inline-flex items-center gap-2 rounded border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
                               >
                                 <PencilLine className="h-4 w-4" />
                                 Sửa
@@ -470,7 +470,7 @@ export function ProductReviewSection({
                               <button
                                 type="button"
                                 onClick={() => handleDelete(review.id)}
-                                className="inline-flex items-center gap-2 rounded-xl border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-error transition hover:bg-error/10"
+                                className="inline-flex items-center gap-2 rounded border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-error transition hover:bg-error/10"
                               >
                                 <Trash2 className="h-4 w-4" />
                                 Xóa
@@ -486,7 +486,7 @@ export function ProductReviewSection({
                     {review.images && review.images.length > 0 ? (
                       <div className="mt-4 flex flex-wrap gap-3">
                         {review.images.map((image) => (
-                          <img key={image} src={image} alt={review.title} className="h-20 w-20 rounded-xl border border-outline-variant object-cover" />
+                          <img key={image} src={image} alt={review.title} className="h-20 w-20 rounded border border-outline-variant object-cover" />
                         ))}
                       </div>
                     ) : null}
@@ -496,7 +496,7 @@ export function ProductReviewSection({
             );
           })
         ) : (
-          <div className="rounded-2xl border border-dashed border-outline-variant bg-surface p-8 text-center text-body-md text-on-surface-variant">
+          <div className="rounded border border-dashed border-outline-variant bg-surface p-8 text-center text-body-md text-on-surface-variant">
             {activeRating === 'ALL' ? 'Chưa có đánh giá cho sản phẩm này.' : `Chưa có đánh giá ${activeRating} sao.`}
           </div>
         )}
@@ -507,7 +507,7 @@ export function ProductReviewSection({
               type="button"
               onClick={() => void loadReviews(page + 1, 'append')}
               disabled={loadingMore}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-outline-variant bg-surface px-5 text-label-sm font-bold text-primary transition hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center justify-center rounded-md border border-outline-variant bg-surface px-5 text-label-sm font-bold text-primary transition hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loadingMore ? 'Đang tải...' : 'Tải thêm đánh giá'}
             </button>

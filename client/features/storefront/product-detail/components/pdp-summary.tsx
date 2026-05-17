@@ -157,55 +157,72 @@ export function PdpSummary({
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <div className="flex items-center gap-2 text-label-sm uppercase tracking-wider text-on-surface-variant font-bold mb-2">
-          {categoryName && <span>{categoryName}</span>}
-          {categoryName && brandName && <span>•</span>}
-          {brandName && <span>{brandName}</span>}
+    <div className="flex flex-col gap-5">
+      {/* Brand / Category */}
+      <div className="flex items-center gap-2">
+        {brandName && (
+          <span className="text-[11px] font-extrabold uppercase tracking-widest text-primary bg-primary/10 border border-primary/25 px-2.5 py-1 rounded-sm">
+            {brandName}
+          </span>
+        )}
+        {categoryName && (
+          <span className="text-[12px] text-on-surface-variant">{categoryName}</span>
+        )}
+      </div>
+
+      {/* Product name */}
+      <h1 className="text-[22px] font-bold leading-snug text-on-surface tracking-tight">{name}</h1>
+
+      {/* Meta row */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-on-surface-variant border-b border-outline-variant pb-4">
+        <div className="flex items-center gap-1">
+          <span
+            className="material-symbols-outlined text-[15px] text-[#f5a623]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            star
+          </span>
+          <span className="font-bold text-on-surface">{ratingText}</span>
+          <span>({reviewCount ?? 0} đánh giá)</span>
         </div>
-        
-        <h1 className="text-display-sm font-display-sm text-on-surface mb-3">{name}</h1>
-        
-        <div className="flex flex-wrap items-center gap-3 text-body-md text-on-surface-variant">
-          <div className="flex items-center gap-1">
-            <span className="material-symbols-outlined text-[18px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-            <span className="font-bold text-on-surface">{ratingText}</span>
-            <span>({reviewCount ?? 0} đánh giá)</span>
-          </div>
-          <span>|</span>
-          <div className="flex items-center gap-1">
-            <span>Mã SP:</span>
-            <span className="font-bold text-on-surface">{productId.slice(0, 8).toUpperCase()}</span>
-          </div>
-          <span>|</span>
-          <div className={`text-label-sm font-bold ${isOutOfStock ? 'text-error' : 'text-primary'}`}>
-            {stockStateText}
-          </div>
+        <span className="text-outline-variant">|</span>
+        <div>
+          Mã SP:{' '}
+          <span className="font-semibold text-on-surface">{productId.slice(0, 8).toUpperCase()}</span>
+        </div>
+        <span className="text-outline-variant">|</span>
+        <div
+          className={`flex items-center gap-1 font-semibold ${isOutOfStock ? 'text-error' : 'text-[#0a8a50]'}`}
+        >
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-error' : 'bg-[#0a8a50]'}`} />
+          {stockStateText}
         </div>
       </div>
 
-      <div className="bg-surface-container-low rounded-xl p-4 border border-outline-variant">
-        <div className="flex items-end gap-3 mb-3">
-          <span className="text-display-md font-display-md text-primary">{formatCurrency(price)}</span>
+      {/* Price box */}
+      <div className="rounded-md border border-[#c8dce8] bg-[#f0f6fa] p-4">
+        <div className="flex items-baseline gap-3 mb-3">
+          <span className="text-[28px] font-extrabold leading-none text-primary">
+            {formatCurrency(price)}
+          </span>
           {typeof compareAtPrice === 'number' && compareAtPrice > price && (
             <>
-              <span className="text-title-md font-title-md text-on-surface-variant line-through mb-1">
+              <span className="text-[14px] text-on-surface-variant line-through">
                 {formatCurrency(compareAtPrice)}
               </span>
               {discount ? (
-                <span className="bg-error text-on-error text-label-sm font-bold px-2 py-1 rounded-md mb-2">
+                <span className="text-[11px] font-bold text-white bg-[#e30019] px-2 py-0.5 rounded-sm">
                   -{discount}%
                 </span>
               ) : null}
             </>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center rounded-lg bg-surface px-2.5 py-1 text-label-sm border border-outline-variant text-on-surface-variant">
+        <div className="flex flex-wrap gap-1.5">
+          <span className="inline-flex items-center text-[11px] bg-white border border-[#c8dce8] text-on-surface-variant px-2.5 py-1 rounded-sm">
             Trả góp 0%
           </span>
-          <span className="inline-flex items-center rounded-lg bg-surface px-2.5 py-1 text-label-sm border border-outline-variant text-on-surface-variant">
+          <span className="inline-flex items-center text-[11px] bg-white border border-[#c8dce8] text-on-surface-variant px-2.5 py-1 rounded-sm">
             Bảo hành chính hãng 12 tháng
           </span>
         </div>
@@ -213,16 +230,28 @@ export function PdpSummary({
 
       <PdpPromotions />
 
-      <div className="flex gap-3">
+      {/* Action buttons */}
+      <div className="flex gap-2.5">
         <button
           type="button"
           onClick={handleAddToCart}
           disabled={isOutOfStock || isSubmitting || isBuyingNow}
-          className="flex-1 h-12 rounded-xl border-2 border-primary text-primary font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:border-outline disabled:text-on-surface-variant"
+          className="flex-1 h-12 rounded-md border-2 border-primary bg-white text-primary text-[14px] font-bold hover:bg-primary/5 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:border-outline-variant disabled:text-on-surface-variant"
         >
-          <ShoppingCart className="h-5 w-5" />
+          <ShoppingCart className="h-4.5 w-4.5 shrink-0" />
           {isSubmitting ? 'Đang thêm...' : isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ'}
         </button>
+
+        <button
+          type="button"
+          onClick={handleBuyNow}
+          disabled={isOutOfStock || isBuyingNow || isSubmitting}
+          className="flex-1 h-12 rounded-md bg-primary text-white text-[14px] font-bold hover:bg-primary-dark active:scale-[0.98] transition-all flex items-center justify-center shadow-sm disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:shadow-none"
+        >
+          {isBuyingNow ? 'Đang xử lý...' : isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
+        </button>
+
+		
         <button
           type="button"
           onClick={() => {
@@ -230,22 +259,19 @@ export function PdpSummary({
             setWishlisted(added);
             toast.success(added ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
           }}
-          className={`h-12 w-12 rounded-xl border-2 flex items-center justify-center transition-colors ${
+          className={`h-12 w-12 shrink-0 rounded-md border-2 flex items-center justify-center transition-all active:scale-[0.98] ${
             wishlisted
-              ? 'border-error bg-error/10 text-error'
-              : 'border-outline-variant text-on-surface-variant hover:border-error hover:text-error'
+              ? 'border-[#e30019] bg-[#fff0f0] text-[#e30019]'
+              : 'border-outline-variant bg-white text-on-surface-variant hover:border-[#e30019] hover:text-[#e30019] hover:bg-[#fff5f5]'
           }`}
           title={wishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
         >
-          <span className="material-symbols-outlined text-[22px]" style={{ fontVariationSettings: wishlisted ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleBuyNow}
-          disabled={isOutOfStock || isBuyingNow || isSubmitting}
-          className="flex-1 h-12 rounded-xl bg-primary text-on-primary font-bold hover:bg-primary/90 transition-colors flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-surface-container-high disabled:text-on-surface-variant"
-        >
-          {isBuyingNow ? 'Đang xử lý...' : isOutOfStock ? 'Hết hàng' : 'Mua ngay'}
+          <span
+            className="material-symbols-outlined text-[22px]"
+            style={{ fontVariationSettings: wishlisted ? "'FILL' 1" : "'FILL' 0" }}
+          >
+            favorite
+          </span>
         </button>
       </div>
     </div>
