@@ -96,7 +96,7 @@ export interface CheckoutRequest {
   guestEmail?: string;
   guestPhone?: string;
   /** Sản phẩm từ giỏ hàng frontend (localStorage). Bắt buộc khi không có Redis cart. */
-  items?: Array<{ productId: string; quantity: number; unitPrice?: number }>;
+  items?: Array<{ productId: string; productName?: string; quantity: number; unitPrice?: number }>;
 }
 
 export interface CheckoutResponse {
