@@ -29,11 +29,15 @@ export type LastMessagePreview = {
 
 export type Conversation = {
   id: string;
-  customerId: string;
-  agentId: string;
+  customerId?: string | null;
+  agentId?: string | null;
+  conversationType: 'AUTHENTICATED' | 'GUEST';
+  status: 'WAITING' | 'OPEN' | 'CLOSED';
+  currentParticipantId: string;
   otherUserId?: string;
   otherUserOnline?: boolean;
   lastMessage?: LastMessagePreview | null;
+  expiresAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
   unreadCount?: number;
@@ -45,7 +49,7 @@ export type ChatMessage = {
   id: string;
   conversationId: string;
   senderId: string;
-  recipientId: string;
+  recipientId?: string | null;
   content: string;
   status: MessageStatus;
   deliveredAt?: string | null;
