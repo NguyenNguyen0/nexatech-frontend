@@ -34,19 +34,23 @@ import { ChevronRight, ChevronDown, Pin as PinIcon } from 'lucide-react'
 import { Button } from '@/components/custom/button'
 import { CompareDialog } from './CompareDialog'
 
+import { Skeleton } from '@/components/ui/skeleton'
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   compareProducts: Product[]
   onCompare: (product: Product) => void
   onResetCompare: () => void
+  isLoading?: boolean
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   compareProducts,
-  onResetCompare
+  onResetCompare,
+  isLoading
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -188,7 +192,20 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {sortedRows.map((row) => (
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <TableRow key={i}>
+                  {columns.map((_, j) => (
+                    <TableCell key={j}>
+                      <Skeleton className='h-6 w-full' />
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    <Skeleton className='h-8 w-8 rounded-md' />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : sortedRows.map((row) => (
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && 'selected'}

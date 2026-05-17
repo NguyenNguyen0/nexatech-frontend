@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isAccessTokenExpired } from '@/services/authSession';
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, getRefreshToken, isOtpStepUpPending } from '@/services/authSession';
 
 interface GuestRouteProps {
     children: ReactNode;
@@ -15,11 +15,15 @@ interface GuestRouteProps {
  */
 export const GuestRoute = ({ children, to = '/staff/dashboard' }: GuestRouteProps) => {
     const token = getAccessToken();
-    const isAuthenticated = !!token && !isAccessTokenExpired(token);
+    const refreshToken = getRefreshToken();
+    const isAuthenticated = !!token || !!refreshToken;
 
     if (isAuthenticated) {
+        if (isOtpStepUpPending()) {
+            return <>{children}</>;
+        }
         const roles = getRolesFromAccessToken(token);
-        if (roles.includes("CUSTOMER")) {
+        if (roles.includes('CUSTOMER')) {
             // CUSTOMER không được phép dùng internal.
             clearAuthTokens();
             return <>{children}</>;

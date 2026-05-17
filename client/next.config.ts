@@ -6,10 +6,11 @@ const nextConfig: NextConfig = {
   /* Proxy API calls to backend gateway */
   async rewrites() {
     return [
-      {
-        source: '/api/v1/:path*',
-        destination: `${API_GATEWAY_URL}/api/v1/:path*`,
-      },
+      // Temporarily disabled to use local mock API routes
+      // {
+      //   source: '/api/v1/:path*',
+      //   destination: `${API_GATEWAY_URL}/api/v1/:path*`,
+      // },
     ];
   },
 };

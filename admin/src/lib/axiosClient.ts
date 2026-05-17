@@ -7,6 +7,8 @@ const PUBLIC_AUTH_PATHS = [
     authPaths.login,
     authPaths.register,
     authPaths.refresh,
+    authPaths.logout,
+    authPaths.forgotPassword,
 ];
 
 const axiosClient = axios.create({
@@ -119,6 +121,18 @@ axiosClient.interceptors.response.use(
             return axiosClient(originalRequest);
         } catch (refreshError) {
             if (shouldLogoutAfterRefreshFailure(refreshError)) {
+                const refreshToken = getRefreshToken();
+                if (refreshToken) {
+                    // Call logout API to clear session on server
+                    // Use plain axios to avoid interceptor loop
+                    axios.post(
+                        `${import.meta.env.VITE_BACKEND_BASE_URL}${authPaths.logout}`,
+                        { refreshToken },
+                        { withCredentials: true }
+                    ).catch(() => {
+                        console.error("Logout API failed during refresh failure");
+                    });
+                }
                 clearAuthTokens();
                 window.location.href = "/auth";
             }

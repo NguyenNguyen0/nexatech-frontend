@@ -1,5 +1,6 @@
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
+import { ChatWidget } from '@/components/shared/chat-widget';
 
 export default function StorefrontLayout({
   children,
@@ -7,10 +8,11 @@ export default function StorefrontLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-[#f3f4f6]">
+    <div className="min-h-screen flex flex-col bg-[#fbf9f8]">
       <Header />
-      <main className="flex-1 pb-10">{children}</main>
+      <main className="flex-1">{children}</main>
       <Footer />
+      <ChatWidget />
     </div>
   );
 }
