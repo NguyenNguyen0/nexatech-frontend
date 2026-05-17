@@ -13,9 +13,9 @@ const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
   { label: 'Gaming PC', href: '/product/collection/gaming-pc' },
   { label: 'Build PC', href: '/build-pc' },
-  { label: 'Monitor', href: '/product/collection/monitor' },
-  { label: 'Keyboard', href: '/product/collection/keyboard' },
-  { label: 'Mouse', href: '/product/collection/mouse' },
+  { label: 'Màn hình', href: '/product/collection/monitor' },
+  { label: 'Bàn phím', href: '/product/collection/keyboard' },
+  { label: 'Chuột', href: '/product/collection/mouse' },
   { label: 'Ghế', href: '/product/collection/chair' },
 ];
 
