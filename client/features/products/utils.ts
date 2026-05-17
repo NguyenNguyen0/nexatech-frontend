@@ -2,7 +2,14 @@ import type { PageResult, ProductListParams, StockStatus } from './types';
 
 function appendParam(params: URLSearchParams, key: string, value: unknown): void {
   if (value === undefined || value === null || value === '') return;
-  params.set(key, String(value));
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      appendParam(params, key, item);
+    }
+    return;
+  }
+
+  params.append(key, String(value));
 }
 
 export function buildProductQuery(params?: ProductListParams): string {
@@ -13,6 +20,7 @@ export function buildProductQuery(params?: ProductListParams): string {
   appendParam(searchParams, 'size', params.size);
   appendParam(searchParams, 'sort', params.sort);
   appendParam(searchParams, 'rating', params.rating);
+  appendParam(searchParams, 'tags', params.tags);
   appendParam(searchParams, 'categoryId', params.categoryId);
   appendParam(searchParams, 'subcategoryId', params.subcategoryId);
   appendParam(searchParams, 'brandId', params.brandId);

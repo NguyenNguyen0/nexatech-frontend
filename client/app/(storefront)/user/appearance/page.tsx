@@ -2,22 +2,14 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Monitor, Sun, Moon, Type, Globe } from 'lucide-react';
-
-const FONT_OPTIONS = [
-  { value: 'system', label: 'System (Mặc định)' },
-  { value: 'inter', label: 'Inter' },
-  { value: 'roboto', label: 'Roboto' },
-];
+import { Monitor, Globe } from 'lucide-react';
 
 const LANG_OPTIONS = [
-  { value: 'vi', label: 'Tiếng Việt (Mặc định)' },
-  { value: 'en', label: 'English (Sắp ra mắt)', disabled: true },
+  { value: 'vi', label: 'Tiếng Việt' },
+  { value: 'en', label: 'English', disabled: true },
 ];
 
 export default function AppearancePage() {
-  const [font, setFont] = useState('system');
-  const [theme, setTheme] = useState('system');
   const [lang, setLang] = useState('vi');
 
   const handleSave = () => {

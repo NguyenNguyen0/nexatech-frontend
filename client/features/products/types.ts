@@ -5,6 +5,7 @@ export interface ProductSummary {
   name: string;
   slug: string;
   thumbnail?: string;
+  tags?: string[];
   price: number;
   compareAtPrice?: number;
   averageRating?: number;
@@ -108,6 +109,7 @@ export interface ProductListParams {
   size?: number;
   sort?: string;
   rating?: number;
+  tags?: string[];
   categoryId?: string;
   subcategoryId?: string;
   brandId?: string;
