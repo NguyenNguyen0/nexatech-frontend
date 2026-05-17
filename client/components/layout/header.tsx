@@ -298,7 +298,7 @@ export function Header() {
           {/* Category Dropdown Button */}
           <button
             type="button"
-            className="flex items-center gap-2 border-r border-white/20 py-2.5 pr-4 text-[13px] font-semibold transition hover:bg-white/10"
+            className="flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition hover:bg-white/10"
           >
             <Menu className="h-4 w-4" />
             Danh mục
