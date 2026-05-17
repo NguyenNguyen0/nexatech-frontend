@@ -23,6 +23,7 @@
  * - Components using these fields will continue to work but should migrate to new primary category fields
  */
 
+import { featureFlags, getMockApiIndicator } from '@/lib/feature-flags';
 import { buildProductQuery, normalizeCollection, normalizePageResult, unwrapProductApiResponse } from '../utils';
 import type {
   PageResult,
@@ -108,8 +109,21 @@ function flattenSubcategoryTree(nodes: SubcategoryTreeNode[]): ProductSubcategor
 }
 
 function resolveApiPath(path: string): string {
-  // Server-side fetch does not reliably support relative URLs for external rewrites.
-  if (typeof window === 'undefined' && path.startsWith('/')) {
+  // Feature flag: USE_MOCK_API controls which API source to use
+  // - true: Use local mock API routes (/api/v1/...)
+  // - false (default): Use real API Gateway
+
+  if (featureFlags.USE_MOCK_API) {
+    // Use mock API: only redirect to API_GATEWAY_URL on server-side for external rewrites
+    if (typeof window === 'undefined' && path.startsWith('/')) {
+      return `${API_GATEWAY_URL}${path}`;
+    }
+    return path;
+  }
+
+  // Default behavior: Always use real API Gateway
+  // Both client-side and server-side requests go to the actual backend
+  if (path.startsWith('/')) {
     return `${API_GATEWAY_URL}${path}`;
   }
 
@@ -117,7 +131,14 @@ function resolveApiPath(path: string): string {
 }
 
 async function requestProductApi<T>(path: string): Promise<T> {
-  const response = await fetch(resolveApiPath(path), {
+  const resolvedPath = resolveApiPath(path);
+  
+  // Log for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.debug(`${getMockApiIndicator()} [Products API] GET ${resolvedPath}`);
+  }
+
+  const response = await fetch(resolvedPath, {
     method: 'GET',
     cache: 'no-store',
     credentials: 'include',
