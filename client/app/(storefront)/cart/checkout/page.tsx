@@ -70,6 +70,7 @@ export default function CheckoutPage() {
     // Build cart items from localStorage cart (bypasses Redis cart — works for guest & logged-in)
     const cartItems = cart.items.map((item) => ({
       productId: item.productId,
+      productName: item.productName,
       quantity: item.quantity,
       unitPrice: item.price,  // Send price from localStorage cart as fallback for product-service
     }));
