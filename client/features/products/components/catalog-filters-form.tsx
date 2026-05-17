@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { SlidersHorizontal, MessageCircle, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, MessageCircle } from 'lucide-react';
 import { fetchSubcategories } from '../services/products-api';
 import type { ProductBrand, ProductCategory, ProductSubcategory } from '../types';
 

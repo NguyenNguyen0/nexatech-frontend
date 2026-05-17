@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Mail, User, Calendar, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
+import { Mail, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
 import {
   getUserById,
   updateUserProfile,

@@ -7,6 +7,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authStorage } from '@/features/auth/utils/auth-storage';
+import { CategoryDialog } from './category-dialog';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
@@ -50,11 +51,19 @@ export function Header() {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [logoutPending, setLogoutPending] = useState(false);
+
+  // Close category menu when account or mobile menu opens
+  useEffect(() => {
+    if (accountMenuOpen || mobileMenuOpen) {
+      setCategoryMenuOpen(false);
+    }
+  }, [accountMenuOpen, mobileMenuOpen]);
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -77,9 +86,15 @@ export function Header() {
     }
     setAccountMenuOpen(false);
     setMobileMenuOpen(false);
+    setCategoryMenuOpen(false);
     await signOut({ callbackUrl: '/' });
     setLogoutPending(false);
   };
+
+  const handleCategoryMenuToggle = useCallback(() => {
+    setAccountMenuOpen(false);
+    setCategoryMenuOpen((prev) => !prev);
+  }, []);
 
   const refreshCounts = useCallback(() => {
     setCartCount(getCartCount());
@@ -293,16 +308,24 @@ export function Header() {
       </div>
 
       {/* Second Tier - Category Navigation */}
-      <div className="bg-[#004d75] text-white">
+      <div className="bg-[#004d75] text-white relative">
         <div className="mx-auto flex max-w-[1200px] items-center px-4">
           {/* Category Dropdown Button */}
           <button
             type="button"
-            className="flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition hover:bg-white/10"
+            onClick={handleCategoryMenuToggle}
+            onMouseEnter={() => !categoryMenuOpen && setCategoryMenuOpen(true)}
+            className={`flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition ${
+              categoryMenuOpen ? 'bg-white/20' : 'hover:bg-white/10'
+            }`}
+            aria-expanded={categoryMenuOpen}
+            aria-controls="category-menu"
           >
             <Menu className="h-4 w-4" />
             Danh mục
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
+              categoryMenuOpen ? 'rotate-180' : ''
+            }`} />
           </button>
 
           {/* Nav Links */}
@@ -406,6 +429,14 @@ export function Header() {
           </div>
         </div>
       )}
+
+      {/* Category Dialog */}
+      <div id="category-menu" className="hidden lg:block relative">
+        <CategoryDialog
+          open={categoryMenuOpen}
+          onClose={() => setCategoryMenuOpen(false)}
+        />
+      </div>
     </header>
   );
 }
