@@ -61,38 +61,6 @@ function notFound(message = 'Not found') {
   return NextResponse.json({ code: 1404, message }, { status: 404 });
 }
 
-function scoreFeaturedProduct(product: RawProduct): number {
-  const averageRating = product.averageRating ?? 0;
-  const reviewCount = product.reviewCount ?? 0;
-
-  return averageRating * 100 + reviewCount;
-}
-
-function getFeaturedProducts(limit: number) {
-  return [...PRODUCTS]
-    .sort((left, right) => {
-      const ratingDelta = scoreFeaturedProduct(right) - scoreFeaturedProduct(left);
-      if (ratingDelta !== 0) return ratingDelta;
-      return String(right.id).localeCompare(String(left.id));
-    })
-    .slice(0, limit);
-}
-
-function paginateZeroBased<T>(items: T[], page: number, size: number) {
-  const totalItems = items.length;
-  const totalPages = Math.ceil(totalItems / size) || 1;
-  const start = page * size;
-  const sliced = items.slice(start, start + size);
-  return {
-    items: sliced,
-    page,
-    size,
-    totalItems,
-    totalPages,
-    hasNext: page + 1 < totalPages,
-  };
-}
-
 // ── PRODUCTS ──────────────────────────────────────────────────────────────────
 
 function handleProducts(sub: string[], url: URL) {
@@ -176,24 +144,8 @@ function handleProducts(sub: string[], url: URL) {
 
   // /api/v1/products/featured
   if (sub[0] === 'featured') {
-    const featured = getFeaturedProducts(6);
-    return ok({ items: featured, page: 0, size: 6, totalItems: featured.length, totalPages: 1, hasNext: false });
-  }
-
-  // /api/v1/products/tags
-  if (sub[0] === 'tags') {
-    const requestedTags = url.searchParams
-      .getAll('tags')
-      .map((tag) => tag.trim().toLowerCase())
-      .filter(Boolean);
-    const page = Math.max(0, Number(url.searchParams.get('page') ?? '0'));
-    const size = Math.max(1, Number(url.searchParams.get('size') ?? '8'));
-    const featured = getFeaturedProducts(Math.max(size * (page + 1), size)).map((product) => ({
-      ...product,
-      tags: requestedTags.length > 0 ? requestedTags : ['hot', 'new'],
-    }));
-
-    return ok(paginateZeroBased(featured, page, size));
+    const featured = PRODUCTS.slice(0, 6);
+    return ok({ items: featured, page: 1, size: 6, totalItems: featured.length, totalPages: 1, hasNext: false });
   }
 
   // /api/v1/products/search
@@ -249,6 +201,93 @@ function handleBrands() {
   return ok(brands);
 }
 
+// ── BACKEND PROXY ─────────────────────────────────────────────────────────────
+
+const SERVICE_BASES: Record<string, string> = {
+  // order-service (8084)
+  orders:   'http://localhost:8084',
+  checkout: 'http://localhost:8084',
+  returns:  'http://localhost:8084',
+  admin:    'http://localhost:8084',   // /api/v1/admin/orders — order admin endpoints
+  // payment-service (8086)
+  payments: 'http://localhost:8086',
+  // shipping-service (8091)
+  shipping: 'http://localhost:8091',
+};
+
+// Hop-by-hop headers that must not be forwarded to upstream
+const HOP_BY_HOP = new Set([
+  'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+  'te', 'trailers', 'transfer-encoding', 'upgrade', 'host',
+]);
+
+/** Decode the `sub` claim from a Bearer JWT without verifying the signature. */
+function decodeJwtSub(authHeader: string | null): string | null {
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  try {
+    const token = authHeader.slice(7);
+    const [, payloadB64] = token.split('.');
+    if (!payloadB64) return null;
+    const padded = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+    const padLen = (4 - (padded.length % 4)) % 4;
+    const json = atob(padded + '='.repeat(padLen));
+    const obj = JSON.parse(json) as { sub?: string };
+    return obj.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function proxyToBackend(
+  request: Request,
+  upstreamBase: string,
+  segments: string[],
+  searchString: string,
+): Promise<Response> {
+  const upstreamUrl = `${upstreamBase}/api/v1/${segments.join('/')}${searchString}`;
+
+  // Forward headers, skipping hop-by-hop ones
+  const forwardHeaders: Record<string, string> = {};
+  request.headers.forEach((value, key) => {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) {
+      forwardHeaders[key] = value;
+    }
+  });
+
+  // Extract user UUID from JWT sub and inject as X-User-Id (simulates Kong behaviour)
+  const authHeader = request.headers.get('authorization');
+  const userId = decodeJwtSub(authHeader);
+  if (userId) {
+    forwardHeaders['X-User-Id'] = userId;
+  }
+
+  const hasBody = !['GET', 'HEAD', 'DELETE'].includes(request.method);
+  const body = hasBody ? await request.text() : undefined;
+
+  try {
+    const upstream = await fetch(upstreamUrl, {
+      method: request.method,
+      headers: forwardHeaders,
+      body,
+    });
+
+    const text = await upstream.text();
+    return new Response(text, {
+      status: upstream.status,
+      headers: {
+        'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json',
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Upstream service unavailable';
+    return new Response(
+      JSON.stringify({ code: 503, message }),
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+}
+
 // ── MAIN ──────────────────────────────────────────────────────────────────────
 
 async function handleRequest(
@@ -262,6 +301,12 @@ async function handleRequest(
   if (base === 'products') return handleProducts(sub, url);
   if (base === 'categories') return handleCategories(sub);
   if (base === 'brands') return handleBrands();
+
+  // Proxy order-service, payment-service, shipping-service
+  const upstreamBase = SERVICE_BASES[base];
+  if (upstreamBase) {
+    return proxyToBackend(request, upstreamBase, path, url.search);
+  }
 
   return ok({});
 }

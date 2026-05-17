@@ -19,6 +19,10 @@ export const metadata: Metadata = {
     'Nền tảng thương mại điện tử hàng đầu Việt Nam với hàng ngàn ưu đãi hấp dẫn.',
 };
 
+import { Suspense } from 'react';
+import { ForceChangePasswordModal } from '@/components/custom/auth/force-change-password-modal';
+import { GoogleRegistrationNotice } from '@/components/custom/auth/google-registration-notice';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,7 +40,13 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${beVietnamPro.className} antialiased`}
       >
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+        <AuthSessionProvider>
+          {children}
+          <Suspense fallback={null}>
+            <GoogleRegistrationNotice />
+          </Suspense>
+          <ForceChangePasswordModal />
+        </AuthSessionProvider>
         <Toaster
           duration={3000}
           closeButton

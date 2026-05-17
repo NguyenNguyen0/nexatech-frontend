@@ -1,38 +1,36 @@
 import { auth } from '@/auth';
 
 /**
- * Next.js middleware — Auth.js session + route UX.
- * - `otpStepUpPending`: sau credentials login, chặn mọi URL trừ `/auth/login` cho đến khi
- *   client gọi `update({ otpStepUpComplete: true })` sau verify OTP (tránh F5 bỏ qua OTP).
+ * - `otpStepUpPending`: chặn route bảo vệ cho đến khi verify OTP (vẫn cho xem /, /product).
+ * - Guest: truy cập tự do storefront.
  */
-const PROTECTED_CLIENT_ROUTES = ['/cart/checkout', '/user'];
+const PROTECTED_CLIENT_ROUTES = ['/user'];
 const AUTH_PAGES = ['/auth/login', '/auth/register', '/auth/forgot-password'];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const session = req.auth;
+  const hasSession = !!session?.accessToken;
   const otpPending = session?.otpStepUpPending === true;
-  /** Cho phép login và register trong lúc chờ OTP (đăng ký xong `signIn` vẫn ở `/auth/register`). */
-  const onOtpResumePage =
-    pathname === '/auth/login' ||
-    pathname.startsWith('/auth/login/') ||
-    pathname === '/auth/register' ||
-    pathname.startsWith('/auth/register/');
-
-  if (otpPending && !onOtpResumePage) {
-    return Response.redirect(new URL('/auth/login', req.url));
-  }
 
   const isProtectedRoute = PROTECTED_CLIENT_ROUTES.some((route) => pathname.startsWith(route));
   const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
 
-  if (isProtectedRoute && (!session || otpPending)) {
+  if (otpPending && hasSession && isProtectedRoute) {
     const loginUrl = new URL('/auth/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return Response.redirect(loginUrl);
   }
 
-  if (isAuthPage && session && !otpPending) {
+  if (isProtectedRoute && !hasSession) {
+    const loginUrl = new URL('/auth/login', req.url);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return Response.redirect(loginUrl);
+  }
+
+  const googleRegistrationPending = session?.googleNewRegistration === true;
+
+  if (isAuthPage && hasSession && !otpPending && !googleRegistrationPending) {
     return Response.redirect(new URL('/', req.url));
   }
 

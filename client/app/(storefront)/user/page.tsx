@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Mail, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
+import { Mail, User, Calendar, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
 import {
   getUserById,
   updateUserProfile,
@@ -10,6 +10,8 @@ import {
   type UserProfileResult,
 } from '@/features/auth/services/auth-api';
 import { authStorage } from '@/features/auth/utils/auth-storage';
+import { AddressBookSection } from '@/features/storefront/account/components/address-book-section';
+import { AvatarUploadField } from '@/components/custom/avatar-upload-field';
 
 const GENDER_OPTIONS = [
   { value: 'MALE', label: 'Nam' },
@@ -64,6 +66,8 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     firstName: '',
@@ -126,6 +130,11 @@ export default function UserProfilePage() {
         dob: profile.dob ?? '',
       });
     }
+    setPendingAvatarFile(null);
+    if (avatarPreviewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreviewUrl);
+    }
+    setAvatarPreviewUrl(null);
     setEditing(false);
   };
 
@@ -176,6 +185,23 @@ export default function UserProfilePage() {
               </button>
             )}
           </div>
+        </div>
+
+        <div className="mt-6 border-t border-border/60 pt-6">
+          <AvatarUploadField
+            currentUrl={avatarPreviewUrl ?? profile?.avatarUrl}
+            displayName={fullName}
+            disabled={!editing}
+            onFileSelected={(file, preview) => {
+              setPendingAvatarFile(file);
+              setAvatarPreviewUrl(preview);
+            }}
+          />
+          {pendingAvatarFile && editing && (
+            <p className="mt-2 text-xs text-amber-700">
+              Đã chọn: {pendingAvatarFile.name} — sẽ tải lên khi storage-service sẵn sàng.
+            </p>
+          )}
         </div>
 
         {/* View mode */}
@@ -272,6 +298,8 @@ export default function UserProfilePage() {
           </div>
         )}
       </section>
+
+      <AddressBookSection enabled={!!userId} />
     </div>
   );
 }

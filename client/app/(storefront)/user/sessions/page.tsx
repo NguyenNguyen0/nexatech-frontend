@@ -16,7 +16,6 @@ import {
   signOutSession,
   signOutAllDevices,
 } from '@/features/storefront/account/services/session-api';
-import { useSessionHeartbeat } from '@/features/auth/hooks/use-session-heartbeat';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { logout } from '@/features/auth/services/auth-api';
 import type { SessionItem } from '@/types/session';
@@ -58,9 +57,6 @@ function SessionCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Monitor className="h-4 w-4 text-primary" />
-          </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               {session.current && (
@@ -78,7 +74,6 @@ function SessionCard({
                 {session.type === 'OFFLINE' ? 'Offline' : 'REGULAR'}
               </span>
             </div>
-            <p className="mt-1 text-xs text-text-tertiary">{clientNames}</p>
           </div>
         </div>
 
@@ -117,8 +112,6 @@ function SessionCard({
 }
 
 export default function SessionsPage() {
-  useSessionHeartbeat();
-
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -165,7 +158,7 @@ export default function SessionsPage() {
       await signOutAllDevices();
       const refreshToken = authStorage.getRefreshToken();
       if (refreshToken) {
-        await logout(refreshToken).catch(() => {});
+        await logout(refreshToken).catch(() => { });
       }
       authStorage.clear();
       toast.success('Đã đăng xuất tất cả thiết bị. Đang chuyển đến trang đăng nhập...');

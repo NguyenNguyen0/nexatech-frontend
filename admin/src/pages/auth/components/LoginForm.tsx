@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { getApiErrorMessage, login, persistTokensFromExchange, requestEmailOtp, verifyEmailOtp } from '@/services/authApi';
 import { ForgotPasswordModal } from './ForgotPasswordModal';
 import { useNavigate } from 'react-router-dom';
-import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isOtpStepUpPending, setOtpStepUpPending, clearOtpStepUpPending } from '@/services/authSession';
+import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isOtpStepUpPending, setOtpStepUpPending, clearOtpStepUpPending, setPasswordChangeRequired } from '@/services/authSession';
 
 interface LoginFormProps {
     toggleMode: () => void;
@@ -64,6 +64,9 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
             persistTokensFromExchange(result);
 
             setOtpStepUpPending();
+            if (result.requires_password_change) {
+                setPasswordChangeRequired(true);
+            }
             /** Mỗi lần đăng nhập đều gửi OTP (step-up). `onBoarded` vẫn do backend set lần đầu verify. */
             await requestEmailOtp();
             setOtpCode('');

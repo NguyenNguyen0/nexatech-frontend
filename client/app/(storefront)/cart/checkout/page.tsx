@@ -1,12 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart } from '@/features/cart/services/cart-api';
+import { checkout } from '@/features/checkout/services/checkout-api';
 import type { Cart } from '@/types/cart';
+import type { OrderPaymentMethod } from '@/types/order';
+
+// Map UI radio value → backend PaymentMethod enum
+const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
+  cod:         'COD',
+  bank:        'VNPAY',        // VietQR → redirects to VNPAY sandbox
+  card:        'VNPAY',
+  installment: 'CREDIT_CARD',
+};
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -14,6 +24,21 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank' | 'card' | 'installment'>('bank');
+
+  // Buyer contact info (required for guest orders)
+  const [buyerName, setBuyerName] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
+
+  // Shipping address fields
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [district, setDistrict] = useState('');
+  const [ward, setWard] = useState('');
+  const [note, setNote] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+
+  const idempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
     getCart()
@@ -23,15 +48,66 @@ export default function CheckoutPage() {
 
   const handleOrder = async () => {
     if (!cart || cart.items.length === 0) return;
+
+    // Validate buyer info
+    if (!buyerName.trim()) {
+      toast.error('Vui lòng nhập họ tên người đặt hàng');
+      return;
+    }
+    if (!buyerPhone.trim()) {
+      toast.error('Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    // Validate shipping address
+    const addressParts = [street.trim(), ward.trim(), district.trim(), city.trim()].filter(Boolean);
+    if (addressParts.length < 2) {
+      toast.error('Vui lòng nhập địa chỉ giao hàng đầy đủ');
+      return;
+    }
+    const shippingAddress = addressParts.join(', ');
+
+    // Build cart items from localStorage cart (bypasses Redis cart — works for guest & logged-in)
+    const cartItems = cart.items.map((item) => ({
+      productId: item.productId,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPrice: item.price,  // Send price from localStorage cart as fallback for product-service
+    }));
+
     setSubmitting(true);
     try {
-      // Simulate order placement
-      await new Promise((r) => setTimeout(r, 1200));
+      const result = await checkout(
+        {
+          shippingAddress,
+          paymentMethod: UI_TO_PAYMENT_METHOD[paymentMethod],
+          note: note.trim() || undefined,
+          couponCode: couponCode.trim() || undefined,
+          guestName: buyerName.trim(),
+          guestEmail: buyerEmail.trim() || undefined,
+          guestPhone: buyerPhone.trim(),
+          items: cartItems,
+        },
+        idempotencyKey.current,
+      );
+
       await clearCart();
       toast.success('Đặt hàng thành công!');
-      router.push('/cart/checkout/success');
-    } catch {
-      toast.error('Có lỗi xảy ra. Vui lòng thử lại.');
+
+      // Redirect to success page, carry orderId + orderNumber (+ paymentUrl for online payment)
+      const params = new URLSearchParams({
+        orderId:     result.orderId,
+        orderNumber: result.orderNumber,
+      });
+      if (result.paymentUrl) {
+        // For online payment, redirect to payment gateway
+        window.location.href = result.paymentUrl;
+      } else {
+        router.push(`/cart/checkout/success?${params.toString()}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -76,60 +152,118 @@ export default function CheckoutPage() {
           {/* ── Left: Forms ─────────────────────────────── */}
           <div className="w-full lg:w-2/3 flex flex-col gap-6">
 
-            {/* 1. Shipping Info */}
+            {/* 1. Buyer Info */}
             <section className="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6 border-b border-outline-variant pb-4">
-                <span className="material-symbols-outlined text-primary text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_shipping</span>
-                <h2 className="text-title-lg font-title-lg text-on-surface">1. Thông tin nhận hàng</h2>
+                <span className="material-symbols-outlined text-primary text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                <h2 className="text-title-lg font-title-lg text-on-surface">1. Thông tin người đặt hàng</h2>
               </div>
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-label-sm text-on-surface-variant mb-1">Họ và tên *</label>
-                  <input className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest" placeholder="Nhập họ và tên" type="text" />
-                </div>
-                <div>
-                  <label className="block text-label-sm text-on-surface-variant mb-1">Số điện thoại *</label>
-                  <input className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest" placeholder="Nhập số điện thoại" type="tel" />
-                </div>
+              <form className="grid grid-cols-1 md:grid-cols-2 gap-5" onSubmit={(e) => e.preventDefault()}>
                 <div className="md:col-span-2">
+                  <label className="block text-label-sm text-on-surface-variant mb-1">Họ và tên <span className="text-error">*</span></label>
+                  <input
+                    className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                    placeholder="VD: Nguyễn Văn A"
+                    type="text"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-label-sm text-on-surface-variant mb-1">Số điện thoại <span className="text-error">*</span></label>
+                  <input
+                    className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                    placeholder="VD: 0912345678"
+                    type="tel"
+                    value={buyerPhone}
+                    onChange={(e) => setBuyerPhone(e.target.value)}
+                  />
+                </div>
+                <div>
                   <label className="block text-label-sm text-on-surface-variant mb-1">Email (tùy chọn)</label>
-                  <input className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest" placeholder="Nhập email để nhận hóa đơn" type="email" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-label-sm text-on-surface-variant mb-1">Địa chỉ giao hàng *</label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <select className="h-11 px-3 rounded-lg border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest">
-                      <option>Tỉnh / Thành phố</option>
-                      <option>Hà Nội</option>
-                      <option>TP. Hồ Chí Minh</option>
-                      <option>Đà Nẵng</option>
-                    </select>
-                    <select className="h-11 px-3 rounded-lg border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest">
-                      <option>Quận / Huyện</option>
-                    </select>
-                    <select className="h-11 px-3 rounded-lg border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest">
-                      <option>Phường / Xã</option>
-                    </select>
-                  </div>
-                  <input className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest" placeholder="Số nhà, Tên đường, Tòa nhà..." type="text" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-label-sm text-on-surface-variant mb-1">Ghi chú (tùy chọn)</label>
-                  <textarea className="w-full p-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest resize-none" placeholder="Ghi chú về thời gian, hướng dẫn giao hàng..." rows={3} />
+                  <input
+                    className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                    placeholder="VD: example@email.com"
+                    type="email"
+                    value={buyerEmail}
+                    onChange={(e) => setBuyerEmail(e.target.value)}
+                  />
                 </div>
               </form>
             </section>
 
-            {/* 2. Payment method */}
+            {/* 2. Shipping Info */}
+            <section className="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-6 border-b border-outline-variant pb-4">
+                <span className="material-symbols-outlined text-primary text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_shipping</span>
+                <h2 className="text-title-lg font-title-lg text-on-surface">2. Thông tin nhận hàng</h2>
+              </div>
+              <form className="grid grid-cols-1 md:grid-cols-2 gap-5" onSubmit={(e) => e.preventDefault()}>
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-label-sm text-on-surface-variant mb-1">Tỉnh / Thành phố *</label>
+                    <input
+                      className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                      placeholder="VD: TP. Hồ Chí Minh"
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-label-sm text-on-surface-variant mb-1">Quận / Huyện</label>
+                    <input
+                      className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                      placeholder="VD: Quận 1"
+                      type="text"
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-label-sm text-on-surface-variant mb-1">Phường / Xã</label>
+                    <input
+                      className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                      placeholder="VD: Phường Bến Nghé"
+                      type="text"
+                      value={ward}
+                      onChange={(e) => setWard(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-label-sm text-on-surface-variant mb-1">Số nhà, Tên đường *</label>
+                  <input
+                    className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
+                    placeholder="Số nhà, Tên đường, Tòa nhà..."
+                    type="text"
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-label-sm text-on-surface-variant mb-1">Ghi chú (tùy chọn)</label>
+                  <textarea
+                    className="w-full p-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest resize-none"
+                    placeholder="Ghi chú về thời gian, hướng dẫn giao hàng..."
+                    rows={3}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </div>
+              </form>
+            </section>
+
+            {/* 3. Payment method */}
             <section className="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6 border-b border-outline-variant pb-4">
                 <span className="material-symbols-outlined text-primary text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
-                <h2 className="text-title-lg font-title-lg text-on-surface">2. Phương thức thanh toán</h2>
+                <h2 className="text-title-lg font-title-lg text-on-surface">3. Phương thức thanh toán</h2>
               </div>
               <div className="flex flex-col gap-4">
                 {([
                   { id: 'cod', label: 'Thanh toán khi nhận hàng (COD)', sub: 'Kiểm tra hàng trước khi thanh toán', icon: 'payments' },
-                  { id: 'bank', label: 'Chuyển khoản ngân hàng (VietQR)', sub: 'Miễn phí giao hàng', icon: 'qr_code_scanner' },
+                  { id: 'bank', label: 'VietQR / Chuyển khoản ngân hàng', sub: 'Thanh toán qua cổng VNPAY — quét QR hoặc chuyển khoản', icon: 'qr_code_scanner' },
                   { id: 'card', label: 'Thẻ ATM / Thẻ tín dụng', sub: 'Visa, MasterCard, JCB, VNPAY', icon: 'credit_card' },
                   { id: 'installment', label: 'Trả góp 0% qua thẻ tín dụng', sub: 'Kỳ hạn 3, 6, 9, 12 tháng', icon: 'percent' },
                 ] as const).map((opt) => {
@@ -199,7 +333,13 @@ export default function CheckoutPage() {
               <div className="mb-6 border-t border-outline-variant pt-4">
                 <label className="block text-label-sm text-on-surface-variant mb-2">Mã giảm giá / Voucher</label>
                 <div className="flex gap-2">
-                  <input className="flex-grow h-10 px-3 rounded-lg border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest uppercase" placeholder="Nhập mã khuyến mãi" type="text" />
+                  <input
+                    className="flex-grow h-10 px-3 rounded-lg border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest uppercase"
+                    placeholder="Nhập mã khuyến mãi"
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  />
                   <button className="h-10 px-4 bg-surface-container-high hover:bg-surface-variant text-on-surface font-medium rounded-lg transition-colors border border-outline-variant">Áp dụng</button>
                 </div>
               </div>
