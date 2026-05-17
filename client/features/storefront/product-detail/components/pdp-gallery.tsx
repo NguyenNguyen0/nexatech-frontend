@@ -28,7 +28,7 @@ export function PdpGallery({ images, productName }: PdpGalleryProps) {
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      <div className="relative w-full aspect-square md:aspect-[4/3] bg-surface-container rounded-2xl border border-outline-variant overflow-hidden group">
+      <div className="relative w-full aspect-square md:aspect-[4/3] bg-surface-container rounded-md border border-outline-variant overflow-hidden group">
         <div className="absolute inset-0 bg-surface-container">
           {activeImage ? (
             <Image
@@ -76,7 +76,7 @@ export function PdpGallery({ images, productName }: PdpGalleryProps) {
                 key={`${image}-${index}`}
                 type="button"
                 onClick={() => setActiveIndex(index)}
-                className={`w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-xl overflow-hidden cursor-pointer transition-colors ${
+                className={`w-20 h-20 md:w-24 md:h-24 shrink-0 rounded overflow-hidden cursor-pointer transition-colors ${
                   isActive ? 'border-2 border-primary' : 'border border-outline-variant hover:border-primary opacity-70 hover:opacity-100'
                 }`}
                 aria-label={`Ảnh ${index + 1}`}

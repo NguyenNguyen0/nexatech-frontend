@@ -8,7 +8,7 @@ const PROMOTION_ITEMS = [
 
 export function PdpPromotions() {
   return (
-    <section className="bg-surface rounded-xl p-4 border border-outline-variant">
+    <section className="bg-surface rounded-md p-4 border border-outline-variant">
       <h3 className="text-title-sm font-title-sm text-on-surface mb-3 flex items-center gap-2">
         <span className="material-symbols-outlined text-primary text-[20px]">featured_seasonal_and_gifts</span>
         Ưu đãi đặc biệt
