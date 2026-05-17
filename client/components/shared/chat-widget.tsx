@@ -6,15 +6,22 @@ import { MessageCircle, Minus, Send, X } from 'lucide-react';
 import SockJS from 'sockjs-client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { authStorage } from '@/features/auth/utils/auth-storage';
-import { getUserIdFromAccessToken } from '@/features/auth/utils/auth-session';
 import {
+  getRolesFromAccessToken,
+  getUserIdFromAccessToken,
+  pickPrimaryRole,
+} from '@/features/auth/utils/auth-session';
+import {
+  createOrGetCurrentConversation,
   fetchConversations,
+  fetchCurrentConversation,
   fetchMessages,
   markDelivered,
   markSeen,
   sendMessage,
 } from '@/features/chat/services/chat-api';
 import type { ChatMessage, Conversation } from '@/features/chat/types';
+import { getOrCreateGuestChatSessionId } from '@/features/chat/utils/guest-chat-session';
 
 const MESSAGE_PAGE_SIZE = 30;
 const AUTO_SCROLL_THRESHOLD = 80;
@@ -50,7 +57,10 @@ export function ChatWidget() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [identityReady, setIdentityReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<Client | null>(null);
@@ -63,6 +73,8 @@ export function ChatWidget() {
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
     [activeConversationId, conversations],
   );
+
+  const currentParticipantId = activeConversation?.currentParticipantId ?? userId;
 
   const totalUnread = useMemo(
     () => conversations.reduce((sum, conversation) => sum + (conversation.unreadCount ?? 0), 0),
@@ -77,25 +89,79 @@ export function ChatWidget() {
     });
   }, []);
 
-  const loadConversations = useCallback(async () => {
+  const hydrateConversation = useCallback(
+    (conversation: Conversation): Conversation => ({
+      ...conversation,
+      unreadCount: conversation.unreadCount ?? 0,
+    }),
+    [],
+  );
+
+  const upsertConversation = useCallback(
+    (conversation: Conversation) => {
+      const hydrated = hydrateConversation(conversation);
+      setConversations((current) => {
+        const existingIndex = current.findIndex((item) => item.id === hydrated.id);
+        if (existingIndex < 0) return [hydrated, ...current];
+
+        const updated = [...current];
+        updated[existingIndex] = { ...updated[existingIndex], ...hydrated };
+        return updated;
+      });
+      setActiveConversationId((current) => current ?? hydrated.id);
+      return hydrated;
+    },
+    [hydrateConversation],
+  );
+
+  const loadInitialConversations = useCallback(async () => {
+    if (!identityReady) return;
+
+    if (userId) {
+      try {
+        const page = await fetchConversations(0, 10);
+        const hydrated = page.content.map(hydrateConversation);
+        setConversations(hydrated);
+        setActiveConversationId((current) => current ?? hydrated[0]?.id ?? null);
+      } catch {
+        setConversations([]);
+      }
+      return;
+    }
+
+    if (!guestSessionId) return;
+
     try {
-      const page = await fetchConversations(0, 10);
-      const hydrated = page.content.map((conversation) => ({
-        ...conversation,
-        unreadCount: conversation.unreadCount ?? 0,
-      }));
-      setConversations(hydrated);
-      setActiveConversationId((current) => current ?? hydrated[0]?.id ?? null);
+      const currentConversation = await fetchCurrentConversation({ guestSessionId });
+      const hydrated = hydrateConversation(currentConversation);
+      setConversations([hydrated]);
+      setActiveConversationId(hydrated.id);
     } catch {
       setConversations([]);
+      setActiveConversationId(null);
     }
-  }, []);
+  }, [guestSessionId, hydrateConversation, identityReady, userId]);
+
+  const ensureCurrentConversation = useCallback(async (): Promise<Conversation | null> => {
+    if (activeConversation) return activeConversation;
+    if (!identityReady) return null;
+    if (!userId && !guestSessionId) return null;
+
+    try {
+      const conversation = await createOrGetCurrentConversation({ guestSessionId });
+      return upsertConversation(conversation);
+    } catch {
+      return null;
+    }
+  }, [activeConversation, guestSessionId, identityReady, upsertConversation, userId]);
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
       setIsLoadingMessages(true);
       try {
-        const payload = await fetchMessages(conversationId, undefined, MESSAGE_PAGE_SIZE);
+        const payload = await fetchMessages(conversationId, undefined, MESSAGE_PAGE_SIZE, {
+          guestSessionId,
+        });
         const ordered = [...payload.content].reverse();
         setMessages(ordered);
         setAutoScrollEnabled(true);
@@ -106,7 +172,7 @@ export function ChatWidget() {
         setIsLoadingMessages(false);
       }
     },
-    [scrollToBottom],
+    [guestSessionId, scrollToBottom],
   );
 
   const upsertMessage = useCallback((message: ChatMessage) => {
@@ -149,7 +215,7 @@ export function ChatWidget() {
         }
       }
 
-      if (message.senderId !== userId) {
+      if (message.senderId !== currentParticipantId) {
         setConversations((current) =>
           current.map((conversation) =>
             conversation.id === message.conversationId
@@ -165,21 +231,22 @@ export function ChatWidget() {
         );
       }
 
-      if (message.senderId !== userId && message.recipientId === userId) {
-        markDelivered(message.conversationId, message.id).catch(() => undefined);
+      if (message.senderId !== currentParticipantId && message.recipientId === currentParticipantId) {
+        markDelivered(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
         if (message.conversationId === activeConversationId && isOpen) {
-          markSeen(message.conversationId, message.id).catch(() => undefined);
+          markSeen(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
         }
       }
     },
     [
       activeConversationId,
       autoScrollEnabled,
+      currentParticipantId,
+      guestSessionId,
       isOpen,
       scrollToBottom,
       updateConversationPreview,
       upsertMessage,
-      userId,
     ],
   );
 
@@ -205,9 +272,14 @@ export function ChatWidget() {
   const connectSocket = useCallback(() => {
     if (clientRef.current) return;
 
+    const connectHeaders: Record<string, string> = {};
+    if (userId) connectHeaders['X-User-Id'] = userId;
+    if (userRole) connectHeaders['X-User-Role'] = userRole;
+    if (!userId && guestSessionId) connectHeaders['X-Guest-Session-Id'] = guestSessionId;
+
     const client = new Client({
       webSocketFactory: () => new SockJS(wsUrl),
-      connectHeaders: userId ? { 'X-User-Id': userId } : undefined,
+      connectHeaders,
       reconnectDelay: 5000,
       onConnect: () => setConnected(true),
       onDisconnect: () => setConnected(false),
@@ -215,7 +287,7 @@ export function ChatWidget() {
 
     client.activate();
     clientRef.current = client;
-  }, [userId, wsUrl]);
+  }, [guestSessionId, userId, userRole, wsUrl]);
 
   const disconnectSocket = useCallback(() => {
     if (!clientRef.current) return;
@@ -226,16 +298,17 @@ export function ChatWidget() {
   }, []);
 
   const handleSend = useCallback(async () => {
-    if (!activeConversationId) return;
-
     const trimmed = inputValue.trim();
     if (!trimmed) return;
 
+    const conversation = activeConversation ?? (await ensureCurrentConversation());
+    if (!conversation) return;
+
     const optimisticMessage: ChatMessage = {
       id: `temp-${Date.now()}`,
-      conversationId: activeConversationId,
-      senderId: userId ?? 'self',
-      recipientId: activeConversation?.otherUserId ?? '',
+      conversationId: conversation.id,
+      senderId: conversation.currentParticipantId,
+      recipientId: conversation.otherUserId ?? null,
       content: trimmed,
       status: 'SENT',
       createdAt: new Date().toISOString(),
@@ -249,21 +322,30 @@ export function ChatWidget() {
     setTimeout(() => scrollToBottom('smooth'), 0);
 
     try {
-      const saved = await sendMessage(activeConversationId, trimmed);
+      const saved = await sendMessage(conversation.id, trimmed, { guestSessionId });
       setMessages((current) =>
         current.map((message) => (message.id === optimisticMessage.id ? saved : message)),
       );
       updateConversationPreview(saved);
+
+      if (conversation.status === 'WAITING') {
+        try {
+          upsertConversation(await fetchCurrentConversation({ guestSessionId }));
+        } catch {
+          // Keep the existing conversation state if the refresh fails.
+        }
+      }
     } catch {
       setMessages((current) => current.filter((message) => message.id !== optimisticMessage.id));
     }
   }, [
     activeConversation,
-    activeConversationId,
+    ensureCurrentConversation,
+    guestSessionId,
     inputValue,
     scrollToBottom,
     updateConversationPreview,
-    userId,
+    upsertConversation,
   ]);
 
   const handleScroll = useCallback(() => {
@@ -275,16 +357,22 @@ export function ChatWidget() {
 
   useEffect(() => {
     const token = authStorage.getAccessToken();
-    setUserId(getUserIdFromAccessToken(token));
+    const resolvedUserId = getUserIdFromAccessToken(token);
+    setUserId(resolvedUserId);
+    setUserRole(pickPrimaryRole(getRolesFromAccessToken(token)));
+    if (!resolvedUserId) {
+      setGuestSessionId(getOrCreateGuestChatSessionId());
+    }
+    setIdentityReady(true);
   }, []);
 
   useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+    void loadInitialConversations();
+  }, [loadInitialConversations]);
 
   useEffect(() => {
     if (!activeConversationId) return;
-    loadMessages(activeConversationId);
+    void loadMessages(activeConversationId);
     setConversations((current) =>
       current.map((conversation) =>
         conversation.id === activeConversationId ? { ...conversation, unreadCount: 0 } : conversation,
@@ -293,15 +381,20 @@ export function ChatWidget() {
   }, [activeConversationId, loadMessages]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!identityReady || (!userId && !guestSessionId)) return;
     connectSocket();
     return () => disconnectSocket();
-  }, [connectSocket, disconnectSocket, userId]);
+  }, [connectSocket, disconnectSocket, guestSessionId, identityReady, userId]);
 
   useEffect(() => {
     if (!connected) return;
     ensureSubscriptions();
   }, [connected, ensureSubscriptions]);
+
+  useEffect(() => {
+    if (!isOpen || activeConversationId || !identityReady) return;
+    void ensureCurrentConversation();
+  }, [activeConversationId, ensureCurrentConversation, identityReady, isOpen]);
 
   useEffect(() => {
     if (!autoScrollEnabled) return;
@@ -312,10 +405,14 @@ export function ChatWidget() {
     if (!isOpen || !activeConversationId || messages.length === 0) return;
     const latestIncoming = [...messages]
       .reverse()
-      .find((message) => message.senderId !== userId && message.recipientId === userId);
+      .find(
+        (message) =>
+          message.senderId !== currentParticipantId &&
+          message.recipientId === currentParticipantId,
+      );
     if (!latestIncoming) return;
-    markSeen(activeConversationId, latestIncoming.id).catch(() => undefined);
-  }, [activeConversationId, isOpen, messages, userId]);
+    markSeen(activeConversationId, latestIncoming.id, { guestSessionId }).catch(() => undefined);
+  }, [activeConversationId, currentParticipantId, guestSessionId, isOpen, messages]);
 
   useEffect(() => {
     if (!isOpen || !activeConversationId) return;
@@ -425,8 +522,14 @@ export function ChatWidget() {
               </div>
             ) : null}
 
+            {activeConversation?.status === 'WAITING' ? (
+              <div className="rounded-xl border border-dashed border-outline-variant bg-surface p-3 text-center text-xs text-on-surface-variant">
+                Đang chờ nhân viên tư vấn nhận cuộc trò chuyện...
+              </div>
+            ) : null}
+
             {messages.map((message) => {
-              const isMine = message.senderId === userId;
+              const isMine = message.senderId === currentParticipantId;
 
               return (
                 <div
@@ -435,9 +538,7 @@ export function ChatWidget() {
                 >
                   <div
                     className={`max-w-[82%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                      isMine
-                        ? 'bg-primary text-white'
-                        : 'bg-surface text-on-surface'
+                      isMine ? 'bg-primary text-white' : 'bg-surface text-on-surface'
                     }`}
                   >
                     <p className="whitespace-pre-wrap leading-5">{message.content}</p>
@@ -467,13 +568,12 @@ export function ChatWidget() {
                   }
                 }}
                 placeholder={activeConversationId ? 'Nhập tin nhắn...' : 'Nhắn cho NexaTech...'}
-                disabled={!activeConversationId}
-                className="h-10 flex-1 rounded-xl border border-outline-variant bg-white px-3 text-sm text-on-surface outline-none transition focus:border-primary disabled:cursor-not-allowed disabled:bg-surface-container-low"
+                className="h-10 flex-1 rounded-xl border border-outline-variant bg-white px-3 text-sm text-on-surface outline-none transition focus:border-primary"
               />
               <button
                 type="button"
                 onClick={() => void handleSend()}
-                disabled={!activeConversationId || !inputValue.trim()}
+                disabled={!inputValue.trim()}
                 aria-label="Gửi tin nhắn"
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-outline"
               >
