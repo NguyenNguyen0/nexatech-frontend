@@ -23,6 +23,7 @@ type RawProduct = {
   reviewCount?: number;
   description?: string;
   status?: string;
+  tags?: string[];
   specs?: Record<string, string> | Array<{ name: string; value: string }>;
 };
 
@@ -188,6 +189,72 @@ function handleCategories(sub: string[]) {
   return ok(CATEGORIES);
 }
 
+// ── BUILD PC ──────────────────────────────────────────────────────────────────
+
+const PC_PART_SLUGS = ['cpu', 'mainboard', 'ram', 'ssd', 'hdd', 'gpu', 'psu'] as const;
+
+function handleBuildPc(sub: string[], url: URL) {
+  // GET /api/v1/build-pc/parts — static part definitions
+  if (sub[0] === 'parts') {
+    return ok([
+      { key: 'cpu',       label: 'Vi xử lý',     shortLabel: 'CPU',       icon: 'memory',           description: 'Bộ não của toàn bộ hệ thống',          categorySlug: 'cpu' },
+      { key: 'mainboard', label: 'Bo mạch chủ',   shortLabel: 'Mainboard', icon: 'developer_board',  description: 'Nền tảng kết nối các linh kiện',       categorySlug: 'mainboard' },
+      { key: 'ram',       label: 'RAM',            shortLabel: 'RAM',       icon: 'memory_alt',       description: 'Bộ nhớ đa nhiệm cho máy',              categorySlug: 'ram' },
+      { key: 'hdd',       label: 'Ổ HDD',          shortLabel: 'HDD',       icon: 'storage',          description: 'Lưu trữ dung lượng lớn',               categorySlug: 'hdd' },
+      { key: 'ssd',       label: 'Ổ SSD',          shortLabel: 'SSD',       icon: 'sd_storage',       description: 'Tăng tốc khởi động và tải ứng dụng',   categorySlug: 'ssd' },
+      { key: 'gpu',       label: 'Card đồ họa',    shortLabel: 'VGA',       icon: 'videogame_asset',  description: 'Xử lý hình ảnh và game',               categorySlug: 'gpu' },
+      { key: 'psu',       label: 'Nguồn',          shortLabel: 'PSU',       icon: 'power',            description: 'Cấp điện ổn định cho toàn bộ máy',     categorySlug: 'psu' },
+    ]);
+  }
+
+  // GET /api/v1/build-pc/suggested-builds
+  if (sub[0] === 'suggested-builds') {
+    const builds = PRODUCTS.filter((p) => (p.tags ?? []).includes('suggested-build'));
+    return ok(builds);
+  }
+
+  // GET /api/v1/build-pc/catalog
+  if (sub[0] === 'catalog') {
+    const categorySlug = url.searchParams.get('categorySlug') ?? '';
+    const keyword = url.searchParams.get('keyword')?.toLowerCase() ?? '';
+    const brandId = url.searchParams.get('brandId') ?? '';
+    const minRating = Number(url.searchParams.get('minRating') ?? '0');
+    const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
+    const size = Math.max(1, Number(url.searchParams.get('size') ?? '12'));
+
+    let filtered = PRODUCTS.filter((p) =>
+      (p.categorySlugs ?? []).some((s) => (PC_PART_SLUGS as readonly string[]).includes(s)),
+    );
+
+    if (categorySlug) filtered = filtered.filter((p) => (p.categorySlugs ?? []).includes(categorySlug));
+    if (keyword) filtered = filtered.filter((p) =>
+      p.name.toLowerCase().includes(keyword) || (p.brandName?.toLowerCase() ?? '').includes(keyword),
+    );
+    if (brandId) filtered = filtered.filter((p) => p.brandId === brandId);
+    if (minRating > 0) filtered = filtered.filter((p) => (p.averageRating ?? 0) >= minRating);
+
+    // specs.<key>=value filters (exact, case-insensitive; multiple values for same key = OR)
+    const specsFilter: Record<string, string[]> = {};
+    for (const [key, value] of url.searchParams.entries()) {
+      if (key.startsWith('specs.') && value) {
+        const specKey = key.slice(6);
+        specsFilter[specKey] ??= [];
+        specsFilter[specKey].push(value.toLowerCase());
+      }
+    }
+    for (const [specKey, values] of Object.entries(specsFilter)) {
+      filtered = filtered.filter((p) => {
+        const specVal = (p.specs as Record<string, string>)?.[specKey]?.toLowerCase() ?? '';
+        return values.some((v) => specVal.includes(v));
+      });
+    }
+
+    return paginate(filtered, page, size);
+  }
+
+  return notFound();
+}
+
 // ── BRANDS ───────────────────────────────────────────────────────────────────
 
 function handleBrands() {
@@ -301,6 +368,7 @@ async function handleRequest(
   if (base === 'products') return handleProducts(sub, url);
   if (base === 'categories') return handleCategories(sub);
   if (base === 'brands') return handleBrands();
+  if (base === 'build-pc') return handleBuildPc(sub, url);
 
   // Proxy order-service, payment-service, shipping-service
   const upstreamBase = SERVICE_BASES[base];
