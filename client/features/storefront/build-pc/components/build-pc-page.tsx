@@ -441,10 +441,10 @@ export function BuildPcPage() {
               key={category}
               type="button"
               className={cn(
-                'rounded-lg px-6 py-3 text-title-lg font-title-lg transition-colors',
+                'rounded-sm px-5 py-2 text-[13px] font-bold transition-colors',
                 index === 0
                   ? 'bg-primary text-on-primary shadow-sm'
-                  : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-variant',
+                  : 'bg-[#e8ecf1] text-on-surface-variant hover:bg-[#dce3eb]',
               )}
             >
               {category}
@@ -456,9 +456,9 @@ export function BuildPcPage() {
           {suggestedBuilds.map((build) => (
             <article
               key={build.id}
-              className="group relative flex h-full flex-col rounded-xl border border-primary/20 bg-surface-container-lowest p-3 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="group relative flex h-full flex-col rounded-md border border-[#e8e8e8] bg-white p-2.5 transition-all hover:shadow-md"
             >
-              <span className="absolute left-2 top-2 z-10 rounded bg-tertiary-container px-2 py-1 text-[10px] font-bold text-on-tertiary-container">
+              <span className="absolute left-1.5 top-1.5 z-10 rounded-sm bg-[#e30019] px-1.5 py-[1px] text-[10px] font-bold text-white">
                 {build.savingsLabel}
               </span>
               <button
@@ -469,58 +469,35 @@ export function BuildPcPage() {
                 <span className="material-symbols-outlined text-[20px]">favorite</span>
               </button>
 
-              <div className="mb-2 aspect-square overflow-hidden rounded-lg bg-surface-container-low">
+              <div className="relative mb-2 aspect-square overflow-hidden rounded bg-[#f7f7f7] p-2.5">
                 <img
                   src={build.image}
                   alt={build.name}
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  className="mx-auto h-full w-full object-contain transition duration-300 group-hover:scale-105"
                 />
               </div>
 
-              <h2 className="mb-1 min-h-10 text-label-sm font-title-lg text-on-surface">
+              <h2 className="mb-1.5 min-h-9 text-[12px] font-medium leading-[1.4] text-[#333] line-clamp-2">
                 {build.name}
               </h2>
 
-              <div className="mb-2 flex flex-wrap gap-1">
-                {build.specs.map((spec) => (
-                  <span
-                    key={spec}
-                    className="rounded bg-surface-container-high px-1 py-0.5 text-[10px] text-on-surface"
-                  >
-                    {spec}
-                  </span>
-                ))}
-              </div>
-
               <div className="mt-auto">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-price-lg font-price-lg text-primary">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[13px] font-bold text-[#e30019]">
                     {formatCurrency(build.price)}
                   </span>
-                  <span className="text-label-sm text-secondary">{build.discountLabel}</span>
                 </div>
-                <p className="text-label-sm text-outline line-through">
+                <p className="text-[10px] text-[#999] line-through">
                   {formatCurrency(build.originalPrice)}
                 </p>
               </div>
 
-              <div className="mt-3 flex gap-1">
-                <button
-                  type="button"
-                  className="flex-1 rounded-lg bg-primary py-2 text-label-sm font-bold text-on-primary transition hover:bg-primary-container"
-                >
-                  Thêm vào giỏ
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Thêm nhanh ${build.name}`}
-                  className="flex w-10 items-center justify-center rounded-lg border border-primary text-primary transition hover:bg-primary/5"
-                >
-                  <span className="material-symbols-outlined text-[20px]">
-                    shopping_cart_checkout
-                  </span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className="mt-2 w-full rounded-sm border border-[#004d75] py-1 text-[11px] font-semibold text-[#004d75] transition hover:bg-[#004d75] hover:text-white"
+              >
+                Thêm vào giỏ
+              </button>
             </article>
           ))}
         </div>
@@ -536,10 +513,10 @@ export function BuildPcPage() {
                   type="button"
                   onClick={() => setActiveConfigIndex(index)}
                   className={cn(
-                    'rounded-full px-4 py-1.5 text-label-sm transition-colors',
+                    'rounded-sm px-3 py-1 text-[12px] font-bold transition-colors',
                     index === activeConfigIndex
-                      ? 'bg-primary font-bold text-on-primary'
-                      : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-variant',
+                      ? 'bg-primary text-white'
+                      : 'bg-[#e8ecf1] text-[#666] hover:bg-[#dce3eb]',
                   )}
                 >
                   {label}
@@ -551,14 +528,14 @@ export function BuildPcPage() {
               <button
                 type="button"
                 onClick={clearActiveConfig}
-                className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-label-sm font-bold text-on-primary transition hover:bg-primary-container"
+                className="inline-flex items-center gap-1 rounded-sm bg-primary px-3 py-1 text-[12px] font-bold text-white transition hover:bg-primary-dark"
               >
                 <span className="material-symbols-outlined text-[16px]">refresh</span>
                 Tạo lại
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-label-sm font-bold text-primary transition hover:bg-primary/5"
+                className="inline-flex items-center gap-1 rounded-sm border border-primary px-3 py-1 text-[12px] font-bold text-primary transition hover:bg-primary/5"
               >
                 Tải cấu hình
                 <span className="material-symbols-outlined text-[16px]">expand_more</span>
@@ -573,7 +550,7 @@ export function BuildPcPage() {
               return (
                 <article
                   key={part.key}
-                  className="flex min-h-20 items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 transition hover:border-primary/50"
+                  className="flex min-h-20 items-center justify-between gap-4 rounded-md border border-[#e8e8e8] bg-white px-3 py-2 transition hover:border-primary/50"
                 >
                   <div className="flex min-w-0 items-center gap-4">
                     <div className="w-16 shrink-0">
@@ -582,7 +559,7 @@ export function BuildPcPage() {
                       </p>
                     </div>
 
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-dashed border-outline-variant bg-surface-container-low">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-dashed border-[#ddd] bg-white">
                       <span className="material-symbols-outlined text-outline">{part.icon}</span>
                     </div>
 
@@ -610,7 +587,7 @@ export function BuildPcPage() {
                   <button
                     type="button"
                     onClick={() => openPartModal(part.key)}
-                    className="shrink-0 rounded-lg bg-primary px-6 py-2 text-label-sm font-bold text-on-primary transition hover:bg-primary-container"
+                    className="shrink-0 rounded-sm bg-primary px-4 py-1.5 text-[12px] font-bold text-white transition hover:bg-primary-dark"
                   >
                     {selectedItem ? 'Đổi' : 'Chọn'}
                   </button>
@@ -621,14 +598,14 @@ export function BuildPcPage() {
         </div>
 
         <aside>
-          <div className="sticky top-28 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
+          <div className="sticky top-28 rounded-md border border-[#e8e8e8] bg-white p-4 shadow-sm">
             <h2 className="mb-4 border-b border-outline-variant pb-2 text-title-lg font-title-lg text-primary">
               Build Summary
             </h2>
 
             {selectedCount === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
-                <div className="mb-4 flex h-32 w-32 items-center justify-center rounded-xl bg-surface-container opacity-40">
+                <div className="flex h-32 w-32 items-center justify-center rounded-md bg-[#f5f5f5] opacity-40">
                   <span className="material-symbols-outlined text-[64px] text-outline">
                     desktop_windows
                   </span>
@@ -674,16 +651,16 @@ export function BuildPcPage() {
 
               <button
                 type="button"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-body-md font-headline-md text-on-primary transition hover:bg-primary-container"
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-[13px] font-bold text-white transition hover:bg-primary-dark"
               >
-                <span className="material-symbols-outlined">support_agent</span>
+                <span className="material-symbols-outlined text-[18px]">support_agent</span>
                 Nhận tư vấn từ chuyên gia
               </button>
 
               <button
                 type="button"
                 disabled={selectedCount === 0}
-                className="w-full rounded-xl border border-primary py-3 text-label-sm font-bold text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:border-outline-variant disabled:text-outline"
+                className="w-full rounded-md border border-primary py-2 text-[12px] font-bold text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:border-[#ddd] disabled:text-[#999]"
               >
                 Thêm tất cả vào giỏ
               </button>
@@ -698,7 +675,7 @@ export function BuildPcPage() {
 
       {selectedPart ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-on-background/60 p-3 backdrop-blur-sm md:p-5">
-          <div className="flex h-full max-h-[900px] w-full max-w-[1400px] flex-col overflow-hidden rounded-xl bg-surface-container-lowest shadow-2xl">
+          <div className="flex h-full max-h-[900px] w-full max-w-[1400px] flex-col overflow-hidden rounded-md bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-outline-variant bg-surface px-4 py-3">
               <h2 className="text-title-lg font-title-lg text-on-surface">
                 Chọn {selectedPart.label}
@@ -725,7 +702,7 @@ export function BuildPcPage() {
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
                         placeholder="Tên sản phẩm..."
-                        className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 pr-10 text-[14px] focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full rounded border border-[#ddd] bg-white px-3 py-2 pr-10 text-[13px] focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       <span className="material-symbols-outlined absolute right-2 top-2 text-outline">
                         search
@@ -762,7 +739,7 @@ export function BuildPcPage() {
                     <select
                       value={selectedSeries}
                       onChange={(event) => setSelectedSeries(event.target.value)}
-                      className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[14px]"
+                      className="w-full rounded border border-[#ddd] bg-white px-3 py-2 text-[13px]"
                     >
                       <option>Tất cả</option>
                       {availableSeries.map((series) => (
@@ -778,7 +755,7 @@ export function BuildPcPage() {
                     <select
                       value={selectedCompatibility}
                       onChange={(event) => setSelectedCompatibility(event.target.value)}
-                      className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 text-[14px]"
+                      className="w-full rounded border border-[#ddd] bg-white px-3 py-2 text-[13px]"
                     >
                       <option>Tất cả</option>
                       {availableCompatibility.map((compatibility) => (
@@ -790,7 +767,7 @@ export function BuildPcPage() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="mt-2 w-full rounded-lg border border-primary py-2 text-[14px] font-semibold text-primary transition hover:bg-primary-fixed"
+                    className="mt-2 w-full rounded-sm border border-primary py-1.5 text-[12px] font-semibold text-primary transition hover:bg-primary/5"
                   >
                     Thiết lập lại
                   </button>
@@ -803,12 +780,12 @@ export function BuildPcPage() {
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     placeholder={`Tìm kiếm ${selectedPart.shortLabel}...`}
-                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 text-[14px]"
+                    className="w-full rounded border border-[#ddd] bg-white px-3 py-2 text-[13px]"
                   />
                 </div>
 
                 {filteredItems.length === 0 ? (
-                  <div className="flex min-h-64 items-center justify-center rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest text-center">
+                  <div className="flex min-h-64 items-center justify-center rounded border border-dashed border-[#ddd] bg-white text-center">
                     <div>
                       <span className="material-symbols-outlined mb-2 text-[40px] text-outline">
                         search_off
@@ -826,10 +803,10 @@ export function BuildPcPage() {
                         type="button"
                         onClick={() => setPendingItemId(item.id)}
                         className={cn(
-                          'group flex h-full flex-col overflow-hidden rounded-lg border bg-surface-container-lowest text-left transition hover:shadow-lg',
+                          'group flex h-full flex-col overflow-hidden rounded border bg-white text-left transition hover:shadow-md',
                           pendingItemId === item.id
-                            ? 'border-primary ring-2 ring-primary/20'
-                            : 'border-outline-variant',
+                            ? 'border-primary ring-1 ring-primary/50'
+                            : 'border-[#e8e8e8]',
                         )}
                       >
                         <div className="relative flex aspect-square items-center justify-center bg-white p-2.5">
@@ -840,7 +817,7 @@ export function BuildPcPage() {
                               className="h-full w-full object-contain"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center rounded-lg bg-surface-container-low">
+                            <div className="flex h-full w-full items-center justify-center rounded bg-[#f5f5f5]">
                               <span className="material-symbols-outlined text-[52px] text-outline">
                                 {selectedPart.icon}
                               </span>
@@ -871,7 +848,7 @@ export function BuildPcPage() {
                                 </span>
                               ) : null}
                             </div>
-                            <span className="block w-full rounded-lg bg-primary py-2 text-center text-[15px] font-semibold text-on-primary transition group-hover:bg-primary-container">
+                            <span className="block w-full rounded-sm bg-primary py-1.5 text-center text-[13px] font-semibold text-white transition group-hover:bg-primary-dark">
                               Chọn
                             </span>
                           </div>
@@ -891,7 +868,7 @@ export function BuildPcPage() {
                 <button
                   type="button"
                   onClick={closePartModal}
-                  className="rounded-lg border border-outline-variant px-4 py-2 text-[14px] font-semibold text-on-surface-variant transition hover:bg-surface-variant"
+                  className="rounded-sm border border-[#ddd] px-3 py-1.5 text-[12px] font-semibold text-[#666] transition hover:bg-[#f5f5f5]"
                 >
                   Hủy bỏ
                 </button>
@@ -899,7 +876,7 @@ export function BuildPcPage() {
                   type="button"
                   onClick={confirmSelection}
                   disabled={!pendingItem}
-                  className="rounded-lg bg-primary px-7 py-2 text-[14px] font-semibold text-on-primary shadow-sm transition hover:bg-primary-container disabled:cursor-not-allowed disabled:bg-outline"
+                  className="rounded-sm bg-primary px-5 py-1.5 text-[12px] font-semibold text-white shadow-sm transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-[#ccc]"
                 >
                   Xác nhận
                 </button>
