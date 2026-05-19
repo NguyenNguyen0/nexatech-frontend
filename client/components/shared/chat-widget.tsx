@@ -1,4 +1,6 @@
+
 'use client';
+
 import { Client, type StompSubscription } from '@stomp/stompjs';
 import dayjs from 'dayjs';
 import { MessageCircle, Minus, Send, X } from 'lucide-react';
