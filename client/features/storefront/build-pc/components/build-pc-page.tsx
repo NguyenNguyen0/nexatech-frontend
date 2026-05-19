@@ -81,7 +81,7 @@ export function BuildPcPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSeries, setSelectedSeries] = useState('Tất cả');
-  const [selectedCompatibility, setSelectedCompatibility] = useState('Tất cả');
+  const [selectedMinRating, setSelectedMinRating] = useState(0);
 
   useEffect(() => {
     void (async () => {
@@ -105,7 +105,7 @@ export function BuildPcPage() {
   const itemsForSelectedPart = catalog.filter((item) => item.partKey === selectedPartKey);
   const availableBrands = [...new Set(itemsForSelectedPart.map((item) => item.brand))];
   const availableSeries = [...new Set(itemsForSelectedPart.map((item) => item.series))];
-  const availableCompatibility = [...new Set(itemsForSelectedPart.map((item) => item.compatibility))];
+  const availableRatings = [...new Set(itemsForSelectedPart.map((item) => Math.floor(item.averageRating)))].sort((a, b) => b - a);
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -117,16 +117,15 @@ export function BuildPcPage() {
         item.brand.toLowerCase().includes(normalizedSearch);
       const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(item.brand);
       const matchesSeries = selectedSeries === 'Tất cả' || item.series === selectedSeries;
-      const matchesCompatibility =
-        selectedCompatibility === 'Tất cả' || item.compatibility === selectedCompatibility;
+      const matchesRating = selectedMinRating <= 0 || item.averageRating >= selectedMinRating;
 
-      return matchesSearch && matchesBrand && matchesSeries && matchesCompatibility;
+      return matchesSearch && matchesBrand && matchesSeries && matchesRating;
     });
   }, [
     itemsForSelectedPart,
     searchTerm,
     selectedBrands,
-    selectedCompatibility,
+    selectedMinRating,
     selectedSeries,
   ]);
 
@@ -140,7 +139,7 @@ export function BuildPcPage() {
     setSearchTerm('');
     setSelectedBrands([]);
     setSelectedSeries('Tất cả');
-    setSelectedCompatibility('Tất cả');
+    setSelectedMinRating(0);
   };
 
   const closePartModal = () => {
@@ -180,7 +179,7 @@ export function BuildPcPage() {
     setSearchTerm('');
     setSelectedBrands([]);
     setSelectedSeries('Tất cả');
-    setSelectedCompatibility('Tất cả');
+    setSelectedMinRating(0);
   };
 
   const buildPcTheme = {
@@ -257,17 +256,17 @@ export function BuildPcPage() {
           searchTerm={searchTerm}
           selectedBrands={selectedBrands}
           selectedSeries={selectedSeries}
-          selectedCompatibility={selectedCompatibility}
+          selectedMinRating={selectedMinRating}
           availableBrands={availableBrands}
           availableSeries={availableSeries}
-          availableCompatibility={availableCompatibility}
+          availableRatings={availableRatings}
           onClose={closePartModal}
           onConfirm={confirmSelection}
           onSelectPendingItem={setPendingItemId}
           onSearchTermChange={setSearchTerm}
           onToggleBrand={toggleBrand}
           onSeriesChange={setSelectedSeries}
-          onCompatibilityChange={setSelectedCompatibility}
+          onMinRatingChange={setSelectedMinRating}
           onResetFilters={resetFilters}
           hasPendingItem={Boolean(pendingItem)}
         />

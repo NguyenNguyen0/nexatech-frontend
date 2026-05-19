@@ -32,6 +32,8 @@ async function apiFetch<T>(path: string): Promise<T> {
 
   const response = await fetch(url, {
     method: 'GET',
+    cache: 'no-store',
+    credentials: 'include',
     headers: { Accept: 'application/json' },
   });
 
@@ -90,6 +92,7 @@ type ApiProduct = {
   id: string;
   name: string;
   price: number;
+  averageRating?: number;
   compareAtPrice?: number;
   originalPrice?: number;
   thumbnail?: string;
@@ -123,6 +126,7 @@ function mapToCatalogItem(p: ApiProduct): CatalogItem | null {
     brand: p.brandName ?? '',
     series: p.specs?.['Series'] ?? '',
     compatibility: p.specs?.['Compatibility'] ?? '',
+    averageRating: p.averageRating ?? 0,
     price: p.price,
     originalPrice: p.compareAtPrice ?? p.originalPrice,
     badge: p.tags?.[0],

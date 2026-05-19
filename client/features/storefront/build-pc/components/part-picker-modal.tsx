@@ -11,17 +11,17 @@ type PartPickerModalProps = {
   searchTerm: string;
   selectedBrands: string[];
   selectedSeries: string;
-  selectedCompatibility: string;
+  selectedMinRating: number;
   availableBrands: string[];
   availableSeries: string[];
-  availableCompatibility: string[];
+  availableRatings: number[];
   onClose: () => void;
   onConfirm: () => void;
   onSelectPendingItem: (id: string) => void;
   onSearchTermChange: (value: string) => void;
   onToggleBrand: (brand: string) => void;
   onSeriesChange: (value: string) => void;
-  onCompatibilityChange: (value: string) => void;
+  onMinRatingChange: (value: number) => void;
   onResetFilters: () => void;
   hasPendingItem: boolean;
 };
@@ -34,17 +34,17 @@ export function PartPickerModal({
   searchTerm,
   selectedBrands,
   selectedSeries,
-  selectedCompatibility,
+  selectedMinRating,
   availableBrands,
   availableSeries,
-  availableCompatibility,
+  availableRatings,
   onClose,
   onConfirm,
   onSelectPendingItem,
   onSearchTermChange,
   onToggleBrand,
   onSeriesChange,
-  onCompatibilityChange,
+  onMinRatingChange,
   onResetFilters,
   hasPendingItem,
 }: PartPickerModalProps) {
@@ -123,16 +123,18 @@ export function PartPickerModal({
 
               <div className="flex flex-col gap-1">
                 <label className="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant">
-                  Tương thích
+                  Đánh giá tối thiểu
                 </label>
                 <select
-                  value={selectedCompatibility}
-                  onChange={(event) => onCompatibilityChange(event.target.value)}
+                  value={selectedMinRating}
+                  onChange={(event) => onMinRatingChange(Number(event.target.value))}
                   className="w-full rounded border border-[#ddd] bg-white px-3 py-2 text-[13px]"
                 >
-                  <option>Tất cả</option>
-                  {availableCompatibility.map((compatibility) => (
-                    <option key={compatibility}>{compatibility}</option>
+                  <option value={0}>Tất cả</option>
+                  {availableRatings.map((rating) => (
+                    <option key={rating} value={rating}>
+                      Từ {rating} sao
+                    </option>
                   ))}
                 </select>
               </div>
@@ -201,7 +203,7 @@ export function PartPickerModal({
                         {item.name}
                       </h3>
                       <p className="mb-3 text-label-sm text-outline">
-                        {item.compatibility} · {item.series}
+                        {item.series || 'N/A'} · {item.averageRating.toFixed(1)}★
                       </p>
                       <div className="mt-auto">
                         <div className="mb-3 flex flex-col">

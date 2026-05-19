@@ -15,6 +15,7 @@ export type CatalogItem = {
   brand: string;
   series: string;
   compatibility: string;
+  averageRating: number;
   price: number;
   originalPrice?: number;
   badge?: string;
