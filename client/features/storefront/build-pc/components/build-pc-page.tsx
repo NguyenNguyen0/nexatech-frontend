@@ -2,45 +2,11 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { cn, formatCurrency } from '@/lib/utils';
-
-type PartKey = 'cpu' | 'mainboard' | 'ram' | 'hdd' | 'ssd' | 'gpu' | 'psu';
-
-type BuildPart = {
-  key: PartKey;
-  label: string;
-  shortLabel: string;
-  icon: string;
-  description: string;
-};
-
-type CatalogItem = {
-  id: string;
-  partKey: PartKey;
-  name: string;
-  brand: string;
-  series: string;
-  compatibility: string;
-  price: number;
-  originalPrice?: number;
-  badge?: string;
-  image?: string;
-};
-
-type SuggestedBuild = {
-  id: string;
-  name: string;
-  specs: string[];
-  price: number;
-  originalPrice: number;
-  discountLabel: string;
-  savingsLabel: string;
-  image: string;
-};
-
-type BuildSelection = Partial<Record<PartKey, CatalogItem>>;
+import { fetchBuildPcCatalog, fetchBuildPcSuggestions } from '../services/build-pc-api';
+import type { BuildPart, BuildSelection, CatalogItem, PartKey, SuggestedBuild } from '../types';
 
 const buildParts: BuildPart[] = [
   {
@@ -94,238 +60,16 @@ const buildParts: BuildPart[] = [
   },
 ];
 
-const suggestedBuilds: SuggestedBuild[] = [
-  {
-    id: 'cupid',
-    name: 'PC PV Gaming Cupid TM028 (i5-13400F / RTX 4060)',
-    specs: ['i5-13400F', 'RTX 4060', '16GB RAM'],
-    price: 18_990_000,
-    originalPrice: 21_390_000,
-    discountLabel: '-12%',
-    savingsLabel: 'Tiết kiệm 2.400.000₫',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDGQ8EsLo3-3nQVxFLag93TPGaEG5fA2LgaTIPaOPX0HocMrJXriR-9Jj41uoTuV_QxrtBnQH9SkY9tCb3gWDMv1zD63Hwy-YV0VyfMe8A4AcMvYYpHZYWtn5sMKTNxPJEnMy8LqgQe16I2ceb2XjPGac6wNz9fzr9is2Ta6Zh-RucCb-QOqaBZvDw7ewGIEuMF-CYulME4hphXo_QSlWb6w8YqAvGL078HwFcdfc4_vfkqftAEpEo5DxQ1U_mh7lPZ4DI5IvCJoA',
-  },
-  {
-    id: 'zeus',
-    name: 'PC PV Gaming Zeus TM015 (i7-14700K / RTX 4070)',
-    specs: ['i7-14700K', 'RTX 4070', '32GB RAM'],
-    price: 35_490_000,
-    originalPrice: 38_990_000,
-    discountLabel: '-8%',
-    savingsLabel: 'Tiết kiệm 1.500.000₫',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA4-nT7rFPH-l3epBhtrU9FgpUPYjxwJ2tS8Mm-7mZPMcOAQW1b47UkFOGnO89aMeazrZFI_UjUGPD-FsGS0DmgYtF7BPHsO1b_cBvZnWkn_hK0e9813MX17OY6ubb4Wfa5f3_NtWAtZJFK-yjf1ug6cLS9dwzyq7ZE6QizIbBu_nzOpvQtBMv_c8yobnwC1C0DvBFmE_eVtuTaYJz-xjkBD9yBB5sQWYgzFI4yw3I_pMxMhKsc91PZsflkelutt2OGSYIzO75c0w',
-  },
-  {
-    id: 'orion',
-    name: 'PC PV Gaming Orion TM042 (i3-13100 / GTX 1650)',
-    specs: ['i3-13100', 'GTX 1650', '16GB RAM'],
-    price: 12_290_000,
-    originalPrice: 14_490_000,
-    discountLabel: '-15%',
-    savingsLabel: 'Tiết kiệm 800.000₫',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCViAzhdcW48_ElbsaK4Q_6EpwWduU_U3egE24n0qujRe_kZdnNz-V-nv0YpQlO7DdaKpVgJGU2yBTJ-bQR5-mI5JqIAWGzRy4XpDzPjNiiVGMweHV1pljyb9fsOuauoyXRE_AjoZ49pr2ugJoAvgxJ9DAwLS7ugCU6xhWn0TagE_wB_dPHRGX8d5PXsL0GrPI2wqq_pAm88P_kfmp1u0TYYWlLwTU8FoPW9z4vBd53_PVv9gQElm7XyHX2pGMXLBk7z_MAvMO4FQ',
-  },
-  {
-    id: 'hydra',
-    name: 'PC PV Gaming Hydra TM099 (i9-14900K / RTX 4090)',
-    specs: ['i9-14900K', 'RTX 4090', '64GB RAM'],
-    price: 89_990_000,
-    originalPrice: 94_190_000,
-    discountLabel: '-5%',
-    savingsLabel: 'Tiết kiệm 4.200.000₫',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAzDqhD0uCyBwYv_b8dSOLDMjaaISK8JY143sNclTL3v_taGEx-3ZbIXnpiN4eFVrMsihFY2b98BFGyS1rE2ZFim12z7jFXGlLNeRrqIBuoggmMkvp7BP43ZELTcK6_Lun-7AfDT1O80aNWWjtTVDoIJtLu9AF2etNT_dVH2rUkTrKAsdnVkQzER6PWYZIhI4y2OJ42VqVSSavZh1QyDdifSgeNWhtgLQ8jDVus_k-AZ98rpf_nrirdOnpS7-1lPioT5YVkpslR6g',
-  },
-  {
-    id: 'atlas',
-    name: 'PC PV Gaming Atlas TM031 (Ryzen 7 7800X3D / RTX 4070 Ti)',
-    specs: ['R7-7800X3D', 'RTX 4070 Ti', '32GB RAM'],
-    price: 45_890_000,
-    originalPrice: 49_990_000,
-    discountLabel: '-10%',
-    savingsLabel: 'Tiết kiệm 2.100.000₫',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAb09T7cemhqurk1D8jHYomUC53qfsqhc_BG9s9eGqWK44S_NSEuVJc5OlRL5iw231zCwSOYI_nL7RF8nZ6manfaNNybxP_OOlzKi5cRF0SFctCfhxe6esPlMHutgvxE-YV6QeC-0NWcMPfp8tCAWntSjy4cYEZBnaqHPGewUNWYbrqN1Vg3UHE8cejCYQd3g_1TIrzDmq9IrBIq_K4oMSuuA07orQGNfTtYjefeCnzE7AQl7Szm2ktTtcFVPs1OAVIZeRIL6-lCA',
-  },
-];
-
-const catalog: CatalogItem[] = [
-  {
-    id: 'cpu-intel-i9',
-    partKey: 'cpu',
-    name: 'Intel Core i9-14900K (up to 6.0GHz, 24 nhân 32 luồng)',
-    brand: 'Intel',
-    series: 'Core i9',
-    compatibility: 'LGA 1700',
-    price: 15_490_000,
-    originalPrice: 16_990_000,
-    badge: 'Trả góp 0%',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDzIGc7y82yXiY9pyeBVEeV2arYHRIChpG53DC8FIYF4qUWo0h0CYaPlDARb_uiyg7KpA0poSvyVSNIzESUi_QeMHInh8UkbvoVobubfyHV12nfQi4S84fnq1eRIKa9mO9navKH2EwoW3rsT6sVK9piYv3jGBMgLX1nnjugFf9iKyl8JwY5pzPjaxo6BIXegYj3yFVTTPz42QUW3oMfVXwx_OZ0ZetZzM-i1ACDGFbtKwLaBjqEnr-3EoSPg-bO248AwBS51hDAYg',
-  },
-  {
-    id: 'cpu-amd-r9',
-    partKey: 'cpu',
-    name: 'AMD Ryzen 9 7950X (up to 5.7GHz, 16 nhân 32 luồng)',
-    brand: 'AMD',
-    series: 'Ryzen 9',
-    compatibility: 'AM5',
-    price: 14_250_000,
-    originalPrice: 15_500_000,
-    badge: 'Hot',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCx4n9UDcSJovpGvtTkdAHdQ_zE5hmh_zHQLfUaajlOO7LaFD9kZ_A4_KRq4s1EoU-aqmp0nWxUuif7aENmVCkEwg6ppEZ5NTu8R6B3gqlI5zQGakwPgJVpHo1cJENCM3RzZJGqnErUmmawBI_DT3ER1cLVZwNc7uOLeRu9RckW1KRyfBSETpINkZUoHq-Dt_AXRoEumiIlLj8Jbb4WojsYECpjSc_Y7pAT4yldhyephfII1lj0U4m9-ep4OGoOqtOJ8OQwTgNdZg',
-  },
-  {
-    id: 'cpu-intel-i7',
-    partKey: 'cpu',
-    name: 'Intel Core i7-14700K (up to 5.6GHz, 20 nhân 28 luồng)',
-    brand: 'Intel',
-    series: 'Core i7',
-    compatibility: 'LGA 1700',
-    price: 11_190_000,
-    originalPrice: 12_290_000,
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCVNu0rMXbtc-MVkFyJk8KSqkCc7RVjDplgg3usfRKc2MV0ImgOf1znz5pAbaFHybqrb0hKNZWia3pRY5fQSO8WHMcwfwEDly8gIuv94kStwaDDqyStb9RS2vVIoExsTzDnfPZvIqeI8p1-nj5sTzd6E3SGPMjPJUrYRz-0Uhthd_4FSt_jkBth9Xl0qwyQbwY2_w3ULX9FLwVl4CC1N7s2GRUNK12o7GufoQnzg8jTdBpyP8s-7CiWGInoi0jy1ve1FdV7x9EdMg',
-  },
-  {
-    id: 'cpu-amd-r7',
-    partKey: 'cpu',
-    name: 'AMD Ryzen 7 7800X3D (up to 5.0GHz, 8 nhân 16 luồng)',
-    brand: 'AMD',
-    series: 'Ryzen 7',
-    compatibility: 'AM5',
-    price: 10_890_000,
-    originalPrice: 11_900_000,
-    badge: 'Bán chạy',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCmQ0AeHyC10FiNbP_ut1mPFOH8WV8emrCj1Wq1ZKEUZJQZfnCBA7AYbaefttSEBAGTgVldAMIqUEBItSUra5jQl9U_6BfI0NYxKkfdrperA4F0dE9tcO_vhKZkHKxAZVM-8Wg6qOA7sf67Opb-L6xcaIcsnYuAIoRB7hxDEYw7VHCAaIJtCjxEDslurJBtX08KtGZGLUb39QueSQ7oz-NIO763qUJs7e2tbEQLy4RJd8eSCNCn0ORUXSyMZEkR1u1YJc45mQkQRQ',
-  },
-  {
-    id: 'mb-asus-z790',
-    partKey: 'mainboard',
-    name: 'ASUS ROG Strix Z790-F Gaming WiFi II',
-    brand: 'ASUS',
-    series: 'Z790',
-    compatibility: 'LGA 1700',
-    price: 10_990_000,
-    originalPrice: 11_690_000,
-    badge: 'Mới',
-  },
-  {
-    id: 'mb-msi-b650',
-    partKey: 'mainboard',
-    name: 'MSI MAG B650 Tomahawk WiFi',
-    brand: 'MSI',
-    series: 'B650',
-    compatibility: 'AM5',
-    price: 5_790_000,
-    originalPrice: 6_190_000,
-  },
-  {
-    id: 'ram-corsair-32',
-    partKey: 'ram',
-    name: 'Corsair Vengeance RGB DDR5 32GB 6000MHz',
-    brand: 'Corsair',
-    series: 'DDR5',
-    compatibility: '32GB',
-    price: 3_690_000,
-    originalPrice: 4_090_000,
-    badge: 'Hot',
-  },
-  {
-    id: 'ram-kingston-16',
-    partKey: 'ram',
-    name: 'Kingston Fury Beast DDR5 16GB 5600MHz',
-    brand: 'Kingston',
-    series: 'DDR5',
-    compatibility: '16GB',
-    price: 1_890_000,
-  },
-  {
-    id: 'hdd-wd-2tb',
-    partKey: 'hdd',
-    name: 'WD Blue 2TB 7200RPM',
-    brand: 'Western Digital',
-    series: 'HDD',
-    compatibility: '2TB',
-    price: 1_490_000,
-  },
-  {
-    id: 'hdd-seagate-4tb',
-    partKey: 'hdd',
-    name: 'Seagate Barracuda 4TB 5400RPM',
-    brand: 'Seagate',
-    series: 'HDD',
-    compatibility: '4TB',
-    price: 2_390_000,
-  },
-  {
-    id: 'ssd-samsung-1tb',
-    partKey: 'ssd',
-    name: 'Samsung 990 EVO Plus 1TB NVMe',
-    brand: 'Samsung',
-    series: 'NVMe',
-    compatibility: '1TB',
-    price: 2_790_000,
-    originalPrice: 3_090_000,
-  },
-  {
-    id: 'ssd-kingston-1tb',
-    partKey: 'ssd',
-    name: 'Kingston NV3 1TB PCIe 4.0',
-    brand: 'Kingston',
-    series: 'NVMe',
-    compatibility: '1TB',
-    price: 1_790_000,
-  },
-  {
-    id: 'gpu-msi-4070',
-    partKey: 'gpu',
-    name: 'MSI GeForce RTX 4070 SUPER 12GB Ventus 2X',
-    brand: 'MSI',
-    series: 'RTX 4070',
-    compatibility: '12GB',
-    price: 18_990_000,
-    originalPrice: 20_490_000,
-    badge: 'Hot',
-  },
-  {
-    id: 'gpu-gigabyte-4060',
-    partKey: 'gpu',
-    name: 'Gigabyte GeForce RTX 4060 Eagle OC 8GB',
-    brand: 'Gigabyte',
-    series: 'RTX 4060',
-    compatibility: '8GB',
-    price: 8_990_000,
-  },
-  {
-    id: 'psu-corsair-850',
-    partKey: 'psu',
-    name: 'Corsair RM850e 850W 80 Plus Gold',
-    brand: 'Corsair',
-    series: 'Gold',
-    compatibility: '850W',
-    price: 3_290_000,
-    originalPrice: 3_590_000,
-  },
-  {
-    id: 'psu-cooler-750',
-    partKey: 'psu',
-    name: 'Cooler Master MWE Gold 750 V2',
-    brand: 'Cooler Master',
-    series: 'Gold',
-    compatibility: '750W',
-    price: 2_390_000,
-  },
-];
-
 const presetLabels = ['Cấu hình 1', 'Cấu hình 2', 'Cấu hình 3'];
 
 export function BuildPcPage() {
+  // — API data state —
+  const [suggestedBuilds, setSuggestedBuilds] = useState<SuggestedBuild[]>([]);
+  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+
+  // — Config / selection state —
   const [activeConfigIndex, setActiveConfigIndex] = useState(0);
   const [configs, setConfigs] = useState<BuildSelection[]>([{}, {}, {}]);
   const [selectedPartKey, setSelectedPartKey] = useState<PartKey | null>(null);
@@ -334,6 +78,23 @@ export function BuildPcPage() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSeries, setSelectedSeries] = useState('Tất cả');
   const [selectedCompatibility, setSelectedCompatibility] = useState('Tất cả');
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [builds, items] = await Promise.all([
+          fetchBuildPcSuggestions(),
+          fetchBuildPcCatalog(),
+        ]);
+        setSuggestedBuilds(builds);
+        setCatalog(items);
+      } catch (err) {
+        setDataError(err instanceof Error ? err.message : 'Không thể tải dữ liệu Build PC');
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
 
   const activeConfig = configs[activeConfigIndex] ?? {};
   const selectedPart = buildParts.find((part) => part.key === selectedPartKey) ?? null;
@@ -453,14 +214,30 @@ export function BuildPcPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-5">
-          {suggestedBuilds.map((build) => (
+          {dataError ? (
+            <div className="col-span-5 rounded-md border border-[#fde8e8] bg-[#fff5f5] px-4 py-6 text-center text-[13px] text-[#e30019]">
+              <span className="material-symbols-outlined mb-1 text-[28px]">error_outline</span>
+              <p className="font-semibold">Không thể tải dữ liệu</p>
+              <p className="mt-0.5 text-[#666]">{dataError}</p>
+            </div>
+          ) : isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-64 animate-pulse rounded-md border border-[#e8e8e8] bg-[#f5f5f5]"
+              />
+            ))
+          ) : (
+          suggestedBuilds.map((build) => (
             <article
               key={build.id}
               className="group relative flex h-full flex-col rounded-md border border-[#e8e8e8] bg-white p-2.5 transition-all hover:shadow-md"
             >
+              {build.savingsLabel ? (
               <span className="absolute left-1.5 top-1.5 z-10 rounded-sm bg-[#e30019] px-1.5 py-[1px] text-[10px] font-bold text-white">
                 {build.savingsLabel}
               </span>
+              ) : null}
               <button
                 type="button"
                 aria-label={`Yêu thích ${build.name}`}
@@ -499,7 +276,8 @@ export function BuildPcPage() {
                 Thêm vào giỏ
               </button>
             </article>
-          ))}
+          ))
+          )}
         </div>
       </section>
 
