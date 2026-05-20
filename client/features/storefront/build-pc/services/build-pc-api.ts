@@ -6,7 +6,25 @@ import type { CatalogItem, PartKey, SuggestedBuild } from '../types';
 // ── URL resolution ────────────────────────────────────────────────────────────
 
 const MOCK_BASE = '/api/v1';
-const PART_CATEGORY_SLUGS: PartKey[] = ['cpu', 'mainboard', 'ram', 'hdd', 'ssd', 'gpu', 'psu'];
+const PART_CATEGORY_SLUGS: PartKey[] = ['cpu', 'pc-case', 'ram', 'hdd', 'ssd', 'monitor', 'power-supply-psu'];
+const PART_SLUG_ALIASES: Record<string, PartKey> = {
+  mainboard: 'pc-case',
+  'pc-case': 'pc-case',
+  gpu: 'monitor',
+  vga: 'monitor',
+  monitor: 'monitor',
+  psu: 'power-supply-psu',
+  'power-supply-psu': 'power-supply-psu',
+};
+const PART_FETCH_SLUGS: Record<PartKey, string[]> = {
+  cpu: ['cpu'],
+  'pc-case': ['pc-case', 'mainboard'],
+  ram: ['ram'],
+  hdd: ['hdd'],
+  ssd: ['ssd'],
+  monitor: ['monitor', 'gpu', 'vga'],
+  'power-supply-psu': ['power-supply-psu', 'psu'],
+};
 
 /**
  * For client-side Build PC calls:
@@ -127,7 +145,19 @@ type PagedResponse = {
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
 function derivePartKey(categorySlugs: string[] = []): PartKey | undefined {
-  return categorySlugs.find((slug): slug is PartKey => (PART_CATEGORY_SLUGS as string[]).includes(slug));
+  for (const rawSlug of categorySlugs) {
+    const slug = rawSlug.trim().toLowerCase();
+    if ((PART_CATEGORY_SLUGS as string[]).includes(slug)) {
+      return slug as PartKey;
+    }
+
+    const alias = PART_SLUG_ALIASES[slug];
+    if (alias) {
+      return alias;
+    }
+  }
+
+  return undefined;
 }
 
 function readSpecValue(specs: ApiProduct['specs'], ...candidates: string[]): string {
@@ -219,6 +249,26 @@ async function fetchProductsPage(path: string): Promise<ApiProduct[]> {
   return readItems(response, 'Build PC API: danh sách sản phẩm có định dạng không hợp lệ');
 }
 
+async function fetchProductsByCategorySlug(slug: string): Promise<ApiProduct[]> {
+  return fetchProductsPage(`/products/category/slug/${encodeURIComponent(slug)}${buildQuery({ size: 100 })}`);
+}
+
+async function fetchPartCatalogBySlugs(slugs: string[]): Promise<ApiProduct[]> {
+  for (const slug of slugs) {
+    try {
+      const products = await fetchProductsByCategorySlug(slug);
+      if (products.length > 0) {
+        return products;
+      }
+    } catch {
+      // A missing legacy slug (404) should not fail the whole Build PC catalog flow.
+      // Continue probing other aliases for this part.
+    }
+  }
+
+  return [];
+}
+
 function dedupeProducts(products: ApiProduct[]): ApiProduct[] {
   const seen = new Set<string>();
 
@@ -255,11 +305,11 @@ export async function fetchBuildPcSuggestions(categorySlug?: string): Promise<Su
   return fallbackProducts.map(mapToSuggestedBuild);
 }
 
-/** Fetch all PC part catalog items (CPU / Mainboard / RAM / SSD / HDD / GPU / PSU). */
+/** Fetch all PC part catalog items (CPU / PC Case / RAM / SSD / HDD / Monitor / PSU). */
 export async function fetchBuildPcCatalog(): Promise<CatalogItem[]> {
   const pages = await Promise.all(
-    PART_CATEGORY_SLUGS.map((slug) =>
-      fetchProductsPage(`/products/category/slug/${encodeURIComponent(slug)}${buildQuery({ size: 100 })}`),
+    PART_CATEGORY_SLUGS.map((partKey) =>
+      fetchPartCatalogBySlugs(PART_FETCH_SLUGS[partKey]),
     ),
   );
 

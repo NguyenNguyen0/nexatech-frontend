@@ -1,4 +1,4 @@
-export type PartKey = 'cpu' | 'mainboard' | 'ram' | 'hdd' | 'ssd' | 'gpu' | 'psu';
+export type PartKey = 'cpu' | 'pc-case' | 'ram' | 'hdd' | 'ssd' | 'monitor' | 'power-supply-psu';
 
 export type BuildPart = {
   key: PartKey;
