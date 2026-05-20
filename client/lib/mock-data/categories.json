@@ -1,11 +1,19 @@
 [
   { "id": "cat-laptop", "name": "Laptop Gaming", "slug": "laptop", "parentId": null },
-  { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": null },
+  { "id": "cat-pc", "name": "PC", "slug": "pc", "parentId": null },
+  { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": "cat-pc" },
+  { "id": "cat-graphic-pc", "name": "Graphic PC", "slug": "graphic-pc", "parentId": "cat-pc" },
+  { "id": "cat-office-pc", "name": "Office PC", "slug": "office-pc", "parentId": "cat-pc" },
   { "id": "cat-monitor", "name": "Màn hình", "slug": "monitor", "parentId": null },
   { "id": "cat-keyboard", "name": "Bàn phím", "slug": "keyboard", "parentId": null },
   { "id": "cat-mouse", "name": "Chuột gaming", "slug": "mouse", "parentId": null },
   { "id": "cat-chair", "name": "Ghế gaming", "slug": "chair", "parentId": null },
   { "id": "cat-headset", "name": "Tai nghe", "slug": "headset", "parentId": null },
   { "id": "cat-gpu", "name": "Card màn hình", "slug": "gpu", "parentId": null },
-  { "id": "cat-ram", "name": "RAM", "slug": "ram", "parentId": null }
+  { "id": "cat-ram", "name": "RAM", "slug": "ram", "parentId": null },
+  { "id": "cat-cpu", "name": "Vi xử lý", "slug": "cpu", "parentId": null },
+  { "id": "cat-mainboard", "name": "Bo mạch chủ", "slug": "mainboard", "parentId": null },
+  { "id": "cat-ssd", "name": "Ổ SSD", "slug": "ssd", "parentId": null },
+  { "id": "cat-hdd", "name": "Ổ HDD", "slug": "hdd", "parentId": null },
+  { "id": "cat-psu", "name": "Nguồn máy tính", "slug": "psu", "parentId": null }
 ]

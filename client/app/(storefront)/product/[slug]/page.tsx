@@ -1,26 +1,28 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense, cache } from 'react';
 import { ProductReviewSection } from '@/features/products/components/product-review-section';
-import { fetchProductBySlug, fetchProductReviews, fetchRelatedProducts } from '@/features/products/services/products-api';
+import { fetchProductBySlug, fetchProductReviews } from '@/features/products/services/products-api';
 import type { PageResult, ProductReview } from '@/features/products/types';
 import {
   PdpBreadcrumb,
   PdpBlogReview,
   PdpGallery,
+  PdpRelatedProductsFallback,
+  PdpRelatedProductsSection,
   PdpSummary,
   PdpSpecs,
-  PdpRelatedProducts,
 } from '@/features/storefront/product-detail/components';
 
 type RouteParams = Record<string, string | string[] | undefined>;
 
-async function loadProduct(slug: string) {
+const loadProduct = cache(async (slug: string) => {
   try {
     return await fetchProductBySlug(slug);
   } catch {
     return null;
   }
-}
+});
 
 export async function generateMetadata({ params }: { params?: Promise<RouteParams> }): Promise<Metadata> {
   const resolvedParams = (await params) ?? {};
@@ -47,12 +49,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
     notFound();
   }
 
-  const [relatedProducts, reviewsPage] = await Promise.all([
-    fetchRelatedProducts(product.slug, product.id).catch(() => []),
-    fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
+  const reviewsPage = await fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
       () => ({ items: [], page: 1, size: 10, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductReview>),
-    ),
-  ]);
+    );
 
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
 
@@ -107,7 +106,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
       </div>
 
       <div className="mt-12">
-        <PdpRelatedProducts products={relatedProducts} />
+        <Suspense fallback={<PdpRelatedProductsFallback />}>
+          <PdpRelatedProductsSection productSlug={product.slug} productId={product.id} />
+        </Suspense>
       </div>
     </section>
   );
