@@ -1,7 +1,8 @@
 import { featureFlags, getMockApiIndicator } from '@/lib/feature-flags';
-import { normalizeCollection } from '@/features/products/utils';
+import { normalizeCollection, normalizePageResult } from '@/features/products/utils';
 import { formatCurrency } from '@/lib/utils';
-import type { CatalogItem, PartKey, SuggestedBuild } from '../types';
+import type { PageResult } from '@/features/products/types';
+import type { CatalogItem, CatalogPageResult, PartKey, SuggestedBuild } from '../types';
 
 // ── URL resolution ────────────────────────────────────────────────────────────
 
@@ -140,9 +141,24 @@ type PagedResponse = {
   content?: ApiProduct[];
   results?: ApiProduct[];
   data?: ApiProduct[];
+  page?: number;
+  size?: number;
+  totalElements?: number;
+  totalPages?: number;
+  hasNext?: boolean;
 };
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
+
+function slugify(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]/g, '');
+}
 
 function derivePartKey(categorySlugs: string[] = []): PartKey | undefined {
   for (const rawSlug of categorySlugs) {
@@ -189,6 +205,7 @@ function mapToCatalogItem(p: ApiProduct): CatalogItem | null {
     id: p.id,
     partKey,
     name: p.name,
+    slug: slugify(p.name),
     brand: p.brandName ?? '',
     series: readSpecValue(p.specs, 'series', 'Series'),
     compatibility: readSpecValue(p.specs, 'compatibility', 'Compatibility'),
@@ -232,6 +249,20 @@ function readItems(response: ApiProduct[] | PagedResponse, errorMessage: string)
   return items;
 }
 
+function mapCatalogPageResult(result: PageResult<ApiProduct>): CatalogPageResult {
+  return {
+    items: result.items.flatMap((product) => {
+      const item = mapToCatalogItem(product);
+      return item ? [item] : [];
+    }),
+    page: result.page,
+    size: result.size,
+    totalItems: result.totalItems,
+    totalPages: result.totalPages ?? 1,
+    hasNext: result.hasNext,
+  };
+}
+
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const searchParams = new URLSearchParams();
 
@@ -249,16 +280,21 @@ async function fetchProductsPage(path: string): Promise<ApiProduct[]> {
   return readItems(response, 'Build PC API: danh sách sản phẩm có định dạng không hợp lệ');
 }
 
-async function fetchProductsByCategorySlug(slug: string): Promise<ApiProduct[]> {
-  return fetchProductsPage(`/products/category/slug/${encodeURIComponent(slug)}${buildQuery({ size: 100 })}`);
+async function fetchProductsPageResult(path: string): Promise<PageResult<ApiProduct>> {
+  const response = await apiFetch<ApiProduct[] | PagedResponse>(path);
+  return normalizePageResult<ApiProduct>(response);
+}
+
+async function fetchProductsByCategorySlug(slug: string, page?: number): Promise<PageResult<ApiProduct>> {
+  return fetchProductsPageResult(`/products/category/slug/${encodeURIComponent(slug)}${buildQuery({ size: 10, page })}`);
 }
 
 async function fetchPartCatalogBySlugs(slugs: string[]): Promise<ApiProduct[]> {
   for (const slug of slugs) {
     try {
-      const products = await fetchProductsByCategorySlug(slug);
-      if (products.length > 0) {
-        return products;
+      const result = await fetchProductsByCategorySlug(slug, 0);
+      if (result.items.length > 0) {
+        return result.items;
       }
     } catch {
       // A missing legacy slug (404) should not fail the whole Build PC catalog flow.
@@ -317,4 +353,22 @@ export async function fetchBuildPcCatalog(): Promise<CatalogItem[]> {
     const item = mapToCatalogItem(p);
     return item ? [item] : [];
   });
+}
+
+/** Fetch paginated items for a specific part category. */
+export async function fetchPartsByKey(partKey: PartKey, page: number = 0): Promise<CatalogPageResult> {
+  const slugs = PART_FETCH_SLUGS[partKey];
+
+  for (const slug of slugs) {
+    try {
+      const result = await fetchProductsByCategorySlug(slug, page);
+      if (result.items.length > 0 || typeof result.totalPages === 'number') {
+        return mapCatalogPageResult(result);
+      }
+    } catch {
+      // Continue to next slug alias if this one fails
+    }
+  }
+
+  return { items: [], page, size: 10, totalPages: 1, totalItems: 0, hasNext: false };
 }

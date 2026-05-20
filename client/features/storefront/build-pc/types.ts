@@ -12,6 +12,7 @@ export type CatalogItem = {
   id: string;
   partKey: PartKey;
   name: string;
+  slug: string;
   brand: string;
   series: string;
   compatibility: string;
@@ -31,6 +32,15 @@ export type SuggestedBuild = {
   discountLabel: string;
   savingsLabel: string;
   image: string;
+};
+
+export type CatalogPageResult = {
+  items: CatalogItem[];
+  page: number;
+  size: number;
+  totalItems?: number;
+  totalPages: number;
+  hasNext?: boolean;
 };
 
 export type BuildSelection = Partial<Record<PartKey, CatalogItem>>;

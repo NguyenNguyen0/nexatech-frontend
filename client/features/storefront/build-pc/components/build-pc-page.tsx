@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
-import { fetchBuildPcCatalog, fetchBuildPcSuggestions } from '../services/build-pc-api';
+import { fetchBuildPcSuggestions, fetchPartsByKey } from '../services/build-pc-api';
 import type { BuildPart, BuildSelection, CatalogItem, PartKey, SuggestedBuild } from '../types';
 import { BuildPartRow } from './build-part-row';
 import { BuildPcHeader } from './build-pc-header';
@@ -74,8 +74,9 @@ const suggestedBuildCategories = [
 export function BuildPcPage() {
   // — API data state —
   const [suggestedBuilds, setSuggestedBuilds] = useState<SuggestedBuild[]>([]);
-  const [catalog, setCatalog] = useState<CatalogItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [modalItems, setModalItems] = useState<CatalogItem[]>([]);
+  const [isSuggestedBuildsLoading, setIsSuggestedBuildsLoading] = useState(false);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
   const [activeSuggestedCategory, setActiveSuggestedCategory] = useState<string>('gaming-pc');
 
@@ -88,21 +89,13 @@ export function BuildPcPage() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSeries, setSelectedSeries] = useState('Tất cả');
   const [selectedMinRating, setSelectedMinRating] = useState(0);
+  const [modalPage, setModalPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
+  // Load suggested builds on category change
   useEffect(() => {
     void (async () => {
-      try {
-        const items = await fetchBuildPcCatalog();
-        setCatalog(items);
-      } catch (err) {
-        setDataError(err instanceof Error ? err.message : 'Không thể tải dữ liệu Build PC');
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    void (async () => {
-      setIsLoading(true);
+      setIsSuggestedBuildsLoading(true);
       try {
         const builds = await fetchBuildPcSuggestions(activeSuggestedCategory);
         setSuggestedBuilds(builds);
@@ -110,22 +103,45 @@ export function BuildPcPage() {
       } catch (err) {
         setDataError(err instanceof Error ? err.message : 'Không thể tải dữ liệu Build PC');
       } finally {
-        setIsLoading(false);
+        setIsSuggestedBuildsLoading(false);
       }
     })();
   }, [activeSuggestedCategory]);
 
+  useEffect(() => {
+    if (!selectedPartKey) {
+      setModalItems([]);
+      setIsCatalogLoading(false);
+      return;
+    }
+
+    void (async () => {
+      setIsCatalogLoading(true);
+      try {
+        const result = await fetchPartsByKey(selectedPartKey, modalPage);
+        setModalItems(result.items);
+        setTotalPages(result.totalPages);
+        setDataError(null);
+      } catch (err) {
+        setModalItems([]);
+        setTotalPages(1);
+        setDataError(err instanceof Error ? err.message : 'Không thể tải dữ liệu Build PC');
+      } finally {
+        setIsCatalogLoading(false);
+      }
+    })();
+  }, [selectedPartKey, modalPage]);
+
   const activeConfig = configs[activeConfigIndex] ?? {};
   const selectedPart = buildParts.find((part) => part.key === selectedPartKey) ?? null;
-  const itemsForSelectedPart = catalog.filter((item) => item.partKey === selectedPartKey);
-  const availableBrands = [...new Set(itemsForSelectedPart.map((item) => item.brand))];
-  const availableSeries = [...new Set(itemsForSelectedPart.map((item) => item.series))];
-  const availableRatings = [...new Set(itemsForSelectedPart.map((item) => Math.floor(item.averageRating)))].sort((a, b) => b - a);
+  const availableBrands = [...new Set(modalItems.map((item) => item.brand))];
+  const availableSeries = [...new Set(modalItems.map((item) => item.series))];
+  const availableRatings = [...new Set(modalItems.map((item) => Math.floor(item.averageRating)))].sort((a, b) => b - a);
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    return itemsForSelectedPart.filter((item) => {
+    return modalItems.filter((item) => {
       const matchesSearch =
         normalizedSearch.length === 0 ||
         item.name.toLowerCase().includes(normalizedSearch) ||
@@ -137,7 +153,7 @@ export function BuildPcPage() {
       return matchesSearch && matchesBrand && matchesSeries && matchesRating;
     });
   }, [
-    itemsForSelectedPart,
+    modalItems,
     searchTerm,
     selectedBrands,
     selectedMinRating,
@@ -146,7 +162,7 @@ export function BuildPcPage() {
 
   const total = Object.values(activeConfig).reduce((sum, item) => sum + (item?.price ?? 0), 0);
   const selectedCount = Object.keys(activeConfig).length;
-  const pendingItem = filteredItems.find((item) => item.id === pendingItemId) ?? null;
+  const selectedItemForModal = selectedPartKey ? activeConfig[selectedPartKey] ?? null : null;
 
   const openPartModal = (partKey: PartKey) => {
     setSelectedPartKey(partKey);
@@ -155,6 +171,8 @@ export function BuildPcPage() {
     setSelectedBrands([]);
     setSelectedSeries('Tất cả');
     setSelectedMinRating(0);
+    setModalPage(0);
+    setTotalPages(1);
   };
 
   const closePartModal = () => {
@@ -162,15 +180,18 @@ export function BuildPcPage() {
     setPendingItemId(null);
   };
 
-  const confirmSelection = () => {
-    if (!selectedPartKey || !pendingItem) return;
+  const selectAndConfirm = (itemId: string) => {
+    if (!selectedPartKey) return;
+
+    const selectedItem = modalItems.find((item) => item.id === itemId);
+    if (!selectedItem) return;
 
     setConfigs((current) =>
       current.map((config, index) =>
         index === activeConfigIndex
           ? {
               ...config,
-              [selectedPartKey]: pendingItem,
+              [selectedPartKey]: selectedItem,
             }
           : config,
       ),
@@ -195,6 +216,18 @@ export function BuildPcPage() {
     setSelectedBrands([]);
     setSelectedSeries('Tất cả');
     setSelectedMinRating(0);
+  };
+
+  const deletePartFromConfig = (partKey: PartKey) => {
+    setConfigs((current) =>
+      current.map((config, index) => {
+        if (index !== activeConfigIndex) return config;
+
+        const updated = { ...config };
+        delete updated[partKey];
+        return updated;
+      }),
+    );
   };
 
   const buildPcTheme = {
@@ -229,7 +262,7 @@ export function BuildPcPage() {
 
         <SuggestedBuildGrid
           suggestedBuilds={suggestedBuilds}
-          isLoading={isLoading}
+          isLoading={isSuggestedBuildsLoading}
           dataError={dataError}
         />
       </section>
@@ -250,6 +283,7 @@ export function BuildPcPage() {
                 part={part}
                 selectedItem={activeConfig[part.key]}
                 onChoose={() => openPartModal(part.key)}
+                onDelete={() => deletePartFromConfig(part.key)}
               />
             ))}
           </div>
@@ -266,9 +300,9 @@ export function BuildPcPage() {
       {selectedPart ? (
         <PartPickerModal
           selectedPart={selectedPart}
-          itemsForSelectedPart={itemsForSelectedPart}
           filteredItems={filteredItems}
           pendingItemId={pendingItemId}
+          selectedItem={selectedItemForModal}
           searchTerm={searchTerm}
           selectedBrands={selectedBrands}
           selectedSeries={selectedSeries}
@@ -276,15 +310,17 @@ export function BuildPcPage() {
           availableBrands={availableBrands}
           availableSeries={availableSeries}
           availableRatings={availableRatings}
+          currentPage={modalPage}
+          totalPages={totalPages}
+          isLoading={isCatalogLoading}
           onClose={closePartModal}
-          onConfirm={confirmSelection}
-          onSelectPendingItem={setPendingItemId}
+          onSelectPendingItem={selectAndConfirm}
           onSearchTermChange={setSearchTerm}
           onToggleBrand={toggleBrand}
           onSeriesChange={setSelectedSeries}
           onMinRatingChange={setSelectedMinRating}
           onResetFilters={resetFilters}
-          hasPendingItem={Boolean(pendingItem)}
+          onPageChange={setModalPage}
         />
       ) : null}
     </div>
