@@ -3,7 +3,7 @@ import { Laptop, Monitor, Keyboard, Mouse, Headphones, Cpu } from 'lucide-react'
 
 const categories = [
   { name: 'Laptop', icon: Laptop, slug: 'laptop' },
-  { name: 'PC Gaming', icon: Cpu, slug: 'gaming-pc' },
+  { name: 'Laptop Gaming', icon: Cpu, slug: 'gaming-laptop' },
   { name: 'Màn hình', icon: Monitor, slug: 'monitor' },
   { name: 'Bàn phím', icon: Keyboard, slug: 'keyboard' },
   { name: 'Chuột', icon: Mouse, slug: 'mouse' },

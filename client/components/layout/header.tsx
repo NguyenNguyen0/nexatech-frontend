@@ -11,7 +11,7 @@ import { CategoryDialog } from './category-dialog';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
-  { label: 'Gaming PC', href: '/product/collection/gaming-pc' },
+  { label: 'Laptop Gaming', href: '/product/collection/gaming-laptop' },
   { label: 'Build PC', href: '/build-pc' },
   { label: 'Màn hình', href: '/product/collection/monitor' },
   { label: 'Bàn phím', href: '/product/collection/keyboard' },

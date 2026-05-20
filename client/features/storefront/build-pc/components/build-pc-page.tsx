@@ -65,6 +65,11 @@ const buildParts: BuildPart[] = [
 ];
 
 const presetLabels = ['Cấu hình 1', 'Cấu hình 2', 'Cấu hình 3'];
+const suggestedBuildCategories = [
+  { label: 'PC Gaming', slug: 'gaming-pc' },
+  { label: 'PC Đồ họa', slug: 'graphic-pc' },
+  { label: 'PC Văn phòng', slug: 'office-pc' },
+] as const;
 
 export function BuildPcPage() {
   // — API data state —
@@ -72,6 +77,7 @@ export function BuildPcPage() {
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [activeSuggestedCategory, setActiveSuggestedCategory] = useState<string>('gaming-pc');
 
   // — Config / selection state —
   const [activeConfigIndex, setActiveConfigIndex] = useState(0);
@@ -86,19 +92,28 @@ export function BuildPcPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [builds, items] = await Promise.all([
-          fetchBuildPcSuggestions(),
-          fetchBuildPcCatalog(),
-        ]);
-        setSuggestedBuilds(builds);
+        const items = await fetchBuildPcCatalog();
         setCatalog(items);
+      } catch (err) {
+        setDataError(err instanceof Error ? err.message : 'Không thể tải dữ liệu Build PC');
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      setIsLoading(true);
+      try {
+        const builds = await fetchBuildPcSuggestions(activeSuggestedCategory);
+        setSuggestedBuilds(builds);
+        setDataError(null);
       } catch (err) {
         setDataError(err instanceof Error ? err.message : 'Không thể tải dữ liệu Build PC');
       } finally {
         setIsLoading(false);
       }
     })();
-  }, []);
+  }, [activeSuggestedCategory]);
 
   const activeConfig = configs[activeConfigIndex] ?? {};
   const selectedPart = buildParts.find((part) => part.key === selectedPartKey) ?? null;
@@ -195,18 +210,19 @@ export function BuildPcPage() {
         <BuildPcHeader />
 
         <div className="mb-4 flex flex-wrap gap-1">
-          {['PC Gaming', 'PC Đồ họa', 'PC Văn phòng'].map((category, index) => (
+          {suggestedBuildCategories.map((category) => (
             <button
-              key={category}
+              key={category.slug}
               type="button"
+              onClick={() => setActiveSuggestedCategory(category.slug)}
               className={cn(
                 'rounded-sm px-5 py-2 text-[13px] font-bold transition-colors',
-                index === 0
+                activeSuggestedCategory === category.slug
                   ? 'bg-primary text-on-primary shadow-sm'
                   : 'bg-[#e8ecf1] text-on-surface-variant hover:bg-[#dce3eb]',
               )}
             >
-              {category}
+              {category.label}
             </button>
           ))}
         </div>

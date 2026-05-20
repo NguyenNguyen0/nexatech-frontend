@@ -1,6 +1,9 @@
 [
   { "id": "cat-laptop", "name": "Laptop Gaming", "slug": "laptop", "parentId": null },
-  { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": null },
+  { "id": "cat-pc", "name": "PC", "slug": "pc", "parentId": null },
+  { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": "cat-pc" },
+  { "id": "cat-graphic-pc", "name": "Graphic PC", "slug": "graphic-pc", "parentId": "cat-pc" },
+  { "id": "cat-office-pc", "name": "Office PC", "slug": "office-pc", "parentId": "cat-pc" },
   { "id": "cat-monitor", "name": "Màn hình", "slug": "monitor", "parentId": null },
   { "id": "cat-keyboard", "name": "Bàn phím", "slug": "keyboard", "parentId": null },
   { "id": "cat-mouse", "name": "Chuột gaming", "slug": "mouse", "parentId": null },

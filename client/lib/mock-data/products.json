@@ -993,5 +993,129 @@
       "PSU": "850W 80 Plus Gold",
       "Phù hợp": "Gaming 1440p / 4K"
     }
+  },
+  {
+    "id": "prod-pc-graphic-vision-x",
+    "name": "PC PV Graphic Vision X (i9-14900K / RTX 4080 SUPER)",
+    "slug": "pc-pv-graphic-vision-x",
+    "description": "Cấu hình đồ họa cao cấp cho dựng phim, render 3D và hậu kỳ chuyên nghiệp với Intel Core i9 và RTX 4080 SUPER.",
+    "price": 62990000,
+    "originalPrice": 66990000,
+    "stockQuantity": 4,
+    "stockStatus": "LOW_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-graphic-pc",
+    "primaryCategoryName": "Graphic PC",
+    "categoryIds": ["cat-graphic-pc"],
+    "categorySlugs": ["graphic-pc"],
+    "brandId": "brand-pv",
+    "brandName": "PV Gaming",
+    "tags": ["suggested-build"],
+    "averageRating": 4.8,
+    "reviewCount": 7,
+    "status": "ACTIVE",
+    "specs": {
+      "CPU": "Intel Core i9-14900K",
+      "GPU": "RTX 4080 SUPER 16GB",
+      "RAM": "64GB DDR5",
+      "SSD": "2TB NVMe",
+      "PSU": "1000W 80 Plus Gold",
+      "Phù hợp": "Render 3D / Dựng phim 4K"
+    }
+  },
+  {
+    "id": "prod-pc-graphic-render-pro",
+    "name": "PC PV Graphic Render Pro (Ryzen 9 7900X / RTX 4070 SUPER)",
+    "slug": "pc-pv-graphic-render-pro",
+    "description": "Workstation đồ họa cân bằng hiệu năng và chi phí, tối ưu cho Adobe CC, Blender và AutoCAD.",
+    "price": 45990000,
+    "originalPrice": 48990000,
+    "stockQuantity": 6,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-graphic-pc",
+    "primaryCategoryName": "Graphic PC",
+    "categoryIds": ["cat-graphic-pc"],
+    "categorySlugs": ["graphic-pc"],
+    "brandId": "brand-pv",
+    "brandName": "PV Gaming",
+    "tags": ["suggested-build"],
+    "averageRating": 4.7,
+    "reviewCount": 10,
+    "status": "ACTIVE",
+    "specs": {
+      "CPU": "AMD Ryzen 9 7900X",
+      "GPU": "RTX 4070 SUPER 12GB",
+      "RAM": "32GB DDR5",
+      "SSD": "1TB NVMe",
+      "PSU": "850W 80 Plus Gold",
+      "Phù hợp": "Thiết kế đồ họa / Motion"
+    }
+  },
+  {
+    "id": "prod-pc-office-zen-s1",
+    "name": "PC PV Office Zen S1 (Core i5-14400 / UHD Graphics)",
+    "slug": "pc-pv-office-zen-s1",
+    "description": "Bộ PC văn phòng mượt mà cho tác vụ văn phòng, họp online và quản trị hệ thống nội bộ.",
+    "price": 13990000,
+    "originalPrice": 15490000,
+    "stockQuantity": 20,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1518773553398-650c184e0bb3?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-office-pc",
+    "primaryCategoryName": "Office PC",
+    "categoryIds": ["cat-office-pc"],
+    "categorySlugs": ["office-pc"],
+    "brandId": "brand-pv",
+    "brandName": "PV Gaming",
+    "tags": ["suggested-build"],
+    "averageRating": 4.6,
+    "reviewCount": 21,
+    "status": "ACTIVE",
+    "specs": {
+      "CPU": "Intel Core i5-14400",
+      "GPU": "Intel UHD Graphics",
+      "RAM": "16GB DDR5",
+      "SSD": "512GB NVMe",
+      "PSU": "550W 80 Plus Bronze",
+      "Phù hợp": "Văn phòng / Kế toán"
+    }
+  },
+  {
+    "id": "prod-pc-office-focus-b2",
+    "name": "PC PV Office Focus B2 (Ryzen 5 8600G / Radeon 760M)",
+    "slug": "pc-pv-office-focus-b2",
+    "description": "Giải pháp PC văn phòng tiết kiệm điện, hoạt động ổn định, phù hợp doanh nghiệp vừa và nhỏ.",
+    "price": 11990000,
+    "originalPrice": 13290000,
+    "stockQuantity": 24,
+    "stockStatus": "IN_STOCK",
+    "images": [
+      "https://images.unsplash.com/photo-1591405351990-4726e331f141?auto=format&fit=crop&q=80&w=800"
+    ],
+    "primaryCategoryId": "cat-office-pc",
+    "primaryCategoryName": "Office PC",
+    "categoryIds": ["cat-office-pc"],
+    "categorySlugs": ["office-pc"],
+    "brandId": "brand-pv",
+    "brandName": "PV Gaming",
+    "tags": ["suggested-build"],
+    "averageRating": 4.5,
+    "reviewCount": 19,
+    "status": "ACTIVE",
+    "specs": {
+      "CPU": "AMD Ryzen 5 8600G",
+      "GPU": "Radeon 760M",
+      "RAM": "16GB DDR5",
+      "SSD": "512GB NVMe",
+      "PSU": "500W 80 Plus Bronze",
+      "Phù hợp": "Văn phòng / Học tập"
+    }
   }
 ]
