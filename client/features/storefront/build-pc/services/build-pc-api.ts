@@ -1,15 +1,17 @@
 import { featureFlags, getMockApiIndicator } from '@/lib/feature-flags';
+import { normalizeCollection } from '@/features/products/utils';
 import { formatCurrency } from '@/lib/utils';
 import type { CatalogItem, PartKey, SuggestedBuild } from '../types';
 
 // ── URL resolution ────────────────────────────────────────────────────────────
 
 const MOCK_BASE = '/api/v1';
+const PART_CATEGORY_SLUGS: PartKey[] = ['cpu', 'mainboard', 'ram', 'hdd', 'ssd', 'gpu', 'psu'];
 
 /**
  * For client-side Build PC calls:
- * - USE_MOCK_API=true  → relative /api/v1/build-pc/* (served by local mock route)
- * - USE_MOCK_API=false → absolute http://{backend}/api/v1/build-pc/* (real API, CORS required)
+ * - USE_MOCK_API=true  → relative /api/v1/products* (served by local mock route)
+ * - USE_MOCK_API=false → absolute http://{backend}/api/v1/products* (real product API)
  */
 function resolveUrl(path: string): string {
   if (featureFlags.USE_MOCK_API) {
@@ -82,6 +84,18 @@ function unwrapResponse<T>(payload: unknown): T {
     return p['data'] as T;
   }
 
+  // { success, data, message, timestamp }
+  if (typeof p['success'] === 'boolean' && 'data' in p) {
+    if (!p['success']) {
+      throw new Error(
+        typeof p['message'] === 'string' && p['message']
+          ? p['message']
+          : 'Build PC API error',
+      );
+    }
+    return p['data'] as T;
+  }
+
   // bare array or object passthrough
   return payload as T;
 }
@@ -105,14 +119,36 @@ type ApiProduct = {
 
 type PagedResponse = {
   items: ApiProduct[];
+  content?: ApiProduct[];
+  results?: ApiProduct[];
+  data?: ApiProduct[];
 };
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
 
-const PC_PART_KEYS: PartKey[] = ['cpu', 'mainboard', 'ram', 'hdd', 'ssd', 'gpu', 'psu'];
-
 function derivePartKey(categorySlugs: string[] = []): PartKey | undefined {
-  return categorySlugs.find((s): s is PartKey => (PC_PART_KEYS as string[]).includes(s));
+  return categorySlugs.find((slug): slug is PartKey => (PART_CATEGORY_SLUGS as string[]).includes(slug));
+}
+
+function readSpecValue(specs: ApiProduct['specs'], ...candidates: string[]): string {
+  if (!specs) return '';
+
+  for (const candidate of candidates) {
+    const direct = specs[candidate];
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct;
+    }
+
+    const matchedKey = Object.keys(specs).find((key) => key.toLowerCase() === candidate.toLowerCase());
+    if (matchedKey) {
+      const matchedValue = specs[matchedKey];
+      if (typeof matchedValue === 'string' && matchedValue.trim()) {
+        return matchedValue;
+      }
+    }
+  }
+
+  return '';
 }
 
 function mapToCatalogItem(p: ApiProduct): CatalogItem | null {
@@ -124,8 +160,8 @@ function mapToCatalogItem(p: ApiProduct): CatalogItem | null {
     partKey,
     name: p.name,
     brand: p.brandName ?? '',
-    series: p.specs?.['Series'] ?? '',
-    compatibility: p.specs?.['Compatibility'] ?? '',
+    series: readSpecValue(p.specs, 'series', 'Series'),
+    compatibility: readSpecValue(p.specs, 'compatibility', 'Compatibility'),
     averageRating: p.averageRating ?? 0,
     price: p.price,
     originalPrice: p.compareAtPrice ?? p.originalPrice,
@@ -141,9 +177,9 @@ function mapToSuggestedBuild(p: ApiProduct): SuggestedBuild {
   const discountPct = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
 
   const specItems: string[] = [];
-  const specs = p.specs ?? {};
   for (const key of ['CPU', 'GPU', 'RAM']) {
-    if (specs[key]) specItems.push(specs[key]);
+    const value = readSpecValue(p.specs, key, key.toLowerCase());
+    if (value) specItems.push(value);
   }
 
   return {
@@ -158,25 +194,76 @@ function mapToSuggestedBuild(p: ApiProduct): SuggestedBuild {
   };
 }
 
+function readItems(response: ApiProduct[] | PagedResponse, errorMessage: string): ApiProduct[] {
+  const items = Array.isArray(response) ? response : normalizeCollection<ApiProduct>(response);
+  if (!Array.isArray(items)) {
+    throw new Error(errorMessage);
+  }
+  return items;
+}
+
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '') continue;
+    searchParams.set(key, String(value));
+  }
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
+async function fetchProductsPage(path: string): Promise<ApiProduct[]> {
+  const response = await apiFetch<ApiProduct[] | PagedResponse>(path);
+  return readItems(response, 'Build PC API: danh sách sản phẩm có định dạng không hợp lệ');
+}
+
+function dedupeProducts(products: ApiProduct[]): ApiProduct[] {
+  const seen = new Set<string>();
+
+  return products.filter((product) => {
+    const key = product.id || product.name;
+    if (!key || seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /** Fetch suggested pre-built PC configurations. */
-export async function fetchBuildPcSuggestions(): Promise<SuggestedBuild[]> {
-  const products = await apiFetch<ApiProduct[]>('/build-pc/suggested-builds');
-  if (!Array.isArray(products)) {
-    throw new Error('Build PC API: suggested-builds có định dạng không hợp lệ');
+export async function fetchBuildPcSuggestions(categorySlug?: string): Promise<SuggestedBuild[]> {
+  const query = buildQuery({
+    tags: 'suggested-build',
+    categorySlug,
+    size: 12,
+  });
+  const taggedProducts = await fetchProductsPage(`/products${query}`);
+  if (taggedProducts.length > 0) {
+    return taggedProducts.map(mapToSuggestedBuild);
   }
-  return products.map(mapToSuggestedBuild);
+
+  const fallbackQuery = buildQuery({
+    categorySlug,
+    size: 12,
+  });
+  const fallbackProducts = await fetchProductsPage(`/products${fallbackQuery}`);
+  return fallbackProducts.map(mapToSuggestedBuild);
 }
 
 /** Fetch all PC part catalog items (CPU / Mainboard / RAM / SSD / HDD / GPU / PSU). */
 export async function fetchBuildPcCatalog(): Promise<CatalogItem[]> {
-  const response = await apiFetch<ApiProduct[] | PagedResponse>('/build-pc/catalog?size=200');
-  const items = Array.isArray(response) ? response : (response as PagedResponse).items;
-  if (!Array.isArray(items)) {
-    throw new Error('Build PC API: catalog có định dạng không hợp lệ');
-  }
-  return items.flatMap((p) => {
+  const pages = await Promise.all(
+    PART_CATEGORY_SLUGS.map((slug) =>
+      fetchProductsPage(`/products/category/slug/${encodeURIComponent(slug)}${buildQuery({ size: 100 })}`),
+    ),
+  );
+
+  return dedupeProducts(pages.flat()).flatMap((p) => {
     const item = mapToCatalogItem(p);
     return item ? [item] : [];
   });

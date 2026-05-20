@@ -62,11 +62,86 @@ function notFound(message = 'Not found') {
   return NextResponse.json({ code: 1404, message }, { status: 404 });
 }
 
+function normalizeFilterValue(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function collectSpecsFilters(url: URL) {
+  const specsFilter: Record<string, string[]> = {};
+
+  for (const [key, value] of url.searchParams.entries()) {
+    if (!key.startsWith('specs.') || !value.trim()) continue;
+
+    const specKey = key.slice(6);
+    specsFilter[specKey] ??= [];
+    specsFilter[specKey].push(normalizeFilterValue(value));
+  }
+
+  return specsFilter;
+}
+
+function readSpecValue(specs: Record<string, string> | undefined, targetKey: string) {
+  if (!specs) return '';
+
+  const direct = specs[targetKey];
+  if (typeof direct === 'string') return direct;
+
+  const matchedKey = Object.keys(specs).find((key) => key.toLowerCase() === targetKey.toLowerCase());
+  return matchedKey ? specs[matchedKey] ?? '' : '';
+}
+
+function filterProducts(products: typeof PRODUCTS, url: URL, forcedCategorySlug?: string) {
+  const keyword = normalizeFilterValue(url.searchParams.get('keyword') ?? '');
+  const categorySlug = forcedCategorySlug ?? url.searchParams.get('categorySlug') ?? '';
+  const normalizedCategorySlug = normalizeFilterValue(categorySlug);
+  const brandId = url.searchParams.get('brandId') ?? '';
+  const minRating = Number(url.searchParams.get('minRating') ?? '0');
+  const tags = url.searchParams.getAll('tags').map(normalizeFilterValue).filter(Boolean);
+  const specsFilter = collectSpecsFilters(url);
+
+  return products.filter((product) => {
+    if (keyword) {
+      const matchesKeyword =
+        product.name.toLowerCase().includes(keyword) ||
+        (product.brandName?.toLowerCase() ?? '').includes(keyword);
+      if (!matchesKeyword) return false;
+    }
+
+    if (normalizedCategorySlug) {
+      const matchesCategory = (product.categorySlugs ?? []).some(
+        (slug) => normalizeFilterValue(slug) === normalizedCategorySlug,
+      );
+      if (!matchesCategory) return false;
+    }
+
+    if (brandId && product.brandId !== brandId) {
+      return false;
+    }
+
+    if (minRating > 0 && (product.averageRating ?? 0) < minRating) {
+      return false;
+    }
+
+    if (tags.length > 0) {
+      const productTags = (product.tags ?? []).map(normalizeFilterValue);
+      const matchesTags = tags.some((tag) => productTags.includes(tag));
+      if (!matchesTags) return false;
+    }
+
+    for (const [specKey, values] of Object.entries(specsFilter)) {
+      const specValue = normalizeFilterValue(readSpecValue(product.specs, specKey));
+      if (!specValue || !values.some((value) => specValue === value)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
 // ── PRODUCTS ──────────────────────────────────────────────────────────────────
 
 function handleProducts(sub: string[], url: URL) {
-  const keyword = url.searchParams.get('keyword')?.toLowerCase() ?? '';
-  const categorySlug = url.searchParams.get('categorySlug') ?? '';
   const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
   const size = Math.max(1, Number(url.searchParams.get('size') ?? '12'));
 
@@ -151,21 +226,18 @@ function handleProducts(sub: string[], url: URL) {
 
   // /api/v1/products/search
   if (sub[0] === 'search') {
-    let filtered = [...PRODUCTS];
-    if (keyword) filtered = filtered.filter((p) => p.name.toLowerCase().includes(keyword) || (p.brandName?.toLowerCase() ?? '').includes(keyword));
+    const filtered = filterProducts(PRODUCTS, url);
     return paginate(filtered, page, size);
   }
 
   // /api/v1/products/category/slug/:slug
   if (sub[0] === 'category' && sub[1] === 'slug' && sub[2]) {
-    const filtered = PRODUCTS.filter((p) => (p.categorySlugs ?? []).includes(sub[2]));
+    const filtered = filterProducts(PRODUCTS, url, sub[2]);
     return paginate(filtered, page, size);
   }
 
   // /api/v1/products — list all with optional filters
-  let filtered = [...PRODUCTS];
-  if (keyword) filtered = filtered.filter((p) => p.name.toLowerCase().includes(keyword));
-  if (categorySlug) filtered = filtered.filter((p) => (p.categorySlugs ?? []).includes(categorySlug));
+  const filtered = filterProducts(PRODUCTS, url);
   return paginate(filtered, page, size);
 }
 
@@ -193,6 +265,10 @@ function handleCategories(sub: string[]) {
 
 const PC_PART_SLUGS = ['cpu', 'mainboard', 'ram', 'ssd', 'hdd', 'gpu', 'psu'] as const;
 
+function normalizeBuildCategorySlug(slug: string): string {
+  return slug.toLowerCase().replace(/_/g, '-');
+}
+
 function handleBuildPc(sub: string[], url: URL) {
   // GET /api/v1/build-pc/parts — static part definitions
   if (sub[0] === 'parts') {
@@ -209,7 +285,15 @@ function handleBuildPc(sub: string[], url: URL) {
 
   // GET /api/v1/build-pc/suggested-builds
   if (sub[0] === 'suggested-builds') {
-    const builds = PRODUCTS.filter((p) => (p.tags ?? []).includes('suggested-build'));
+    const categorySlug = url.searchParams.get('categorySlug')?.trim();
+    const builds = PRODUCTS.filter((p) => {
+      if (!(p.tags ?? []).includes('suggested-build')) return false;
+      if (!categorySlug) return true;
+
+      const target = normalizeBuildCategorySlug(categorySlug);
+      const productSlugs = (p.categorySlugs ?? []).map(normalizeBuildCategorySlug);
+      return productSlugs.includes(target);
+    });
     return ok(builds);
   }
 

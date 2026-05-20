@@ -23,6 +23,11 @@ export function SuggestedBuildGrid({ suggestedBuilds, isLoading, dataError }: Su
             className="h-64 animate-pulse rounded-md border border-[#e8e8e8] bg-[#f5f5f5]"
           />
         ))
+      ) : suggestedBuilds.length === 0 ? (
+        <div className="col-span-5 rounded-md border border-[#e8e8e8] bg-white px-4 py-8 text-center text-[13px] text-[#666]">
+          <p className="font-semibold text-[#333]">Chưa có cấu hình gợi ý</p>
+          <p className="mt-1">Backend đã trả về danh sách rỗng cho nhóm sản phẩm này.</p>
+        </div>
       ) : (
         suggestedBuilds.map((build) => <SuggestedBuildCard key={build.id} build={build} />)
       )}
