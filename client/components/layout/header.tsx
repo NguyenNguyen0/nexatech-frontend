@@ -315,17 +315,15 @@ export function Header() {
             type="button"
             onClick={handleCategoryMenuToggle}
             onMouseEnter={() => !categoryMenuOpen && setCategoryMenuOpen(true)}
-            className={`flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition ${
-              categoryMenuOpen ? 'bg-white/20' : 'hover:bg-white/10'
-            }`}
+            className={`flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition ${categoryMenuOpen ? 'bg-white/20' : 'hover:bg-white/10'
+              }`}
             aria-expanded={categoryMenuOpen}
             aria-controls="category-menu"
           >
             <Menu className="h-4 w-4" />
             Danh mục
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
-              categoryMenuOpen ? 'rotate-180' : ''
-            }`} />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${categoryMenuOpen ? 'rotate-180' : ''
+              }`} />
           </button>
 
           {/* Nav Links */}
@@ -348,6 +346,12 @@ export function Header() {
               className="px-3.5 py-2.5 text-[13px] font-medium text-white/85 transition hover:text-white"
             >
               Mã giảm giá
+            </Link>
+            <Link
+              href="/news"
+              className="px-3.5 py-2.5 text-[13px] font-medium text-white/85 transition hover:text-white"
+            >
+              News
             </Link>
           </div>
         </div>
