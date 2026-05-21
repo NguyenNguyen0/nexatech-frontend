@@ -9,12 +9,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import slugify from "slugify";
 import throttle from "lodash.throttle";
 import { toast } from "sonner";
-// import { 
-//   getNewsBySlug, 
-//   createNews, 
-//   getNewsImages,
-//   type CreateNewsRequest 
-// } from "@/services/newsApi";
+import {
+  createNews,
+  getNewsBySlug,
+  getNewsImages,
+  type CreateNewsRequest,
+} from "@/services/newsApi";
 import type { NewsDetailResponse } from "@/types/news.types";
 import {
   Form,
@@ -231,10 +231,13 @@ export default function NewsUpsertPage() {
       // Step 2: Process images - upload temp images and replace URLs
       toast.loading("Đang xử lý ảnh...", { id: "save-news" });
 
-      const processedHtml = await imageUpload.processSave(
+      const processedContent = await imageUpload.processSave(
         editorContent,
-        savedNews.id
+        savedNews.id,
+        editorContentJson
       );
+      const processedHtml = processedContent.html;
+      const processedContentJson = processedContent.json ?? editorContentJson;
 
       // Step 3: Update news with processed content (if content changed)
       if (processedHtml !== editorContent) {
@@ -243,7 +246,7 @@ export default function NewsUpsertPage() {
           title: data.title,
           slug: data.slug,
           description: data.description,
-          contentJson: JSON.stringify(editorContentJson),
+          contentJson: JSON.stringify(processedContentJson),
           contentHtml: processedHtml,
           isPublic: data.isPublic,
           // Don't send thumbnail again in update

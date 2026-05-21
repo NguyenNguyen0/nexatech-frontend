@@ -15,6 +15,7 @@ import {
     IconUsers,
     IconShieldLock,
     IconKey,
+    IconNews,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -86,6 +87,12 @@ export const sidelinks: SideLink[] = [
                 icon: <IconHexagonNumber1 size={18} />,
             },
         ],
+    },
+    {
+        title: 'News',
+        label: '',
+        href: '/admin/news',
+        icon: <IconNews size={18} />,
     },
     {
         title: 'Chats',

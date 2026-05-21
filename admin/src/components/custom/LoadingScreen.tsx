@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import auroraLogo from '@/assets/images/commons/aurora-logo.png';
+import nexatechLogo from '@/assets/brand/nexatech-logo-transparent-bg.png';
 
 export default function LoadingScreen() {
   const [isLoading, setIsLoading] = useState(true);
@@ -82,8 +82,8 @@ export default function LoadingScreen() {
         {/* Logo */}
         <div className="w-32 h-32 flex items-center justify-center">
           <img
-            src={auroraLogo}
-            alt="Aurora Hotel"
+            src={nexatechLogo}
+            alt="Nexatech"
             className="h-full w-auto object-contain"
           />
         </div>

@@ -27,8 +27,8 @@ import {
 
 import { PageHeader, DataTable, Pagination, SearchFilter, StatusBadge, ConfirmDialog, type Column } from '@/components/custom';
 
-// import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
-// import { fetchAllNews, updateVisibility, deleteNewsById } from '@/features/slices/newsSlice';
+import { useAppDispatch, useAppSelector } from '@/hooks/useRedux';
+import { deleteNewsById, fetchAllNews, updateVisibility } from '@/features/slices/newsSlice';
 
 import type {
   NewsListResponse
@@ -263,7 +263,7 @@ export default function NewsList() {
             <DropdownMenuItem
               onClick={() => {
                 if (item.isPublic) {
-                  navigate(`/news/${item.slug}`);
+                  navigate(`/admin/news/preview/${item.slug}`);
                 } else {
                   navigate(`/admin/news/preview/${item.slug}`);
                 }

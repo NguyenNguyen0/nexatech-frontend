@@ -79,6 +79,32 @@ export const admin: RouteObject[] = [
                 ],
             },
 
+            /** News management */
+            {
+                path: 'news',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsList')).default,
+                }),
+            },
+            {
+                path: 'news/upsert',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsUpsert')).default,
+                }),
+            },
+            {
+                path: 'news/upsert/:slug',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsUpsert')).default,
+                }),
+            },
+            {
+                path: 'news/preview/:slug',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsPreview')).default,
+                }),
+            },
+
             /** Chats */
             {
                 path: 'chats',

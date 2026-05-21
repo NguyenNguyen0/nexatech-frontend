@@ -1,35 +1,65 @@
-import { useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, CalendarDays, User, Eye, Lock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
-// import { useAppDispatch, useAppSelector } from "@/hooks/useRedux";
-// import { fetchAllNews, clearCurrentNews } from "@/features/slices/newsSlice";
+import { ArrowLeft, CalendarDays, Eye, Lock, User } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import LoadingScreen from "@/components/custom/LoadingScreen";
+import { getNewsBySlug } from "@/services/newsApi";
+import type { NewsDetailResponse } from "@/types/news.types";
 
 import "@/styles/tiptap-content.scss";
-import '@/styles/_variables.scss';
-import '@/styles/_keyframe-animations.scss';
+import "@/styles/_variables.scss";
+import "@/styles/_keyframe-animations.scss";
+
+const fallbackImage =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='18' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 export default function NewsPreview() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
-  const { allNewsList, loading, error } = useAppSelector((state) => state.news);
+  const [currentNews, setCurrentNews] = useState<NewsDetailResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (allNewsList.length === 0) {
-      dispatch(fetchAllNews());
-    }
+    let isMounted = true;
+
+    const loadNews = async () => {
+      if (!slug) {
+        setError("Missing slug");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await getNewsBySlug(slug);
+        if (isMounted) {
+          setCurrentNews(response.result);
+        }
+      } catch (err) {
+        console.error("Failed to load news preview:", err);
+        if (isMounted) {
+          setError("Failed to load news preview");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadNews();
 
     return () => {
-      dispatch(clearCurrentNews());
+      isMounted = false;
+      setCurrentNews(null);
     };
-  }, [dispatch, allNewsList.length]);
-
-  const currentNews = allNewsList.find((news) => news.slug === slug);
+  }, [slug]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -45,10 +75,7 @@ export default function NewsPreview() {
           <p className="text-muted-foreground mb-8">
             Tin tức bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.
           </p>
-          <Button
-            onClick={() => navigate("/admin/news")}
-            className="bg-primary"
-          >
+          <Button onClick={() => navigate("/admin/news")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Quay lại danh sách
           </Button>
@@ -65,9 +92,17 @@ export default function NewsPreview() {
     }
   };
 
+  const contentHtml = currentNews.contentHtml?.trim();
+
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = event.currentTarget;
+    if (target.src !== fallbackImage) {
+      target.src = fallbackImage;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Preview Mode Alert */}
       <div className="bg-yellow-50 border-b border-yellow-200 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Alert className="border-yellow-300 bg-yellow-50">
@@ -79,31 +114,26 @@ export default function NewsPreview() {
               Đây là bản xem trước cho tin tức không công khai. Người dùng thông
               thường không thể xem bài viết này.
             </AlertDescription>
-            <Button variant="link" onClick={() => navigate(-1)}>Quay Lại</Button>
+            <Button variant="link" onClick={() => navigate(-1)}>
+              Quay lại
+            </Button>
           </Alert>
         </div>
       </div>
 
-      {/* Header Image */}
       <div className="relative h-96 w-full overflow-hidden">
         <img
-          src={currentNews.thumbnailUrl || "/placeholder-news.jpg"}
+          src={currentNews.thumbnailUrl || fallbackImage}
           alt={currentNews.title}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src =
-              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect width='400' height='300' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='18' fill='%239ca3af'%3ENo Image%3C/text%3E%3C/svg%3E";
-          }}
+          onError={handleImageError}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
 
-      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10">
         <div className="bg-card rounded-xl shadow-xl p-8 md:p-12">
           <div className="flex items-center gap-2 mb-6">
-            {/* Back Button */}
             <Button
               variant="ghost"
               onClick={() => navigate("/admin/news")}
@@ -113,7 +143,6 @@ export default function NewsPreview() {
               Quay lại
             </Button>
 
-            {/* Status Badge */}
             <Badge
               variant={
                 currentNews.status === "PUBLISHED" ? "default" : "secondary"
@@ -123,18 +152,15 @@ export default function NewsPreview() {
               {currentNews.status === "PUBLISHED" ? "Đã xuất bản" : "Nháp"}
             </Badge>
 
-            {/* Public Badge */}
             <Badge variant={currentNews.isPublic ? "default" : "secondary"}>
               {currentNews.isPublic ? "Công khai" : "Riêng tư"}
             </Badge>
           </div>
 
-          {/* Title */}
           <h1 className="text-4xl font-bold text-foreground mb-6">
             {currentNews.title}
           </h1>
 
-          {/* Meta Information */}
           <div className="flex flex-wrap gap-6 text-muted-foreground mb-8 pb-8 border-b border-border">
             <div className="flex items-center gap-2">
               <CalendarDays className="w-5 h-5" />
@@ -146,35 +172,33 @@ export default function NewsPreview() {
             </div>
           </div>
 
-          {/* Description */}
           <div className="mb-8">
             <p className="text-lg text-foreground leading-relaxed">
               {currentNews.description}
             </p>
           </div>
 
-          {/* Notice for non-public news */}
           {!currentNews.isPublic && (
             <Alert className="mb-8">
               <Eye className="h-4 w-4" />
               <AlertTitle>Bài viết chưa công khai</AlertTitle>
               <AlertDescription>
                 Bài viết này chưa được công khai và chỉ có thể xem trong chế độ
-                xem trước. Để người dùng có thể xem, vui lòng đặt trạng thái
-                thành "Công khai".
+                xem trước.
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Content would be rendered here if available in the list response */}
-          <div className="tiptap-content">
+          {contentHtml ? (
+            <div
+              className="tiptap-content"
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
+            />
+          ) : (
             <Alert>
-              <AlertDescription>
-                Nội dung chi tiết chỉ có sẵn trong API chi tiết. Vui lòng chỉnh
-                sửa bài viết để xem toàn bộ nội dung.
-              </AlertDescription>
+              <AlertDescription>Nội dung chi tiết đang trống.</AlertDescription>
             </Alert>
-          </div>
+          )}
         </div>
       </div>
     </div>

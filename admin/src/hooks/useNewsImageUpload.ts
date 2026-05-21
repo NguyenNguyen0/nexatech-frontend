@@ -3,25 +3,30 @@ import { uploadNewsImage, deleteImageByPublicId, type ImageAssetResponse } from 
 import { toast } from 'sonner';
 
 /**
- * Temporary image state before upload to Cloudinary
+ * Temporary image state before upload to object storage.
  */
 interface TempImage {
   tempUrl: string; // ObjectURL for preview
   file: File;
   uploading?: boolean;
-  cloudinaryUrl?: string; // URL after upload
-  publicId?: string; // Cloudinary public ID
+  storedUrl?: string; // URL after upload
+  publicId?: string; // Storage object identifier
   error?: string;
 }
 
+interface ProcessedNewsContent {
+  html: string;
+  json?: object;
+}
+
 /**
- * Hook to manage news images with temporary local storage and Cloudinary upload
+ * Hook to manage news images with temporary local storage and AWS S3 upload.
  * 
  * Flow:
  * 1. User uploads image → create ObjectURL → show in editor immediately
  * 2. Store temp images in state with their ObjectURLs
- * 3. When Save button clicked → upload all temp images to Cloudinary
- * 4. Replace temp URLs with Cloudinary URLs in content
+ * 3. When Save button clicked → upload all temp images through news-service
+ * 4. Replace temp URLs with S3/public URLs in content
  * 5. Cleanup: revoke ObjectURLs and delete unused images
  */
 export const useNewsImageUpload = () => {
@@ -55,15 +60,15 @@ export const useNewsImageUpload = () => {
   }, []);
   
   /**
-   * Upload a single temp image to Cloudinary
+   * Upload a single temp image through news-service.
    */
   const uploadSingleImage = useCallback(async (
     tempUrl: string,
     targetNewsId: string
   ): Promise<string | null> => {
     const tempImage = tempImages.get(tempUrl);
-    if (!tempImage || tempImage.cloudinaryUrl) {
-      return tempImage?.cloudinaryUrl || null;
+    if (!tempImage || tempImage.storedUrl) {
+      return tempImage?.storedUrl || null;
     }
     
     // Mark as uploading
@@ -81,13 +86,13 @@ export const useNewsImageUpload = () => {
       const response = await uploadNewsImage(targetNewsId, tempImage.file);
       const imageAsset = response.result;
       
-      // Update temp image with Cloudinary URL
+      // Update temp image with public storage URL
       setTempImages(prev => {
         const newMap = new Map(prev);
         const img = newMap.get(tempUrl);
         if (img) {
           img.uploading = false;
-          img.cloudinaryUrl = imageAsset.url;
+          img.storedUrl = imageAsset.url;
           img.publicId = imageAsset.publicId;
           newMap.set(tempUrl, { ...img });
         }
@@ -117,8 +122,8 @@ export const useNewsImageUpload = () => {
   }, [tempImages]);
   
   /**
-   * Upload all temp images to Cloudinary
-   * Returns map of tempUrl -> cloudinaryUrl
+   * Upload all temp images.
+   * Returns map of tempUrl -> stored URL.
    */
   const uploadAllTempImages = useCallback(async (
     targetNewsId: string
@@ -128,15 +133,15 @@ export const useNewsImageUpload = () => {
     
     for (const [tempUrl, tempImage] of tempImages.entries()) {
       // Skip if already uploaded
-      if (tempImage.cloudinaryUrl) {
-        urlMap.set(tempUrl, tempImage.cloudinaryUrl);
+      if (tempImage.storedUrl) {
+        urlMap.set(tempUrl, tempImage.storedUrl);
         continue;
       }
       
       const promise = uploadSingleImage(tempUrl, targetNewsId)
-        .then(cloudinaryUrl => {
-          if (cloudinaryUrl) {
-            urlMap.set(tempUrl, cloudinaryUrl);
+        .then(storedUrl => {
+          if (storedUrl) {
+            urlMap.set(tempUrl, storedUrl);
           }
         })
         .catch(error => {
@@ -152,7 +157,7 @@ export const useNewsImageUpload = () => {
   }, [tempImages, uploadSingleImage]);
   
   /**
-   * Replace all temp URLs in HTML content with Cloudinary URLs
+   * Replace all temp URLs in HTML content with stored URLs.
    */
   const replaceUrlsInContent = useCallback((
     html: string,
@@ -160,15 +165,54 @@ export const useNewsImageUpload = () => {
   ): string => {
     let updatedHtml = html;
     
-    for (const [tempUrl, cloudinaryUrl] of urlMap.entries()) {
+    for (const [tempUrl, storedUrl] of urlMap.entries()) {
       // Replace in src attributes
       updatedHtml = updatedHtml.replace(
         new RegExp(escapeRegExp(tempUrl), 'g'),
-        cloudinaryUrl
+        storedUrl
       );
     }
     
     return updatedHtml;
+  }, []);
+
+  const replaceUrlsInJson = useCallback((
+    json: unknown,
+    urlMap: Map<string, string>
+  ): object | undefined => {
+    if (!json || typeof json !== 'object') {
+      return undefined;
+    }
+
+    const replaceValue = (value: unknown): unknown => {
+      if (typeof value === 'string') {
+        let updatedValue = value;
+        for (const [tempUrl, storedUrl] of urlMap.entries()) {
+          updatedValue = updatedValue.replace(
+            new RegExp(escapeRegExp(tempUrl), 'g'),
+            storedUrl
+          );
+        }
+        return updatedValue;
+      }
+
+      if (Array.isArray(value)) {
+        return value.map(replaceValue);
+      }
+
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(
+          Object.entries(value).map(([key, childValue]) => [
+            key,
+            replaceValue(childValue),
+          ])
+        );
+      }
+
+      return value;
+    };
+
+    return replaceValue(json) as object;
   }, []);
   
   /**
@@ -197,7 +241,7 @@ export const useNewsImageUpload = () => {
   }, [uploadedImages]);
   
   /**
-   * Delete images from Cloudinary
+   * Delete images through news-service.
    */
   const deleteImages = useCallback(async (publicIds: string[]) => {
     const deletePromises = publicIds.map(async (publicId) => {
@@ -221,7 +265,7 @@ export const useNewsImageUpload = () => {
       URL.revokeObjectURL(tempUrl);
     }
     
-    // Delete queued images from Cloudinary
+    // Delete queued images from storage
     if (deleteQueue.current.length > 0) {
       await deleteImages(deleteQueue.current);
       deleteQueue.current = [];
@@ -247,14 +291,16 @@ export const useNewsImageUpload = () => {
    */
   const processSave = useCallback(async (
     htmlContent: string,
-    targetNewsId: string
-  ): Promise<string> => {
+    targetNewsId: string,
+    jsonContent?: object
+  ): Promise<ProcessedNewsContent> => {
     try {
       // Step 1: Upload all temp images
       const urlMap = await uploadAllTempImages(targetNewsId);
       
-      // Step 2: Replace temp URLs with Cloudinary URLs
+      // Step 2: Replace temp URLs with storage URLs
       const updatedHtml = replaceUrlsInContent(htmlContent, urlMap);
+      const updatedJson = replaceUrlsInJson(jsonContent, urlMap);
       
       // Step 3: Detect deleted images
       const deletedPublicIds = detectDeletedImages(updatedHtml);
@@ -271,7 +317,10 @@ export const useNewsImageUpload = () => {
       // Step 5: Cleanup temp resources
       await cleanup();
       
-      return updatedHtml;
+      return {
+        html: updatedHtml,
+        json: updatedJson,
+      };
     } catch (error) {
       console.error('Failed to process save:', error);
       throw error;
@@ -279,6 +328,7 @@ export const useNewsImageUpload = () => {
   }, [
     uploadAllTempImages,
     replaceUrlsInContent,
+    replaceUrlsInJson,
     detectDeletedImages,
     markImageForDeletion,
     deleteImages,

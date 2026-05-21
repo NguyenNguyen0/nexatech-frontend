@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Outfit:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import './styles/_variables.scss';
+@import './styles/_keyframe-animations.scss';
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
