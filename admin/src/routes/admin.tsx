@@ -1,5 +1,5 @@
 import type { RouteObject } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/custom/ProtectedRoute';
 import { LazyWrapper } from '@/components/custom/LazyWrapper';
 import AppShell from '@/components/app-shell';
@@ -48,6 +48,26 @@ export const admin: RouteObject[] = [
                 lazy: async () => ({
                     Component: (await import('@/pages/admin/dashboard/analytics')).default,
                 }),
+            },
+
+            /** Warehouse inventory dashboard */
+            {
+                path: 'warehouse',
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <Outlet />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true,
+                        lazy: async () => ({
+                            Component: (await import('@/pages/warehouse/WarehouseDashboard')).default,
+                        }),
+                    },
+                ],
             },
 
             /** Kanban board */

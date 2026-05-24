@@ -101,6 +101,12 @@ export const sidelinks: SideLink[] = [
         ],
     },
     {
+        title: 'Warehouse',
+        label: '',
+        href: '/admin/warehouse',
+        icon: <IconShoppingCart size={18} />,
+    },
+    {
         title: 'News',
         label: '',
         href: '/admin/news',
