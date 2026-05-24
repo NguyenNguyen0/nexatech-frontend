@@ -39,7 +39,8 @@ async function requestNewsApi<T>(path: string): Promise<T> {
 }
 
 export async function fetchPublicNews(): Promise<NewsListItem[]> {
-  return requestNewsApi<NewsListItem[]>(`${NEWS_API_BASE}/public`);
+  const result = await requestNewsApi<NewsListItem[] | null>(`${NEWS_API_BASE}/public`).catch(() => null);
+  return Array.isArray(result) ? result : [];
 }
 
 export async function fetchPublicNewsBySlug(slug: string): Promise<NewsDetail> {
