@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/components/custom/ProtectedRoute';
 import { LazyWrapper } from '@/components/custom/LazyWrapper';
 import AppShell from '@/components/app-shell';
 import GeneralError from '@/pages/errors/general-error';
+import ProductLayout from '@/pages/admin/product';
 
 /**
  * All admin-area routes.
@@ -60,14 +61,34 @@ export const admin: RouteObject[] = [
             /** Products: list + add form (nested) */
             {
                 path: 'product',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/product')).default,
-                }),
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <ProductLayout />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
                 children: [
                     {
                         index: true,
+                        element: <Navigate to="products" replace />,
+                    },
+                    {
+                        path: 'products',
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/product/list')).default,
+                        }),
+                    },
+                    {
+                        path: 'categories',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/categories')).default,
+                        }),
+                    },
+                    {
+                        path: 'brands',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/brands')).default,
                         }),
                     },
                     {

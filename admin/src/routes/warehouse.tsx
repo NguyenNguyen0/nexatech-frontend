@@ -10,7 +10,7 @@ export const warehouse: RouteObject[] = [
     {
         path: '/warehouse',
         element: (
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['ADMIN']}>
                 <LazyWrapper>
                     <Outlet />
                 </LazyWrapper>
