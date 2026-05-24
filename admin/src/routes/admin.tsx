@@ -97,6 +97,12 @@ export const admin: RouteObject[] = [
                             Component: (await import('@/pages/admin/product/add')).default,
                         }),
                     },
+                    {
+                        path: 'edit/:id',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/add')).default,
+                        }),
+                    },
                 ],
             },
 

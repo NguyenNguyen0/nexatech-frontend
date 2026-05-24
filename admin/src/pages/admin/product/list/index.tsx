@@ -559,6 +559,9 @@ export default function ProductListPage() {
                         <Eye className='mr-2 h-4 w-4' />
                         View
                       </Button>
+                      <Button variant='outline' size='sm' asChild>
+                        <Link to={`/admin/product/edit/${product.id}`}>Edit</Link>
+                      </Button>
                     {product.active ? (
                       <Button
                         variant='outline'
