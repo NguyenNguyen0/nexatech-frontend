@@ -1,7 +1,7 @@
 import { featureFlags, getMockApiIndicator } from '@/lib/feature-flags';
 import { normalizeCollection, normalizePageResult } from '@/features/products/utils';
 import { formatCurrency } from '@/lib/utils';
-import type { PageResult } from '@/features/products/types';
+import type { PageResult, ProductMinimal } from '@/features/products/types';
 import type { CatalogItem, CatalogPageResult, PartKey, SuggestedBuild } from '../types';
 
 // ── URL resolution ────────────────────────────────────────────────────────────
@@ -121,20 +121,7 @@ function unwrapResponse<T>(payload: unknown): T {
 
 // ── Canonical product shape returned by the API ───────────────────────────────
 
-type ApiProduct = {
-  id: string;
-  name: string;
-  price: number;
-  averageRating?: number;
-  compareAtPrice?: number;
-  originalPrice?: number;
-  thumbnail?: string;
-  images?: string[];
-  brandName?: string;
-  categorySlugs?: string[];
-  tags?: string[];
-  specs?: Record<string, string>;
-};
+type ApiProduct = ProductMinimal;
 
 type PagedResponse = {
   items: ApiProduct[];
@@ -176,27 +163,6 @@ function derivePartKey(categorySlugs: string[] = []): PartKey | undefined {
   return undefined;
 }
 
-function readSpecValue(specs: ApiProduct['specs'], ...candidates: string[]): string {
-  if (!specs) return '';
-
-  for (const candidate of candidates) {
-    const direct = specs[candidate];
-    if (typeof direct === 'string' && direct.trim()) {
-      return direct;
-    }
-
-    const matchedKey = Object.keys(specs).find((key) => key.toLowerCase() === candidate.toLowerCase());
-    if (matchedKey) {
-      const matchedValue = specs[matchedKey];
-      if (typeof matchedValue === 'string' && matchedValue.trim()) {
-        return matchedValue;
-      }
-    }
-  }
-
-  return '';
-}
-
 function mapToCatalogItem(p: ApiProduct): CatalogItem | null {
   const partKey = derivePartKey(p.categorySlugs);
   if (!partKey) return null;
@@ -205,15 +171,15 @@ function mapToCatalogItem(p: ApiProduct): CatalogItem | null {
     id: p.id,
     partKey,
     name: p.name,
-    slug: slugify(p.name),
+    slug: p.slug || slugify(p.name),
     brand: p.brandName ?? '',
-    series: readSpecValue(p.specs, 'series', 'Series'),
-    compatibility: readSpecValue(p.specs, 'compatibility', 'Compatibility'),
+    series: '',
+    compatibility: '',
     averageRating: p.averageRating ?? 0,
     price: p.price,
     originalPrice: p.compareAtPrice ?? p.originalPrice,
     badge: p.tags?.[0],
-    image: p.thumbnail ?? p.images?.[0],
+    image: p.thumbnail,
   };
 }
 
@@ -223,21 +189,15 @@ function mapToSuggestedBuild(p: ApiProduct): SuggestedBuild {
   const savings = originalPrice - price;
   const discountPct = originalPrice > 0 ? Math.round((savings / originalPrice) * 100) : 0;
 
-  const specItems: string[] = [];
-  for (const key of ['CPU', 'GPU', 'RAM']) {
-    const value = readSpecValue(p.specs, key, key.toLowerCase());
-    if (value) specItems.push(value);
-  }
-
   return {
     id: p.id,
     name: p.name,
-    specs: specItems,
+    specs: [],
     price,
     originalPrice,
     discountLabel: discountPct > 0 ? `-${discountPct}%` : '',
     savingsLabel: savings > 0 ? `Tiết kiệm ${formatCurrency(savings)}` : '',
-    image: p.thumbnail ?? p.images?.[0] ?? '',
+    image: p.thumbnail ?? '',
   };
 }
 

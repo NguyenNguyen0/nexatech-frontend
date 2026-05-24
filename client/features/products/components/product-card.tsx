@@ -1,12 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
-import { Star } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
-import type { ProductSummary } from '../types';
-import { getStockStatusClassName, getStockStatusLabel } from '../utils';
+import type { ProductMinimal } from '../types';
+import { getStockStatusLabel } from '../utils';
 
 interface ProductCardProps {
-  product: ProductSummary;
+  product: ProductMinimal;
   variant?: 'grid' | 'compact';
   className?: string;
 }
@@ -53,7 +52,7 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
         {/* Content */}
         <div className={cn('p-4 flex flex-col flex-grow', variant === 'compact' && 'p-3')}>
           <div className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold mb-1">
-            {product.brandName ?? product.primaryCategoryName ?? product.categoryName ?? 'NexaTech'}
+            {product.brandName ?? product.primaryCategoryName ?? 'NexaTech'}
           </div>
           <h3 className={cn('text-label-sm font-label-sm text-on-surface font-medium line-clamp-2 mb-2 group-hover:text-primary transition-colors', variant === 'compact' && 'text-[12px] leading-tight')}>
             {product.name}

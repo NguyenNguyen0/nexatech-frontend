@@ -8,7 +8,7 @@ import {
   CatalogToolbar,
 } from '@/features/storefront/catalog/components';
 import { fetchBrands, fetchCategories, fetchProducts, fetchSubcategories } from '@/features/products/services/products-api';
-import type { PageResult, ProductSummary } from '@/features/products/types';
+import type { PageResult, ProductMinimal } from '@/features/products/types';
 import { toNumberParam, toStringParam } from '@/features/products/utils';
 
 export const metadata: Metadata = {
@@ -75,7 +75,7 @@ export default async function ProductPage({ searchParams }: { searchParams?: Pro
     maxRating: toNumberParam(resolvedSearchParams.maxRating),
     featured: current.featured === 'true' ? true : current.featured === 'false' ? false : undefined,
   }).catch(
-    () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
+    () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductMinimal>),
   );
 
   const totalItems = productsPage.totalItems ?? productsPage.items.length;

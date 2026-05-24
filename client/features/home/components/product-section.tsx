@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { ProductCard } from '@/features/products/components/product-card';
-import type { ProductSummary } from '@/features/products/types';
+import type { ProductMinimal } from '@/features/products/types';
 
 interface ProductSectionProps {
-  products: ProductSummary[];
+  products: ProductMinimal[];
 }
 
 export function ProductSection({ products }: ProductSectionProps) {
