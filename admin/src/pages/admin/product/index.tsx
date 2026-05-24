@@ -11,7 +11,7 @@ const productTabs = [
 export default function ProductManagementLayout() {
   return (
     <Layout fixed>
-      <Layout.Body className='flex flex-col'>
+      <Layout.Body className='flex min-h-0 flex-col overflow-auto md:overflow-auto'>
         <div className='mb-4 flex flex-col gap-3'>
           <div>
             <h1 className='text-2xl font-bold tracking-tight'>Product Management</h1>
