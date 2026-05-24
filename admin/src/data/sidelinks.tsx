@@ -77,8 +77,20 @@ export const sidelinks: SideLink[] = [
             {
                 title: 'Product List',
                 label: '',
-                href: '/admin/product',
+                href: '/admin/product/products',
                 icon: <IconBrandProducthunt size={18} />,
+            },
+            {
+                title: 'Categories',
+                label: '',
+                href: '/admin/product/categories',
+                icon: <IconChecklist size={18} />,
+            },
+            {
+                title: 'Brands',
+                label: '',
+                href: '/admin/product/brands',
+                icon: <IconChecklist size={18} />,
             },
             {
                 title: 'Add Product',
@@ -87,6 +99,12 @@ export const sidelinks: SideLink[] = [
                 icon: <IconHexagonNumber1 size={18} />,
             },
         ],
+    },
+    {
+        title: 'Warehouse',
+        label: '',
+        href: '/admin/warehouse',
+        icon: <IconShoppingCart size={18} />,
     },
     {
         title: 'News',

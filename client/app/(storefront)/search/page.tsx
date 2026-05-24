@@ -8,7 +8,7 @@ import {
   SearchSidebarFilters,
 } from '@/features/storefront/search/components';
 import { fetchBrands, fetchCategories, fetchSubcategories, searchProducts } from '@/features/products/services/products-api';
-import type { PageResult, ProductSummary } from '@/features/products/types';
+import type { PageResult, ProductMinimal } from '@/features/products/types';
 import { toNumberParam, toStringParam } from '@/features/products/utils';
 
 export const metadata: Metadata = {
@@ -74,9 +74,9 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
         maxRating: toNumberParam(resolvedSearchParams.maxRating),
         featured: current.featured === 'true' ? true : current.featured === 'false' ? false : undefined,
       }).catch(
-        () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>),
+        () => ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductMinimal>),
       )
-    : ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductSummary>);
+    : ({ items: [], page: 1, size: 12, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductMinimal>);
 
   const totalItems = resultsPage.totalItems ?? resultsPage.items.length;
   const totalPages = resultsPage.totalPages ?? (resultsPage.size > 0 ? Math.max(1, Math.ceil(totalItems / resultsPage.size)) : 1);
@@ -122,4 +122,3 @@ export default async function SearchPage({ searchParams }: { searchParams?: Prom
     </section>
   );
 }
-

@@ -5,10 +5,10 @@ import Autoplay from 'embla-carousel-autoplay';
 import { Clock } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { ProductCard } from '@/features/products/components/product-card';
-import type { ProductSummary } from '@/features/products/types';
+import type { ProductMinimal } from '@/features/products/types';
 
 interface FlashSaleProps {
-  products: ProductSummary[];
+  products: ProductMinimal[];
 }
 
 export function FlashSale({ products }: FlashSaleProps) {

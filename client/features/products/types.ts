@@ -1,13 +1,15 @@
 export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | string;
 
-export interface ProductSummary {
+export interface ProductMinimal {
   id: string;
   name: string;
   slug: string;
+  sku?: string;
   thumbnail?: string;
   tags?: string[];
   price: number;
   compareAtPrice?: number;
+  originalPrice?: number;
   averageRating?: number;
   reviewCount?: number;
   stockQuantity?: number;
@@ -19,15 +21,18 @@ export interface ProductSummary {
   // All categories this product belongs to (new multi-category support)
   categoryIds?: string[];
   categorySlugs?: string[];
-  // Legacy single category fields (deprecated, kept for backward compatibility)
-  categoryId?: string;
-  categoryName?: string;
   brandId?: string;
   brandName?: string;
+  brandSlug?: string;
   featured?: boolean;
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface ProductDetail extends ProductSummary {
+export type ProductSummary = ProductMinimal;
+
+export interface ProductDetail extends ProductMinimal {
   description?: string;
   descriptionHtml?: string;
   images?: string[];

@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { ChevronRight, Star } from 'lucide-react';
 import { fetchFeaturedProducts } from '@/features/products/services/products-api';
-import type { ProductSummary } from '@/features/products/types';
+import type { ProductMinimal } from '@/features/products/types';
 
-type ProductCardData = ProductSummary;
+type ProductCardData = ProductMinimal;
 
 function formatVND(value: number) {
   return value.toLocaleString('vi-VN') + '₫';
@@ -89,7 +89,7 @@ function ProductCard({ product }: { product: ProductCardData }) {
 
 export async function FeaturedProductGrid() {
   const featuredProducts = await fetchFeaturedProducts({ size: 8, page: 0, sort: 'createdAt,desc' }).catch(
-    () => ({ items: [] as ProductSummary[] }),
+    () => ({ items: [] as ProductMinimal[] }),
   );
 
   return (
