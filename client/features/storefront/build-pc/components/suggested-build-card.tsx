@@ -25,11 +25,17 @@ export function SuggestedBuildCard({ build }: SuggestedBuildCardProps) {
       </button>
 
       <div className="relative mb-2 aspect-square overflow-hidden rounded bg-[#f7f7f7] p-2.5">
-        <img
-          src={build.image}
-          alt={build.name}
-          className="mx-auto h-full w-full object-contain transition duration-300 group-hover:scale-105"
-        />
+        {build.image ? (
+          <img
+            src={build.image}
+            alt={build.name}
+            className="mx-auto h-full w-full object-contain transition duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center rounded bg-white">
+            <span className="material-symbols-outlined text-[52px] text-outline">desktop_windows</span>
+          </div>
+        )}
       </div>
 
       <h2 className="mb-1.5 min-h-9 text-[12px] font-medium leading-[1.4] text-[#333] line-clamp-2">

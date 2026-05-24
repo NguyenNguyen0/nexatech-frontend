@@ -19,8 +19,8 @@
  *    - `metadata` now contains: seoTitle, seoDescription, bannerImage
  *
  * BACKWARD COMPATIBILITY:
- * - ProductSummary still includes legacy categoryId/categoryName fields for backward compat
- * - Components using these fields will continue to work but should migrate to new primary category fields
+ * - ProductMinimal is used for collection/search responses.
+ * - ProductDetail keeps rich fields for product detail pages.
  */
 
 import { featureFlags, getMockApiIndicator } from '@/lib/feature-flags';
@@ -31,10 +31,10 @@ import type {
   ProductCategory,
   ProductDetail,
   ProductListParams,
+  ProductMinimal,
   ProductReview,
   ProductSubcategory,
   ProductSuggestion,
-  ProductSummary,
 } from '../types';
 
 const PRODUCT_API_BASE = '/api/v1/products';
@@ -52,7 +52,7 @@ type SubcategoryTreeNode = {
   children?: SubcategoryTreeNode[];
 };
 
-function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
+function dedupeProducts(products: ProductMinimal[]): ProductMinimal[] {
   const seen = new Set<string>();
 
   return products.filter((product) => {
@@ -160,15 +160,15 @@ async function requestProductApi<T>(path: string): Promise<T> {
   return unwrapProductApiResponse<T>(payload);
 }
 
-export async function fetchProducts(params?: ProductListParams): Promise<PageResult<ProductSummary>> {
+export async function fetchProducts(params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}${buildProductQuery(params)}`);
-  return normalizePageResult<ProductSummary>(payload);
+  return normalizePageResult<ProductMinimal>(payload);
 }
 
 export async function fetchProductsByTags(
   tags: string[] = ['hot', 'new'],
   params?: ProductListParams,
-): Promise<PageResult<ProductSummary>> {
+): Promise<PageResult<ProductMinimal>> {
   const payload = await requestProductApi<unknown>(
     `${PRODUCT_API_BASE}/tags${buildProductQuery({
       ...params,
@@ -179,26 +179,26 @@ export async function fetchProductsByTags(
     })}`,
   );
 
-  return normalizePageResult<ProductSummary>(payload);
+  return normalizePageResult<ProductMinimal>(payload);
 }
 
-export async function fetchProductsByCategorySlug(slug: string, params?: ProductListParams): Promise<PageResult<ProductSummary>> {
+export async function fetchProductsByCategorySlug(slug: string, params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   const normalizedSlug = slug.trim();
   if (!normalizedSlug) {
     return { items: [], page: params?.page ?? 0, size: params?.size ?? 12, totalItems: 0, totalPages: 1, hasNext: false };
   }
 
   const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/category/slug/${encodeURIComponent(normalizedSlug)}${buildProductQuery(params)}`);
-  return normalizePageResult<ProductSummary>(payload);
+  return normalizePageResult<ProductMinimal>(payload);
 }
 
-export async function fetchFeaturedProducts(params?: ProductListParams): Promise<PageResult<ProductSummary>> {
+export async function fetchFeaturedProducts(params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   return fetchProductsByTags(['hot', 'new'], params);
 }
 
-export async function searchProducts(keyword: string, params?: ProductListParams): Promise<PageResult<ProductSummary>> {
+export async function searchProducts(keyword: string, params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   const payload = await requestProductApi<unknown>(`${PRODUCT_API_BASE}/search${buildProductQuery({ ...params, keyword })}`);
-  return normalizePageResult<ProductSummary>(payload);
+  return normalizePageResult<ProductMinimal>(payload);
 }
 
 export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
@@ -216,7 +216,7 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
   }
 }
 
-export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductSummary[]> {
+export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductMinimal[]> {
   const normalized = productSlugOrId.trim();
   const candidates = [
     `${PRODUCT_API_BASE}/slug/${encodeURIComponent(normalized)}/related`,
@@ -229,7 +229,7 @@ export async function fetchRelatedProducts(productSlugOrId: string, fallbackProd
       const payload = await requestProductApi<unknown>(path);
       // Backend now filters related products by primaryCategoryId instead of single categoryId
       // Products with multi-category support (categoryIds[]) may appear multiple times across category results
-      return dedupeProducts(normalizeCollection<ProductSummary>(payload));
+      return dedupeProducts(normalizeCollection<ProductMinimal>(payload));
     } catch {
       // Try next compatible route.
     }

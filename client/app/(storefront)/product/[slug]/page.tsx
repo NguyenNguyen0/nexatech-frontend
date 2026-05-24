@@ -54,10 +54,11 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
     );
 
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
+  const categoryName = product.primaryCategoryName;
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
-      <PdpBreadcrumb categoryName={product.categoryName} brandName={product.brandName} />
+      <PdpBreadcrumb categoryName={categoryName} brandName={product.brandName} />
 
       <div className="flex flex-col lg:flex-row gap-8 mb-12">
         <PdpGallery images={gallery} productName={product.name} />
@@ -66,7 +67,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             productId={product.id}
             name={product.name}
             slug={product.slug}
-            categoryName={product.categoryName}
+            categoryName={categoryName}
             brandName={product.brandName}
             price={product.price}
             compareAtPrice={product.compareAtPrice}
