@@ -10,6 +10,7 @@ export async function listBrands(params: BrandListParams = {}): Promise<BrandIte
   const queryParams = buildQueryParams({
     active: params.active,
     includeDeleted: params.includeDeleted,
+    size: params.size,
   })
 
   const { data } = await axiosClient.get<ApiEnvelope<BrandItem[]>>(BRANDS_BASE, {

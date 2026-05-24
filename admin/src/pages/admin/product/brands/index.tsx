@@ -40,6 +40,8 @@ import type { BrandItem, BrandUpsertPayload } from '@/types/catalog'
 
 type FilterMode = 'active' | 'deleted' | 'all'
 
+const PRODUCT_TAB_LIST_SIZE = 10
+
 type BrandForm = {
   name: string
   parentBrandId: string
@@ -65,7 +67,7 @@ export default function ProductBrandsTab() {
   const fetchBrands = async () => {
     try {
       setLoading(true)
-      const result = await listBrands({ includeDeleted: true })
+      const result = await listBrands({ includeDeleted: true, size: PRODUCT_TAB_LIST_SIZE })
       setBrands(result)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Load brands failed'))
@@ -83,6 +85,7 @@ export default function ProductBrandsTab() {
     if (filterMode === 'deleted') return !brand.active
     return true
   })
+  const visibleBrands = filteredBrands.slice(0, PRODUCT_TAB_LIST_SIZE)
 
   const openCreateDialog = () => {
     setEditingBrand(null)
@@ -218,7 +221,7 @@ export default function ProductBrandsTab() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredBrands.map((brand) => (
+                visibleBrands.map((brand) => (
                   <TableRow key={brand.id}>
                     <TableCell className='font-medium'>{brand.name}</TableCell>
                     <TableCell>{brand.slug}</TableCell>

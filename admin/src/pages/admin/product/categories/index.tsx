@@ -47,6 +47,8 @@ import type { CategoryItem, CategoryUpsertPayload } from '@/types/catalog'
 
 type FilterMode = 'active' | 'deleted' | 'all'
 
+const PRODUCT_TAB_LIST_SIZE = 10
+
 type CategoryForm = {
   name: string
   description: string
@@ -74,7 +76,7 @@ export default function ProductCategoriesTab() {
   const fetchCategories = async () => {
     try {
       setLoading(true)
-      const result = await listCategories({ includeDeleted: true })
+      const result = await listCategories({ includeDeleted: true, size: PRODUCT_TAB_LIST_SIZE })
       setCategories(result)
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Load categories failed'))
@@ -92,6 +94,7 @@ export default function ProductCategoriesTab() {
     if (filterMode === 'deleted') return !category.active
     return true
   })
+  const visibleCategories = filteredCategories.slice(0, PRODUCT_TAB_LIST_SIZE)
 
   const openCreateDialog = () => {
     setEditingCategory(null)
@@ -229,7 +232,7 @@ export default function ProductCategoriesTab() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredCategories.map((category) => (
+                visibleCategories.map((category) => (
                   <TableRow key={category.id}>
                     <TableCell className='font-medium'>{category.name}</TableCell>
                     <TableCell>{category.slug}</TableCell>

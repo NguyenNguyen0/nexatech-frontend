@@ -14,7 +14,7 @@ import { getApiErrorMessage } from '@/services/authApi'
 import { listBrands } from '@/services/brandApi'
 import { listCategories } from '@/services/categoryApi'
 import { listProducts, restoreProduct, softDeleteProduct } from '@/services/productApi'
-import type { BrandItem, CategoryItem, ProductItem, ProductPageResponse } from '@/types/catalog'
+import type { BrandItem, CategoryItem, ProductMinimal, ProductPageResponse } from '@/types/catalog'
 import { Button } from '@/components/custom/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -46,7 +46,7 @@ type ProductSortField = 'price' | 'name' | 'createdAt' | 'updatedAt' | 'sku'
 type ProductSortDirection = 'asc' | 'desc'
 
 const DEFAULT_PAGE = 0
-const DEFAULT_SIZE = 20
+const PRODUCT_PAGE_SIZE = 10
 const DEFAULT_SORT_FIELD: ProductSortField = 'updatedAt'
 const DEFAULT_SORT_DIRECTION: ProductSortDirection = 'desc'
 
@@ -87,7 +87,7 @@ export default function ProductListPage() {
   const [brands, setBrands] = useState<BrandItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<ProductMinimal | null>(null)
 
   const keyword = searchParams.get('keyword') ?? ''
   const sku = searchParams.get('sku') ?? ''
@@ -100,7 +100,7 @@ export default function ProductListPage() {
   const [maxPriceInput, setMaxPriceInput] = useState(maxPrice)
 
   const page = parseNumber(searchParams.get('page'), DEFAULT_PAGE)
-  const size = parseNumber(searchParams.get('size'), DEFAULT_SIZE)
+  const size = PRODUCT_PAGE_SIZE
   const rawStatus = searchParams.get('status')
   const statusFilter: ProductStatusFilter =
     rawStatus === 'deleted' || rawStatus === 'all' || rawStatus === 'active'
@@ -234,8 +234,8 @@ export default function ProductListPage() {
     ;(async () => {
       try {
         const [categoriesResult, brandsResult] = await Promise.all([
-          listCategories({ includeDeleted: true }),
-          listBrands({ includeDeleted: true }),
+          listCategories({ includeDeleted: true, size: PRODUCT_PAGE_SIZE }),
+          listBrands({ includeDeleted: true, size: PRODUCT_PAGE_SIZE }),
         ])
 
         if (!mounted) return
@@ -432,22 +432,6 @@ export default function ProductListPage() {
         </Select>
 
         <Select
-          value={String(size)}
-          onValueChange={(value) => setParams({ size: value, page: DEFAULT_PAGE })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder='Rows' />
-          </SelectTrigger>
-          <SelectContent>
-            {[10, 20, 30, 50].map((option) => (
-              <SelectItem key={option} value={String(option)}>
-                {option} rows
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
           value={sortField}
           onValueChange={(value: ProductSortField) =>
             setParams({ sortField: value, page: DEFAULT_PAGE })
@@ -537,7 +521,7 @@ export default function ProductListPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((product: ProductItem) => (
+              products.map((product: ProductMinimal) => (
                 <TableRow key={product.id}>
                   <TableCell className='font-medium'>{product.name}</TableCell>
                   <TableCell>{product.sku ?? '-'}</TableCell>
@@ -548,8 +532,8 @@ export default function ProductListPage() {
                     <Badge variant='outline'>{product.stockStatus ?? '-'}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={product.active ? 'secondary' : 'destructive'}>
-                      {product.active ? 'Active' : 'Deleted'}
+                    <Badge variant={product.active === false ? 'destructive' : 'secondary'}>
+                      {product.active === false ? 'Deleted' : 'Active'}
                     </Badge>
                   </TableCell>
                   <TableCell>{formatDateTime(product.updatedAt)}</TableCell>
@@ -562,17 +546,7 @@ export default function ProductListPage() {
                       <Button variant='outline' size='sm' asChild>
                         <Link to={`/admin/product/edit/${product.id}`}>Edit</Link>
                       </Button>
-                    {product.active ? (
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        onClick={() => handleSoftDelete(product.id)}
-                        disabled={actionLoadingId === product.id}
-                      >
-                        <Trash2 className='mr-2 h-4 w-4' />
-                        Delete
-                      </Button>
-                    ) : (
+                    {product.active === false ? (
                       <Button
                         variant='outline'
                         size='sm'
@@ -581,6 +555,16 @@ export default function ProductListPage() {
                       >
                         <RotateCcw className='mr-2 h-4 w-4' />
                         Restore
+                      </Button>
+                    ) : (
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handleSoftDelete(product.id)}
+                        disabled={actionLoadingId === product.id}
+                      >
+                        <Trash2 className='mr-2 h-4 w-4' />
+                        Delete
                       </Button>
                     )}
                     </div>
@@ -652,7 +636,7 @@ export default function ProductListPage() {
               </div>
               <div>
                 <p className='text-muted-foreground'>Active</p>
-                <p>{selectedProduct.active ? 'Yes' : 'No'}</p>
+                <p>{selectedProduct.active === false ? 'No' : 'Yes'}</p>
               </div>
               <div>
                 <p className='text-muted-foreground'>Updated At</p>

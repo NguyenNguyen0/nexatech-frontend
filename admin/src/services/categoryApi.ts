@@ -10,6 +10,7 @@ export async function listCategories(params: CategoryListParams = {}): Promise<C
   const queryParams = buildQueryParams({
     active: params.active,
     includeDeleted: params.includeDeleted,
+    size: params.size,
   })
 
   const { data } = await axiosClient.get<ApiEnvelope<CategoryItem[]>>(CATEGORIES_BASE, {

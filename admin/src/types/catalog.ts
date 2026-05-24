@@ -2,15 +2,14 @@ import type { PageResponse } from '@/types/api-envelope'
 
 export type ProductStockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
 
-export interface ProductItem {
+export interface ProductMinimal {
   id: string
   name: string
   slug: string
-  description?: string
-  descriptionHtml?: string
+  sku?: string
   price: number
   compareAtPrice?: number
-  sku?: string
+  originalPrice?: number
   thumbnail?: string
   primaryCategoryId?: string
   primaryCategorySlug?: string
@@ -20,16 +19,23 @@ export interface ProductItem {
   brandId?: string
   brandName?: string
   brandSlug?: string
-  images?: string[]
-  specs?: Record<string, string>
   tags?: string[]
-  metadata?: Record<string, unknown>
-  active: boolean
+  featured?: boolean
+  active?: boolean
   averageRating?: number
+  reviewCount?: number
   stockQuantity?: number
   stockStatus?: ProductStockStatus
   createdAt?: string
   updatedAt?: string
+}
+
+export interface ProductItem extends ProductMinimal {
+  description?: string
+  descriptionHtml?: string
+  images?: string[]
+  specs?: Record<string, string>
+  metadata?: Record<string, unknown>
 }
 
 export interface ProductUpsertPayload {
@@ -102,6 +108,7 @@ export interface CategoryUpsertPayload {
 export interface CategoryListParams {
   active?: boolean
   includeDeleted?: boolean
+  size?: number
 }
 
 export interface BrandItem {
@@ -124,6 +131,7 @@ export interface BrandUpsertPayload {
 export interface BrandListParams {
   active?: boolean
   includeDeleted?: boolean
+  size?: number
 }
 
 export type InventoryStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
@@ -210,6 +218,6 @@ export interface InventoryCsvImportResponse {
   errorLines: CsvImportErrorLine[]
 }
 
-export type ProductPageResponse = PageResponse<ProductItem>
+export type ProductPageResponse = PageResponse<ProductMinimal>
 export type InventoryPageResponse = PageResponse<InventoryItem>
 export type InventoryMovementPageResponse = PageResponse<InventoryMovementItem>

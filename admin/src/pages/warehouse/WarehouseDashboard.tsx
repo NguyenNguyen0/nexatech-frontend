@@ -66,12 +66,12 @@ import type {
     InventoryItem,
     InventoryMovementItem,
     InventoryStatus,
-    ProductItem,
+    ProductMinimal,
 } from '@/types/catalog'
 
 type InventoryFilterStatus = InventoryStatus | 'ALL'
 
-const PAGE_SIZE_OPTIONS = [10, 20, 30, 50]
+const WAREHOUSE_PAGE_SIZE = 10
 
 function formatDateTime(value?: string): string {
     if (!value) return '-'
@@ -91,7 +91,7 @@ export default function WarehouseDashboard() {
     const [keyword, setKeyword] = useState<string>('')
     const [status, setStatus] = useState<InventoryFilterStatus>('ALL')
     const [page, setPage] = useState<number>(0)
-    const [size, setSize] = useState<number>(20)
+    const size = WAREHOUSE_PAGE_SIZE
     const [sort, setSort] = useState<string>('quantity,asc')
 
     const [totalElements, setTotalElements] = useState<number>(0)
@@ -108,8 +108,8 @@ export default function WarehouseDashboard() {
     const [addModalOpen, setAddModalOpen] = useState<boolean>(false)
     const [productSearch, setProductSearch] = useState<string>('')
     const [productSearchLoading, setProductSearchLoading] = useState<boolean>(false)
-    const [productResults, setProductResults] = useState<ProductItem[]>([])
-    const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null)
+    const [productResults, setProductResults] = useState<ProductMinimal[]>([])
+    const [selectedProduct, setSelectedProduct] = useState<ProductMinimal | null>(null)
     const [manualQuantity, setManualQuantity] = useState<string>('')
     const [manualReorderLevel, setManualReorderLevel] = useState<string>('')
     const [manualWarehouseLocation, setManualWarehouseLocation] = useState<string>('')
@@ -171,7 +171,7 @@ export default function WarehouseDashboard() {
                 setMovementLoading(true)
                 const response = await listInventoryMovements(selectedInventory.productId, {
                     page: 0,
-                    size: 20,
+                    size: WAREHOUSE_PAGE_SIZE,
                     sort: 'createdAt,desc',
                 })
 
@@ -203,7 +203,7 @@ export default function WarehouseDashboard() {
                         keyword: productSearchTerm || undefined,
                         active: true,
                         page: 0,
-                        size: 8,
+                        size: WAREHOUSE_PAGE_SIZE,
                         sort: 'updatedAt,desc',
                     })
 
@@ -260,7 +260,7 @@ export default function WarehouseDashboard() {
         setManualReason('Manual inventory creation')
     }
 
-    const handleSelectProduct = (product: ProductItem) => {
+    const handleSelectProduct = (product: ProductMinimal) => {
         setSelectedProduct(product)
         setManualQuantity(String(Math.max(product.stockQuantity ?? 0, 0)))
         setManualReorderLevel(String(Math.max(product.stockQuantity ?? 0, 10)))
@@ -510,25 +510,6 @@ export default function WarehouseDashboard() {
                             <SelectItem value='availableQuantity,desc'>Available desc</SelectItem>
                             <SelectItem value='productName,asc'>Product name asc</SelectItem>
                             <SelectItem value='productName,desc'>Product name desc</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Select
-                        value={String(size)}
-                        onValueChange={(value) => {
-                            setSize(Number(value))
-                            setPage(0)
-                        }}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder='Rows' />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {PAGE_SIZE_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={String(option)}>
-                                    {option} rows
-                                </SelectItem>
-                            ))}
                         </SelectContent>
                     </Select>
 

@@ -36,6 +36,8 @@ import type {
   ProductUpsertPayload,
 } from '@/types/catalog'
 
+const PRODUCT_FORM_LIST_SIZE = 10
+
 type ProductFormState = {
   name: string
   description: string
@@ -130,8 +132,8 @@ export default function ProductUpsertPage() {
       try {
         setLoading(true)
         const [categoriesResult, brandsResult] = await Promise.all([
-          listCategories(),
-          listBrands(),
+          listCategories({ size: PRODUCT_FORM_LIST_SIZE }),
+          listBrands({ size: PRODUCT_FORM_LIST_SIZE }),
         ])
 
         if (!mounted) return
