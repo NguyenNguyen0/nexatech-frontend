@@ -27,6 +27,7 @@ interface WishlistContextValue {
   isMutating: (productId: string) => boolean;
   isWishlisted: (productId: string) => boolean;
   toggleWishlist: (productId: string) => Promise<boolean | null>;
+  refreshWishlist: () => Promise<void>;
 }
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
@@ -67,6 +68,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       setIsHydrating(false);
     }
   }, []);
+
+  const refreshWishlist = useCallback(async () => {
+    if (!isAuthenticated) return;
+    await hydrateWishlist();
+  }, [hydrateWishlist, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -120,7 +126,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       setWishlistedIds((current) => toNextState(current, productId, currentlyWishlisted));
       toast.error(getWishlistErrorMessage(error));
-      return currentlyWishlisted;
+      return null;
     } finally {
       markMutating(productId, false);
     }
@@ -133,7 +139,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     isMutating: (productId: string) => mutatingIds.has(productId),
     isWishlisted: (productId: string) => wishlistedIds.has(productId),
     toggleWishlist,
-  }), [isHydrating, mutatingIds, toggleWishlist, wishlistedIds]);
+    refreshWishlist,
+  }), [isHydrating, mutatingIds, refreshWishlist, toggleWishlist, wishlistedIds]);
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
 }

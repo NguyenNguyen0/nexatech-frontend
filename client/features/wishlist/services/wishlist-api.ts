@@ -11,12 +11,45 @@ import type {
 const WISHLIST_API_BASE = '/api/v1/products/wishlist';
 export const LEGACY_WISHLIST_KEY = 'nexatech_wishlist';
 
+type ProductServiceResponse<T> = {
+  success: boolean;
+  data?: T;
+  message?: string;
+};
+
+type WishlistApiEnvelope<T> = ApiResponse<T> | ProductServiceResponse<T>;
+
+function unwrapWishlistResponse<T>(
+  payload: WishlistApiEnvelope<T> | undefined,
+  fallback: string,
+): T {
+  if (!payload) {
+    throw new Error(fallback);
+  }
+
+  if ('code' in payload) {
+    if (payload.code === 1000 && payload.result) {
+      return payload.result;
+    }
+    throw new Error(payload.message || fallback);
+  }
+
+  if ('success' in payload) {
+    if (payload.success && payload.data) {
+      return payload.data;
+    }
+    throw new Error(payload.message || fallback);
+  }
+
+  throw new Error(fallback);
+}
+
 export function getWishlistErrorMessage(
   error: unknown,
   fallback = 'Không thể cập nhật danh sách yêu thích',
 ): string {
   if (!isAxiosError(error)) return fallback;
-  const data = error.response?.data as ApiResponse<unknown> | undefined;
+  const data = error.response?.data as WishlistApiEnvelope<unknown> | undefined;
   return data?.message || error.message || fallback;
 }
 
@@ -29,37 +62,27 @@ function buildWishlistQuery(params?: WishlistQueryParams): string {
 }
 
 export async function addToWishlist(productId: string): Promise<WishlistToggleResult> {
-  const { data } = await axiosClient.post<ApiResponse<WishlistToggleResult>>(
+  const { data } = await axiosClient.post<WishlistApiEnvelope<WishlistToggleResult>>(
     `${WISHLIST_API_BASE}/${encodeURIComponent(productId)}`,
   );
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể thêm vào yêu thích');
-  }
-  return data.result;
+  return unwrapWishlistResponse(data, 'Không thể thêm vào yêu thích');
 }
 
 export async function removeFromWishlist(productId: string): Promise<WishlistToggleResult> {
-  const { data } = await axiosClient.delete<ApiResponse<WishlistToggleResult>>(
+  const { data } = await axiosClient.delete<WishlistApiEnvelope<WishlistToggleResult>>(
     `${WISHLIST_API_BASE}/${encodeURIComponent(productId)}`,
   );
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể xóa khỏi yêu thích');
-  }
-  return data.result;
+  return unwrapWishlistResponse(data, 'Không thể xóa khỏi yêu thích');
 }
 
 export async function getWishlist(
   params?: WishlistQueryParams,
 ): Promise<WishlistPageResult> {
-  const { data } = await axiosClient.get<ApiResponse<WishlistPageResult>>(
+  const { data } = await axiosClient.get<WishlistApiEnvelope<WishlistPageResult>>(
     `${WISHLIST_API_BASE}${buildWishlistQuery(params)}`,
   );
 
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể tải danh sách yêu thích');
-  }
-
-  return data.result;
+  return unwrapWishlistResponse(data, 'Không thể tải danh sách yêu thích');
 }
 
 export async function getAllWishlistedProductIds(): Promise<Set<string>> {
