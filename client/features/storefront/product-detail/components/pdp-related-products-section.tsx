@@ -1,16 +1,14 @@
-import { fetchRelatedProducts } from '@/features/products/services/products-api';
+import { fetchRecommendedProductsForPdp } from '@/features/products/services/products-api';
 import { PdpRelatedProducts } from './pdp-related-products';
 
 type PdpRelatedProductsSectionProps = {
-  productSlug: string;
   productId: string;
 };
 
 export async function PdpRelatedProductsSection({
-  productSlug,
   productId,
 }: PdpRelatedProductsSectionProps) {
-  const products = await fetchRelatedProducts(productSlug, productId).catch(() => []);
+  const products = await fetchRecommendedProductsForPdp(productId, 10).catch(() => []);
 
   return <PdpRelatedProducts products={products} />;
 }

@@ -108,7 +108,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
 
       <div className="mt-12">
         <Suspense fallback={<PdpRelatedProductsFallback />}>
-          <PdpRelatedProductsSection productSlug={product.slug} productId={product.id} />
+          <PdpRelatedProductsSection productId={product.id} />
         </Suspense>
       </div>
     </section>

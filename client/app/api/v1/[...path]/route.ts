@@ -208,16 +208,6 @@ function handleProducts(sub: string[], url: URL) {
     return ok(product);
   }
 
-  // /api/v1/products/suggest
-  if (sub[0] === 'suggest') {
-    const q = url.searchParams.get('q')?.toLowerCase() ?? '';
-    const suggestions = PRODUCTS
-      .filter((p) => p.name.toLowerCase().includes(q))
-      .slice(0, 8)
-      .map((p) => ({ id: p.id, name: p.name, slug: p.slug, imageUrl: p.thumbnail, price: p.price }));
-    return ok(suggestions);
-  }
-
   // /api/v1/products/featured
   if (sub[0] === 'featured') {
     const featured = PRODUCTS.slice(0, 6);

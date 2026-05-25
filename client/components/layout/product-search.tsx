@@ -8,6 +8,8 @@ import { cn, formatCurrency } from '@/lib/utils';
 import { fetchProductSuggestions } from '@/features/products/services/products-api';
 import type { ProductSuggestion } from '@/features/products/types';
 
+const SEARCH_SUGGESTION_DEBOUNCE_MS = 300;
+
 interface ProductSearchProps {
   className?: string;
   placeholder?: string;
@@ -48,7 +50,7 @@ export function ProductSearch({ className, placeholder = 'Tìm kiếm sản ph�
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, SEARCH_SUGGESTION_DEBOUNCE_MS);
 
     return () => window.clearTimeout(handle);
   }, [keyword]);
