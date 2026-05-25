@@ -44,6 +44,7 @@ const BRAND_API_BASE = '/api/v1/brands';
 const RECOMMEND_API_BASE = '/recommend';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
 const FRONTEND_BASE_URL = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
+const RECOMMEND_REQUEST_TIMEOUT_MS = 5000;
 
 type SubcategoryTreeNode = {
   id?: string;
@@ -172,29 +173,41 @@ function resolveGatewayPath(path: string): string {
 
 async function requestGatewayApi<T>(path: string): Promise<T> {
   const resolvedPath = resolveGatewayPath(path);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RECOMMEND_REQUEST_TIMEOUT_MS);
 
-  const response = await fetch(resolvedPath, {
-    method: 'GET',
-    cache: 'no-store',
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-    },
-  });
+  try {
+    const response = await fetch(resolvedPath, {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'include',
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json',
+      },
+    });
 
-  const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    const message = payload && typeof payload === 'object' && 'message' in payload && typeof (payload as { message?: unknown }).message === 'string'
-      ? (payload as { message?: string }).message
-      : `Request failed with status ${response.status}`;
-    throw new Error(message);
+    if (!response.ok) {
+      const message = payload && typeof payload === 'object' && 'message' in payload && typeof (payload as { message?: unknown }).message === 'string'
+        ? (payload as { message?: string }).message
+        : `Request failed with status ${response.status}`;
+      throw new Error(message);
+    }
+
+    return unwrapProductApiResponse<T>(payload);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Recommendation request timeout');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return unwrapProductApiResponse<T>(payload);
 }
 
-function normalizeRecommendedProducts(payload: RecommendationResponse): ProductMinimal[] {
+export function normalizeRecommendedProducts(payload: RecommendationResponse): ProductMinimal[] {
   const recommendations = Array.isArray(payload.recommendations) ? payload.recommendations : [];
   const mapped: ProductMinimal[] = [];
 
@@ -351,6 +364,8 @@ export async function fetchProductSuggestions(keyword: string, params?: { limit?
 }
 
 export async function fetchPopularRecommendations(topK = 8): Promise<ProductMinimal[]> {
+  if (!featureFlags.ENABLE_RECOMMENDATION) return [];
+
   const payload = await requestGatewayApi<RecommendationResponse>(
     `${RECOMMEND_API_BASE}/popular?top_k=${encodeURIComponent(String(topK))}&enrich=true`,
   );
@@ -358,6 +373,8 @@ export async function fetchPopularRecommendations(topK = 8): Promise<ProductMini
 }
 
 export async function fetchUserRecommendations(userId: string, topK = 8): Promise<ProductMinimal[]> {
+  if (!featureFlags.ENABLE_RECOMMENDATION) return [];
+
   const normalizedUserId = userId.trim();
   if (!normalizedUserId) return [];
 
@@ -368,6 +385,8 @@ export async function fetchUserRecommendations(userId: string, topK = 8): Promis
 }
 
 export async function fetchSimilarRecommendations(productId: string, topK = 8): Promise<ProductMinimal[]> {
+  if (!featureFlags.ENABLE_RECOMMENDATION) return [];
+
   const normalizedProductId = productId.trim();
   if (!normalizedProductId) return [];
 
@@ -378,6 +397,8 @@ export async function fetchSimilarRecommendations(productId: string, topK = 8): 
 }
 
 export async function fetchRecommendedProductsForPdp(productId: string, topK = 8): Promise<ProductMinimal[]> {
+  if (!featureFlags.ENABLE_RECOMMENDATION) return [];
+
   const similar = await fetchSimilarRecommendations(productId, topK).catch(() => []);
   if (similar.length > 0) {
     return similar;

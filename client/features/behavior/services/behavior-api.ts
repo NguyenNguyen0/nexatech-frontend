@@ -4,6 +4,7 @@ import axiosClient from '@/lib/axios-client';
 import { BEHAVIOR_API_BASE } from '@/lib/constants';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { getUserIdFromAccessToken } from '@/features/auth/utils/auth-session';
+import { featureFlags } from '@/lib/feature-flags';
 
 export type BehaviorEventType = 'VIEW' | 'SEARCH_CLICK' | 'CART_ADD' | 'PURCHASE' | 'RATE';
 
@@ -29,6 +30,14 @@ const GUEST_BEHAVIOR_STORAGE_KEY = 'nexatech:guest-behavior-batch';
 
 let flushGuestBehaviorPromise: Promise<number> | null = null;
 
+const EVENT_DEFAULT_WEIGHT: Record<BehaviorEventType, number> = {
+  VIEW: 1.0,
+  SEARCH_CLICK: 1.5,
+  CART_ADD: 3.0,
+  PURCHASE: 5.0,
+  RATE: 1.0,
+};
+
 function createEventId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -47,13 +56,38 @@ function normalizeCategoryIds(categoryIds?: string[]): string[] | undefined {
   return filtered.length > 0 ? filtered : undefined;
 }
 
-function createDraft(input: BehaviorEventDraft): Required<Pick<BehaviorEventDraft, 'eventId' | 'timestamp'>> & BehaviorEventDraft {
+function clampRating(rating?: number): number | undefined {
+  if (typeof rating !== 'number' || !Number.isFinite(rating)) return undefined;
+  return Math.max(1, Math.min(5, Math.round(rating)));
+}
+
+function resolveWeight(eventType: BehaviorEventType, rating?: number, weight?: number): number {
+  if (typeof weight === 'number' && Number.isFinite(weight)) {
+    return weight;
+  }
+
+  if (eventType === 'RATE') {
+    return clampRating(rating) ?? EVENT_DEFAULT_WEIGHT.RATE;
+  }
+
+  return EVENT_DEFAULT_WEIGHT[eventType];
+}
+
+export function createBehaviorDraft(input: BehaviorEventDraft): Required<Pick<BehaviorEventDraft, 'eventId' | 'timestamp' | 'weight'>> & BehaviorEventDraft {
+  const clampedRating = clampRating(input.rating);
+
   return {
     ...input,
     eventId: input.eventId ?? createEventId(),
     timestamp: input.timestamp ?? new Date().toISOString(),
     categoryIds: normalizeCategoryIds(input.categoryIds),
+    rating: clampedRating,
+    weight: resolveWeight(input.eventType, clampedRating, input.weight),
   };
+}
+
+function createDraft(input: BehaviorEventDraft): Required<Pick<BehaviorEventDraft, 'eventId' | 'timestamp' | 'weight'>> & BehaviorEventDraft {
+  return createBehaviorDraft(input);
 }
 
 function readGuestQueue(): BehaviorEventDraft[] {
@@ -110,6 +144,8 @@ async function postBehaviorBatch(events: BehaviorEventPayload[]): Promise<void> 
 }
 
 export async function trackBehavior(event: BehaviorEventDraft): Promise<void> {
+  if (!featureFlags.ENABLE_BEHAVIOR_TRACKING) return;
+
   const userId = getCurrentUserId();
   const draft = createDraft(event);
 
@@ -122,6 +158,8 @@ export async function trackBehavior(event: BehaviorEventDraft): Promise<void> {
 }
 
 export async function flushGuestBehaviors(): Promise<number> {
+  if (!featureFlags.ENABLE_BEHAVIOR_TRACKING) return 0;
+
   const userId = getCurrentUserId();
   if (!userId) return 0;
 
