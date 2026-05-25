@@ -7,12 +7,15 @@ import {
   TechNews,
   TrustStrip,
 } from '@/features/storefront/home/components';
+import { fetchFlashSaleStripData } from '@/features/flash-sale/services/flash-sale-strip-loader';
 
-export function HomeShowcase() {
+export async function HomeShowcase() {
+  const flashSaleData = await fetchFlashSaleStripData();
+
   return (
     <div className="overflow-x-hidden bg-[#fbf9f8]">
       <HeroBanner />
-      <FlashSaleStrip />
+      <FlashSaleStrip items={flashSaleData.items} endsAt={flashSaleData.endsAt} />
       <CategoryGrid />
       <FeaturedProductGrid />
       <PromoBanner />
