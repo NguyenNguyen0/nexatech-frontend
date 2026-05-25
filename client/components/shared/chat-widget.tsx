@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Client, type StompSubscription } from '@stomp/stompjs';
@@ -20,7 +21,12 @@ import {
   markSeen,
   sendMessage,
 } from '@/features/chat/services/chat-api';
-import type { ChatMessage, Conversation } from '@/features/chat/types';
+import type {
+  ChatMessage,
+  ChatMessageDeleted,
+  Conversation,
+  ConversationDeleted,
+} from '@/features/chat/types';
 import { getOrCreateGuestChatSessionId } from '@/features/chat/utils/guest-chat-session';
 
 const MESSAGE_PAGE_SIZE = 30;
@@ -46,6 +52,44 @@ function statusLabel(status: ChatMessage['status']): string {
   if (status === 'SEEN') return 'Đã xem';
   if (status === 'DELIVERED') return 'Đã nhận';
   return 'Đã gửi';
+}
+
+function sameOptimisticMessage(message: ChatMessage, candidate: ChatMessage): boolean {
+  return (
+    candidate.id.startsWith('temp-') &&
+    candidate.conversationId === message.conversationId &&
+    candidate.senderId === message.senderId &&
+    candidate.content === message.content
+  );
+}
+
+function mergeMessage(current: ChatMessage[], message: ChatMessage): ChatMessage[] {
+  const existingIndex = current.findIndex((item) => item.id === message.id);
+  if (existingIndex >= 0) {
+    const updated = [...current];
+    updated[existingIndex] = message;
+    return updated;
+  }
+
+  const optimisticIndex = current.findIndex((item) => sameOptimisticMessage(message, item));
+  if (optimisticIndex >= 0) {
+    const updated = [...current];
+    updated[optimisticIndex] = message;
+    return updated;
+  }
+
+  return [...current, message];
+}
+
+function replaceOptimisticMessage(
+  current: ChatMessage[],
+  optimisticId: string,
+  saved: ChatMessage,
+): ChatMessage[] {
+  const replaced = current.map((message) => (message.id === optimisticId ? saved : message));
+  return replaced.filter(
+    (message, index, list) => list.findIndex((item) => item.id === message.id) === index,
+  );
 }
 
 export function ChatWidget() {
@@ -176,14 +220,7 @@ export function ChatWidget() {
   );
 
   const upsertMessage = useCallback((message: ChatMessage) => {
-    setMessages((current) => {
-      const existingIndex = current.findIndex((item) => item.id === message.id);
-      if (existingIndex < 0) return [...current, message];
-
-      const updated = [...current];
-      updated[existingIndex] = message;
-      return updated;
-    });
+    setMessages((current) => mergeMessage(current, message));
   }, []);
 
   const updateConversationPreview = useCallback((message: ChatMessage) => {
@@ -254,18 +291,42 @@ export function ChatWidget() {
     if (!clientRef.current || !connected) return;
 
     conversations.forEach((conversation) => {
-      if (subscriptionsRef.current[conversation.id]) return;
+      const messageKey = `${conversation.id}:messages`;
+      const deletedKey = `${conversation.id}:deleted`;
 
-      subscriptionsRef.current[conversation.id] = clientRef.current!.subscribe(
-        `/topic/conversations/${conversation.id}/messages`,
-        (message) => {
-          try {
-            handleIncomingMessage(JSON.parse(message.body) as ChatMessage);
-          } catch {
-            // Ignore malformed websocket payloads.
-          }
-        },
-      );
+      if (!subscriptionsRef.current[messageKey]) {
+        subscriptionsRef.current[messageKey] = clientRef.current!.subscribe(
+          `/topic/conversations/${conversation.id}/messages`,
+          (message) => {
+            try {
+              handleIncomingMessage(JSON.parse(message.body) as ChatMessage);
+            } catch {
+              // Ignore malformed websocket payloads.
+            }
+          },
+        );
+      }
+
+      if (!subscriptionsRef.current[deletedKey]) {
+        subscriptionsRef.current[deletedKey] = clientRef.current!.subscribe(
+          `/topic/conversations/${conversation.id}/messages/deleted`,
+          (message) => {
+            try {
+              const deleted = JSON.parse(message.body) as ChatMessageDeleted;
+              setMessages((current) => current.filter((item) => item.id !== deleted.id));
+              setConversations((current) =>
+                current.map((item) =>
+                  item.id === deleted.conversationId && item.lastMessage?.id === deleted.id
+                    ? { ...item, lastMessage: null }
+                    : item,
+                ),
+              );
+            } catch {
+              // Ignore malformed websocket payloads.
+            }
+          },
+        );
+      }
     });
   }, [connected, conversations, handleIncomingMessage]);
 
@@ -281,7 +342,24 @@ export function ChatWidget() {
       webSocketFactory: () => new SockJS(wsUrl),
       connectHeaders,
       reconnectDelay: 5000,
-      onConnect: () => setConnected(true),
+      onConnect: () => {
+        setConnected(true);
+        subscriptionsRef.current['deleted-conversations'] = client.subscribe(
+          '/topic/conversations/deleted',
+          (message) => {
+            try {
+              const deleted = JSON.parse(message.body) as ConversationDeleted;
+              setConversations((current) =>
+                current.filter((conversation) => conversation.id !== deleted.id),
+              );
+              setMessages((current) => current.filter((item) => item.conversationId !== deleted.id));
+              setActiveConversationId((current) => (current === deleted.id ? null : current));
+            } catch {
+              // Ignore malformed websocket payloads.
+            }
+          },
+        );
+      },
       onDisconnect: () => setConnected(false),
     });
 
@@ -323,9 +401,7 @@ export function ChatWidget() {
 
     try {
       const saved = await sendMessage(conversation.id, trimmed, { guestSessionId });
-      setMessages((current) =>
-        current.map((message) => (message.id === optimisticMessage.id ? saved : message)),
-      );
+      setMessages((current) => replaceOptimisticMessage(current, optimisticMessage.id, saved));
       updateConversationPreview(saved);
 
       if (conversation.status === 'WAITING') {
@@ -586,4 +662,3 @@ export function ChatWidget() {
     </div>
   );
 }
-

@@ -43,6 +43,11 @@ export type Conversation = {
   unreadCount?: number;
 };
 
+export type ConversationDeleted = {
+  id: string;
+  deletedAt: string;
+};
+
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'SEEN';
 
 export type ChatMessage = {
@@ -55,4 +60,10 @@ export type ChatMessage = {
   deliveredAt?: string | null;
   seenAt?: string | null;
   createdAt: string;
+};
+
+export type ChatMessageDeleted = {
+  id: string;
+  conversationId: string;
+  deletedAt: string;
 };
