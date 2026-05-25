@@ -15,4 +15,6 @@ export interface Cart {
 
 export interface UpdateCartItemBody {
   quantity: number;
+  /** Override the price fetched from product service (e.g. flash sale price) */
+  priceOverride?: number;
 }
