@@ -80,6 +80,33 @@ export interface ProductSuggestion {
   thumbnail?: string;
   price: number;
   compareAtPrice?: number;
+  categoryIds?: string[];
+  brandId?: string;
+}
+
+export interface RecommendationProductPayload {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  thumbnail?: string;
+  brandName?: string;
+  primaryCategoryName?: string;
+  averageRating?: number;
+  reviewCount?: number;
+}
+
+export interface RecommendationItem {
+  productId: string;
+  score: number;
+  product?: RecommendationProductPayload | null;
+}
+
+export interface RecommendationResponse {
+  userId?: string;
+  topK?: number;
+  source?: string;
+  recommendations: RecommendationItem[];
 }
 
 export interface ProductReview {

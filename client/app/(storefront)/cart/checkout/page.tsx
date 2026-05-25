@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart } from '@/features/cart/services/cart-api';
 import { checkout } from '@/features/checkout/services/checkout-api';
-import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import type { Cart } from '@/types/cart';
 import type { OrderPaymentMethod } from '@/types/order';
 
@@ -92,14 +92,17 @@ export default function CheckoutPage() {
         idempotencyKey.current,
       );
 
-      await clearCart();
-
-      // Best-effort: notify promotion service to decrement flash sale stock
-      const sellPromises = cart.items.map((item) =>
-        notifyFlashSaleSold(item.productId, item.quantity),
+      await Promise.allSettled(
+        cart.items.map((item) =>
+          trackBehavior({
+            productId: item.productId,
+            eventType: 'PURCHASE',
+            price: item.price,
+          }),
+        ),
       );
-      await Promise.allSettled(sellPromises);
 
+      await clearCart();
       toast.success('Đặt hàng thành công!');
 
       // Redirect to success page, carry orderId + orderNumber (+ paymentUrl for online payment)
