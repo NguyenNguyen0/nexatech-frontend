@@ -1,9 +1,10 @@
 import type { RouteObject } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/custom/ProtectedRoute';
 import { LazyWrapper } from '@/components/custom/LazyWrapper';
 import AppShell from '@/components/app-shell';
 import GeneralError from '@/pages/errors/general-error';
+import ProductLayout from '@/pages/admin/product';
 
 /**
  * All admin-area routes.
@@ -49,6 +50,26 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Warehouse inventory dashboard */
+            {
+                path: 'warehouse',
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <Outlet />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true,
+                        lazy: async () => ({
+                            Component: (await import('@/pages/warehouse/WarehouseDashboard')).default,
+                        }),
+                    },
+                ],
+            },
+
             /** Kanban board */
             {
                 path: 'kanban',
@@ -60,18 +81,44 @@ export const admin: RouteObject[] = [
             /** Products: list + add form (nested) */
             {
                 path: 'product',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/product')).default,
-                }),
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <ProductLayout />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
                 children: [
                     {
                         index: true,
+                        element: <Navigate to="products" replace />,
+                    },
+                    {
+                        path: 'products',
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/product/list')).default,
                         }),
                     },
                     {
+                        path: 'categories',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/categories')).default,
+                        }),
+                    },
+                    {
+                        path: 'brands',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/brands')).default,
+                        }),
+                    },
+                    {
                         path: 'add-product',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/add')).default,
+                        }),
+                    },
+                    {
+                        path: 'edit/:id',
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/product/add')).default,
                         }),

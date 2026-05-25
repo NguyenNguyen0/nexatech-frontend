@@ -12,6 +12,7 @@ import {
 interface ProtectedRouteProps {
     children: ReactNode;
     to?: string;
+    allowedRoles?: string[];
 }
 
 /**
@@ -20,7 +21,7 @@ interface ProtectedRouteProps {
  * Only allows authenticated users.
  * If not authenticated, redirects to login page (default /auth/login).
  */
-export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, to = '/auth/login', allowedRoles }: ProtectedRouteProps) => {
     const location = useLocation();
 
     const token = getAccessToken();
@@ -37,6 +38,17 @@ export const ProtectedRoute = ({ children, to = '/auth/login' }: ProtectedRouteP
 
     const roles = getRolesFromAccessToken(token);
     const primaryPath = getDefaultPathByRole(roles);
+
+    if (allowedRoles && allowedRoles.length > 0) {
+        const normalizedAllowedRoles = allowedRoles.map((role) => role.toUpperCase());
+        const hasAllowedRole = roles.some((role) => normalizedAllowedRoles.includes(role));
+
+        if (!hasAllowedRole) {
+            return <Navigate to={primaryPath} replace />;
+        }
+
+        return <>{children}</>;
+    }
 
     if (!canAccessByPath(location.pathname, roles)) {
         return <Navigate to={primaryPath} replace />;

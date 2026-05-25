@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { ProductCard } from '@/features/products/components/product-card';
-import type { ProductSummary } from '@/features/products/types';
+import type { ProductMinimal } from '@/features/products/types';
 
 type PdpRelatedProductsProps = {
-  products: ProductSummary[];
+  products: ProductMinimal[];
 };
 
 export function PdpRelatedProducts({ products }: PdpRelatedProductsProps) {

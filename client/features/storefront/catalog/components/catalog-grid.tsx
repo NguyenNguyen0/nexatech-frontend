@@ -1,8 +1,8 @@
 import { ProductCard } from '@/features/products/components/product-card';
-import type { ProductSummary } from '@/features/products/types';
+import type { ProductMinimal } from '@/features/products/types';
 
 type CatalogGridProps = {
-  items: ProductSummary[];
+  items: ProductMinimal[];
 };
 
 export function CatalogGrid({ items }: CatalogGridProps) {

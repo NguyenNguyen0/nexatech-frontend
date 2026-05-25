@@ -5,13 +5,14 @@ const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http
 const nextConfig: NextConfig = {
   /* Proxy API calls to backend gateway */
   async rewrites() {
-    return [
-      // Temporarily disabled to use local mock API routes
-      // {
-      //   source: '/api/v1/:path*',
-      //   destination: `${API_GATEWAY_URL}/api/v1/:path*`,
-      // },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: '/api/v1/:path*',
+          destination: `${API_GATEWAY_URL}/api/v1/:path*`,
+        },
+      ],
+    };
   },
 };
 

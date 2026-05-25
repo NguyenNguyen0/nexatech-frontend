@@ -12,7 +12,6 @@ import { Overview } from './components/overview'
 import { Charts } from './components/analytics'
 import { ReportPage } from './components/reports'
 import CustomerReviews from './components/CustomerReviews'
-import InventoryManagement from './components/InventoryManagement'
 import MarketingCampaigns from './components/MarketingCampaigns'
 import StoreLocations from './components/StoreLocations'
 import SupplierManagement from './components/SupplierManagement'
@@ -36,7 +35,6 @@ export default function Dashboard() {
               <TabsTrigger value='reports'>Reports</TabsTrigger>
               <TabsTrigger value='notifications'>Notifications</TabsTrigger>
               <TabsTrigger value='customerReviews'>CustomerReviews</TabsTrigger>
-              <TabsTrigger value='inventoryManagement'>InventoryManagement</TabsTrigger>
               <TabsTrigger value='marketingCampaigns'>MarketingCampaigns</TabsTrigger>
               <TabsTrigger value='storeLocations'>StoreLocations</TabsTrigger>
               <TabsTrigger value='supplierManagement'>SupplierManagement</TabsTrigger>
@@ -176,9 +174,6 @@ export default function Dashboard() {
           </TabsContent>
           <TabsContent value='customerReviews' className='space-y-4'>
             <CustomerReviews />
-          </TabsContent>
-          <TabsContent value='inventoryManagement' className='space-y-4'>
-            <InventoryManagement />
           </TabsContent>
           <TabsContent value='marketingCampaigns' className='space-y-4'>
             <MarketingCampaigns />
