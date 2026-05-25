@@ -10,10 +10,10 @@ function createGuestSessionId(): string {
 export function getOrCreateGuestChatSessionId(): string | null {
   if (typeof window === 'undefined') return null;
 
-  const existing = sessionStorage.getItem(GUEST_CHAT_SESSION_KEY);
+  const existing = localStorage.getItem(GUEST_CHAT_SESSION_KEY);
   if (existing) return existing;
 
   const created = createGuestSessionId();
-  sessionStorage.setItem(GUEST_CHAT_SESSION_KEY, created);
+  localStorage.setItem(GUEST_CHAT_SESSION_KEY, created);
   return created;
 }

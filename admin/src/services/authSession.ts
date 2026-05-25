@@ -1,4 +1,5 @@
 type JwtPayload = {
+    sub?: string;
     exp?: number; // seconds since epoch
     realm_access?: {
         roles?: string[];
@@ -81,6 +82,12 @@ export function getRolesFromAccessToken(token: string | null): string[] {
     const payload = decodeJwtPayload(token);
     const roles = payload?.realm_access?.roles ?? [];
     return roles.filter((r): r is string => typeof r === "string").map((r) => r.toUpperCase());
+}
+
+export function getUserIdFromAccessToken(token: string | null): string | null {
+    if (!token) return null;
+    const payload = decodeJwtPayload(token);
+    return typeof payload?.sub === "string" ? payload.sub : null;
 }
 
 export function isAccessTokenExpired(token: string | null): boolean {
