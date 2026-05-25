@@ -20,6 +20,10 @@ type PdpSummaryProps = {
   brandName?: string;
   price: number;
   compareAtPrice?: number;
+  /** Flash sale ID for this product (if active) */
+  flashSaleId?: string;
+  /** Flash sale price — used as priceOverride when adding to cart */
+  flashSalePrice?: number;
   averageRating?: number;
   reviewCount?: number;
   stockStatus?: string;
@@ -45,6 +49,8 @@ export function PdpSummary({
   brandName,
   price,
   compareAtPrice,
+  flashSaleId,
+  flashSalePrice,
   averageRating,
   reviewCount,
   stockStatus,
@@ -90,7 +96,10 @@ export function PdpSummary({
       const inCart = currentCart?.items.find((item) => item.productId === productId)?.quantity ?? 0;
       const nextCartQuantity = inCart + 1;
 
-      await updateCartItem(productId, { quantity: nextCartQuantity });
+      await updateCartItem(productId, {
+        quantity: nextCartQuantity,
+        priceOverride: flashSalePrice,
+      });
 
       try {
         const refreshedProduct = await fetchProductBySlug(slug);
@@ -120,7 +129,7 @@ export function PdpSummary({
     try {
       const currentCart = await getCart().catch(() => null);
       const inCart = currentCart?.items.find((item) => item.productId === productId)?.quantity ?? 0;
-      await updateCartItem(productId, { quantity: inCart + 1 });
+      await updateCartItem(productId, { quantity: inCart + 1, priceOverride: flashSalePrice });
       toast.success('Đã thêm sản phẩm, chuyển đến giỏ hàng');
       router.push('/cart');
     } catch (error) {

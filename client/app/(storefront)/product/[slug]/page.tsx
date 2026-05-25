@@ -4,6 +4,7 @@ import { Suspense, cache } from 'react';
 import { ProductReviewSection } from '@/features/products/components/product-review-section';
 import { fetchProductBySlug, fetchProductReviews } from '@/features/products/services/products-api';
 import type { PageResult, ProductReview } from '@/features/products/types';
+import { fetchFlashSaleByProductSlug } from '@/features/flash-sale/services/flash-sale-strip-loader';
 import {
   PdpBreadcrumb,
   PdpBlogReview,
@@ -49,9 +50,12 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
     notFound();
   }
 
-  const reviewsPage = await fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
+  const [reviewsPage, flashSale] = await Promise.all([
+    fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
       () => ({ items: [], page: 1, size: 10, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductReview>),
-    );
+    ),
+    fetchFlashSaleByProductSlug(slug).catch(() => null),
+  ]);
 
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
   const categoryName = product.primaryCategoryName;
@@ -69,8 +73,10 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             slug={product.slug}
             categoryName={categoryName}
             brandName={product.brandName}
-            price={product.price}
-            compareAtPrice={product.compareAtPrice}
+            price={flashSale ? flashSale.salePrice : product.price}
+            compareAtPrice={flashSale ? product.price : product.compareAtPrice}
+            flashSaleId={flashSale?.id}
+            flashSalePrice={flashSale?.salePrice}
             averageRating={product.averageRating}
             reviewCount={reviewsPage.totalItems ?? product.reviewCount ?? 0}
             stockStatus={product.stockStatus}
