@@ -364,6 +364,9 @@ const SERVICE_BASES: Record<string, string> = {
   payments: 'http://localhost:8086',
   // shipping-service (8091)
   shipping: 'http://localhost:8091',
+  // promotion-service (8093)
+  'flash-sales': 'http://localhost:8093',
+  promotions:    'http://localhost:8093',
 };
 
 // Hop-by-hop headers that must not be forwarded to upstream
