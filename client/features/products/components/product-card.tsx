@@ -1,6 +1,10 @@
+'use client';
+
 /* eslint-disable @next/next/no-img-element */
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { cn, formatCurrency } from '@/lib/utils';
+import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import type { ProductMinimal } from '../types';
 import { getStockStatusLabel } from '../utils';
 
@@ -11,15 +15,44 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, variant = 'grid', className }: ProductCardProps) {
+  const { isWishlisted, isMutating, toggleWishlist } = useWishlist();
   const discount =
     typeof product.compareAtPrice === 'number' && product.compareAtPrice > product.price
       ? Math.round((1 - product.price / product.compareAtPrice) * 100)
       : null;
   const rating = typeof product.averageRating === 'number' ? product.averageRating : 0;
+  const wishlisted = isWishlisted(product.id);
+  const isWishlistUpdating = isMutating(product.id);
 
   return (
     <Link href={`/product/${product.slug}`} className={cn('block h-full', className)}>
-      <div className="bg-surface rounded-md border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full">
+      <div className="bg-surface rounded-md border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full relative">
+        <button
+          type="button"
+          disabled={isWishlistUpdating}
+          onClick={async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const next = await toggleWishlist(product.id);
+            if (typeof next === 'boolean') {
+              toast.success(next ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
+            }
+          }}
+          title={wishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
+          className={cn(
+            'absolute right-2 top-2 z-20 h-9 w-9 rounded-full border bg-white/95 backdrop-blur flex items-center justify-center transition-colors',
+            wishlisted ? 'border-[#e30019] text-[#e30019]' : 'border-outline-variant text-on-surface-variant hover:border-[#e30019] hover:text-[#e30019]',
+            isWishlistUpdating && 'cursor-not-allowed opacity-60',
+          )}
+        >
+          <span
+            className="material-symbols-outlined text-[20px]"
+            style={{ fontVariationSettings: wishlisted ? "'FILL' 1" : "'FILL' 0" }}
+          >
+            favorite
+          </span>
+        </button>
+
         {/* Image */}
         <div className="relative w-full aspect-square bg-surface-container border-b border-outline-variant overflow-hidden">
           {product.thumbnail ? (
@@ -29,7 +62,7 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
+            <div className="absolute inset-0 bg-linear-to-br from-gray-100 to-gray-200 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center">
               <span className="material-symbols-outlined text-outline text-[48px]">inventory_2</span>
             </div>
           )}
@@ -50,7 +83,7 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
         </div>
 
         {/* Content */}
-        <div className={cn('p-4 flex flex-col flex-grow', variant === 'compact' && 'p-3')}>
+        <div className={cn('p-4 flex flex-col grow', variant === 'compact' && 'p-3')}>
           <div className="text-[10px] uppercase tracking-wider text-on-surface-variant font-bold mb-1">
             {product.brandName ?? product.primaryCategoryName ?? 'NexaTech'}
           </div>
