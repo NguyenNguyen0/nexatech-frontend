@@ -44,10 +44,10 @@ async function fetchProductMeta(productId: string): Promise<{ name: string; imag
     const res = await fetch(`/api/v1/products/${productId}`);
     if (!res.ok) return null;
     const json = await res.json();
-    const p = json?.result ?? json;
+    const p = json?.data ?? json?.result ?? json;
     return {
       name: p.name ?? 'Sản phẩm',
-      image: Array.isArray(p.images) ? (p.images[0] ?? '') : '',
+      image: (Array.isArray(p.images) && p.images[0]) ? p.images[0] : (p.thumbnail ?? ''),
       price: p.price ?? 0,
     };
   } catch {
