@@ -41,7 +41,7 @@ import type {
 const PRODUCT_API_BASE = '/api/v1/products';
 const CATEGORY_API_BASE = '/api/v1/categories';
 const BRAND_API_BASE = '/api/v1/brands';
-const RECOMMEND_API_BASE = '/recommend';
+const RECOMMEND_API_BASE = '/api/v1/recommend';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
 const FRONTEND_BASE_URL = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
 const RECOMMEND_REQUEST_TIMEOUT_MS = 5000;
