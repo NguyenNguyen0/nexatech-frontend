@@ -8,7 +8,20 @@ type PdpRelatedProductsSectionProps = {
 export async function PdpRelatedProductsSection({
   productId,
 }: PdpRelatedProductsSectionProps) {
-  const products = await fetchRecommendedProductsForPdp(productId, 10).catch(() => []);
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[Recommend] PDP section start', { productId });
+  }
+
+  const products = await fetchRecommendedProductsForPdp(productId, 10).catch((error) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Recommend] PDP section failed', { productId, error });
+    }
+    return [];
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[Recommend] PDP section result', { productId, count: products.length });
+  }
 
   return <PdpRelatedProducts products={products} />;
 }

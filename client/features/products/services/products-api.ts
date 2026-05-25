@@ -35,6 +35,8 @@ import type {
   ProductReview,
   ProductSubcategory,
   ProductSuggestion,
+  RecommendationItem,
+  RecommendationProductPayload,
   RecommendationResponse,
 } from '../types';
 
@@ -45,6 +47,12 @@ const RECOMMEND_API_BASE = '/api/v1/recommend';
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
 const FRONTEND_BASE_URL = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
 const RECOMMEND_REQUEST_TIMEOUT_MS = 5000;
+
+type RecommendationApiPayload = Partial<RecommendationResponse> & {
+  similar?: RecommendationItem[];
+  popular?: RecommendationItem[];
+  user?: RecommendationItem[];
+};
 
 type SubcategoryTreeNode = {
   id?: string;
@@ -196,7 +204,16 @@ async function requestGatewayApi<T>(path: string): Promise<T> {
       throw new Error(message);
     }
 
-    return unwrapProductApiResponse<T>(payload);
+    // Recommendation endpoints may return either wrapped payloads
+    // (success/data or code/result) or raw JSON objects.
+    try {
+      return unwrapProductApiResponse<T>(payload);
+    } catch {
+      if (payload && typeof payload === 'object') {
+        return payload as T;
+      }
+      throw new Error('Recommendation response is invalid');
+    }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error('Recommendation request timeout');
@@ -208,7 +225,7 @@ async function requestGatewayApi<T>(path: string): Promise<T> {
 }
 
 export function normalizeRecommendedProducts(payload: RecommendationResponse): ProductMinimal[] {
-  const recommendations = Array.isArray(payload.recommendations) ? payload.recommendations : [];
+  const recommendations = extractRecommendationItems(payload);
   const mapped: ProductMinimal[] = [];
 
   for (const item of recommendations) {
@@ -237,6 +254,98 @@ export function normalizeRecommendedProducts(payload: RecommendationResponse): P
   }
 
   return dedupeProducts(mapped);
+}
+
+function extractRecommendationItems(payload: unknown): RecommendationItem[] {
+  if (!payload || typeof payload !== 'object') return [];
+
+  const data = payload as RecommendationApiPayload;
+  if (Array.isArray(data.recommendations)) return data.recommendations;
+  if (Array.isArray(data.similar)) return data.similar;
+  if (Array.isArray(data.popular)) return data.popular;
+  if (Array.isArray(data.user)) return data.user;
+  return [];
+}
+
+function toRecommendationProductPayload(product: ProductMinimal): RecommendationProductPayload | null {
+  const id = typeof product.id === 'string' && product.id.trim() ? product.id : '';
+  const slug = typeof product.slug === 'string' && product.slug.trim() ? product.slug : '';
+  const name = typeof product.name === 'string' && product.name.trim() ? product.name : '';
+  const price = typeof product.price === 'number' ? product.price : Number(product.price ?? NaN);
+
+  if (!id || !slug || !name || !Number.isFinite(price)) {
+    return null;
+  }
+
+  return {
+    id,
+    slug,
+    name,
+    price,
+    thumbnail: product.thumbnail,
+    brandName: product.brandName,
+    primaryCategoryName: product.primaryCategoryName,
+    averageRating: product.averageRating,
+    reviewCount: product.reviewCount,
+  };
+}
+
+async function hydrateRecommendationItems(items: RecommendationItem[]): Promise<RecommendationItem[]> {
+  const missingProductIds = Array.from(
+    new Set(
+      items
+        .filter((item) => {
+          if (!item || typeof item !== 'object') return false;
+          const hasProduct = Boolean(item.product && typeof item.product === 'object');
+          return !hasProduct && typeof item.productId === 'string' && item.productId.trim().length > 0;
+        })
+        .map((item) => item.productId.trim()),
+    ),
+  );
+
+  if (missingProductIds.length === 0) {
+    return items;
+  }
+
+  const hydratedEntries = await Promise.all(
+    missingProductIds.map(async (productId) => {
+      try {
+        const product = await requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(productId)}`);
+        const mapped = toRecommendationProductPayload(product);
+        return mapped ? [productId, mapped] : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const hydratedMap = new Map<string, RecommendationProductPayload>();
+  for (const entry of hydratedEntries) {
+    if (!entry) continue;
+    hydratedMap.set(entry[0], entry[1]);
+  }
+
+  return items.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    if (item.product && typeof item.product === 'object') return item;
+
+    const fallbackProduct = hydratedMap.get(item.productId);
+    if (!fallbackProduct) return item;
+
+    return {
+      ...item,
+      product: fallbackProduct,
+    };
+  });
+}
+
+async function fetchRecommendedProducts(path: string): Promise<ProductMinimal[]> {
+  const payload = await requestGatewayApi<unknown>(path);
+  const items = extractRecommendationItems(payload);
+  if (items.length === 0) return [];
+
+  const hydratedItems = await hydrateRecommendationItems(items);
+  return normalizeRecommendedProducts({ recommendations: hydratedItems });
 }
 
 export async function fetchProducts(params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
@@ -366,10 +475,9 @@ export async function fetchProductSuggestions(keyword: string, params?: { limit?
 export async function fetchPopularRecommendations(topK = 8): Promise<ProductMinimal[]> {
   if (!featureFlags.ENABLE_RECOMMENDATION) return [];
 
-  const payload = await requestGatewayApi<RecommendationResponse>(
+  return fetchRecommendedProducts(
     `${RECOMMEND_API_BASE}/popular?top_k=${encodeURIComponent(String(topK))}&enrich=true`,
   );
-  return normalizeRecommendedProducts(payload);
 }
 
 export async function fetchUserRecommendations(userId: string, topK = 8): Promise<ProductMinimal[]> {
@@ -378,10 +486,9 @@ export async function fetchUserRecommendations(userId: string, topK = 8): Promis
   const normalizedUserId = userId.trim();
   if (!normalizedUserId) return [];
 
-  const payload = await requestGatewayApi<RecommendationResponse>(
+  return fetchRecommendedProducts(
     `${RECOMMEND_API_BASE}/user/${encodeURIComponent(normalizedUserId)}?top_k=${encodeURIComponent(String(topK))}&enrich=true`,
   );
-  return normalizeRecommendedProducts(payload);
 }
 
 export async function fetchSimilarRecommendations(productId: string, topK = 8): Promise<ProductMinimal[]> {
@@ -390,21 +497,30 @@ export async function fetchSimilarRecommendations(productId: string, topK = 8): 
   const normalizedProductId = productId.trim();
   if (!normalizedProductId) return [];
 
-  const payload = await requestGatewayApi<RecommendationResponse>(
+  return fetchRecommendedProducts(
     `${RECOMMEND_API_BASE}/similar/${encodeURIComponent(normalizedProductId)}?top_k=${encodeURIComponent(String(topK))}&enrich=true`,
   );
-  return normalizeRecommendedProducts(payload);
 }
 
 export async function fetchRecommendedProductsForPdp(productId: string, topK = 8): Promise<ProductMinimal[]> {
   if (!featureFlags.ENABLE_RECOMMENDATION) return [];
 
-  const similar = await fetchSimilarRecommendations(productId, topK).catch(() => []);
+  const similar = await fetchSimilarRecommendations(productId, topK).catch((error) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Recommend] PDP similar failed', { productId, topK, error });
+    }
+    return [];
+  });
   if (similar.length > 0) {
     return similar;
   }
 
-  return fetchPopularRecommendations(topK).catch(() => []);
+  return fetchPopularRecommendations(topK).catch((error) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Recommend] PDP popular fallback failed', { productId, topK, error });
+    }
+    return [];
+  });
 }
 
 export async function fetchCategories(): Promise<ProductCategory[]> {
