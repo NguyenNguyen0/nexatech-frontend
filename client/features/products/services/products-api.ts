@@ -345,6 +345,8 @@ export async function fetchProductSuggestions(keyword: string, params?: { limit?
     thumbnail: product.thumbnail,
     price: product.price,
     compareAtPrice: product.compareAtPrice,
+    categoryIds: product.categoryIds,
+    brandId: product.brandId,
   }));
 }
 

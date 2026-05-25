@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
+import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { updateCartItem, getApiErrorMessage, getCart } from '@/features/cart/services/cart-api';
 import { fetchProductBySlug } from '@/features/products/services/products-api';
 import type { StockStatus } from '@/features/products/types';
@@ -17,7 +18,9 @@ type PdpSummaryProps = {
   name: string;
   slug: string;
   categoryName?: string;
+  categoryIds?: string[];
   brandName?: string;
+  brandId?: string;
   price: number;
   compareAtPrice?: number;
   averageRating?: number;
@@ -42,7 +45,9 @@ export function PdpSummary({
   name,
   slug,
   categoryName,
+  categoryIds,
   brandName,
+  brandId,
   price,
   compareAtPrice,
   averageRating,
@@ -61,6 +66,18 @@ export function PdpSummary({
   const { isWishlisted, isMutating, toggleWishlist } = useWishlist();
   const wishlisted = isWishlisted(productId);
   const isWishlistUpdating = isMutating(productId);
+
+  useEffect(() => {
+    void trackBehavior({
+      productId,
+      eventType: 'VIEW',
+      categoryIds,
+      brandId,
+      price,
+    }).catch(() => {
+      // Ignore analytics failures on product detail load.
+    });
+  }, [brandId, categoryIds, price, productId]);
 
   const isOutOfStock = liveStockStatus === 'OUT_OF_STOCK' || liveStockQuantity === 0;
   const stockStateText = useMemo(() => {
@@ -104,6 +121,16 @@ export function PdpSummary({
         }
       }
 
+      await trackBehavior({
+        productId,
+        eventType: 'CART_ADD',
+        categoryIds,
+        brandId,
+        price,
+      }).catch(() => {
+        // Cart mutation must remain successful even if analytics fails.
+      });
+
       toast.success('Đã thêm sản phẩm vào giỏ hàng');
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Không thể thêm sản phẩm vào giỏ hàng'));
@@ -121,6 +148,17 @@ export function PdpSummary({
       const currentCart = await getCart().catch(() => null);
       const inCart = currentCart?.items.find((item) => item.productId === productId)?.quantity ?? 0;
       await updateCartItem(productId, { quantity: inCart + 1 });
+
+      await trackBehavior({
+        productId,
+        eventType: 'CART_ADD',
+        categoryIds,
+        brandId,
+        price,
+      }).catch(() => {
+        // Navigation to cart should not be blocked by analytics.
+      });
+
       toast.success('Đã thêm sản phẩm, chuyển đến giỏ hàng');
       router.push('/cart');
     } catch (error) {

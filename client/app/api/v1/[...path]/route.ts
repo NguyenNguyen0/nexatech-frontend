@@ -350,6 +350,8 @@ const SERVICE_BASES: Record<string, string> = {
   checkout: 'http://localhost:8084',
   returns:  'http://localhost:8084',
   admin:    'http://localhost:8084',   // /api/v1/admin/orders — order admin endpoints
+  // recommendation-service (8095)
+  behaviors: 'http://localhost:8095',
   // payment-service (8086)
   payments: 'http://localhost:8086',
   // shipping-service (8091)

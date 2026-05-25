@@ -80,6 +80,8 @@ export interface ProductSuggestion {
   thumbnail?: string;
   price: number;
   compareAtPrice?: number;
+  categoryIds?: string[];
+  brandId?: string;
 }
 
 export interface RecommendationProductPayload {
