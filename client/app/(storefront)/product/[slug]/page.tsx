@@ -4,6 +4,7 @@ import { Suspense, cache } from 'react';
 import { ProductReviewSection } from '@/features/products/components/product-review-section';
 import { fetchProductBySlug, fetchProductReviews } from '@/features/products/services/products-api';
 import type { PageResult, ProductReview } from '@/features/products/types';
+import { fetchFlashSaleByProductSlug } from '@/features/flash-sale/services/flash-sale-strip-loader';
 import {
   PdpBreadcrumb,
   PdpBlogReview,

@@ -68,7 +68,7 @@ export async function getCart(): Promise<Cart> {
 
 export async function updateCartItem(productId: string, body: UpdateCartItemBody): Promise<Cart> {
   const cart = readCart();
-  const { quantity } = body;
+  const { quantity, priceOverride } = body;
 
   if (quantity <= 0) {
     return removeCartItem(productId);
@@ -78,15 +78,18 @@ export async function updateCartItem(productId: string, body: UpdateCartItemBody
 
   if (existingIndex >= 0) {
     const existing = cart.items[existingIndex];
+    // Use priceOverride if provided, otherwise keep the existing price
+    const price = priceOverride ?? existing.price;
     cart.items[existingIndex] = {
       ...existing,
       quantity,
-      totalPrice: existing.price * quantity,
+      price,
+      totalPrice: price * quantity,
     };
   } else {
-    // Fetch product metadata to enrich cart item
-    const meta = await fetchProductMeta(productId);
-    const price = meta?.price ?? 0;
+    // Fetch product metadata to enrich cart item (only if no priceOverride)
+    const meta = priceOverride == null ? await fetchProductMeta(productId) : null;
+    const price = priceOverride ?? meta?.price ?? 0;
 
     const newItem: CartItem = {
       productId,
