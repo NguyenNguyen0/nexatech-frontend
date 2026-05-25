@@ -7,6 +7,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authStorage } from '@/features/auth/utils/auth-storage';
+import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import { CategoryDialog } from './category-dialog';
 
 const navLinks = [
@@ -20,7 +21,6 @@ const navLinks = [
 ];
 
 const STORAGE_KEY = 'nexatech_cart';
-const WISHLIST_KEY = 'nexatech_wishlist';
 
 function getCartCount(): number {
   if (typeof window === 'undefined') return 0;
@@ -34,28 +34,16 @@ function getCartCount(): number {
   }
 }
 
-function getWishlistCount(): number {
-  if (typeof window === 'undefined') return 0;
-  try {
-    const raw = localStorage.getItem(WISHLIST_KEY);
-    if (!raw) return 0;
-    const list = JSON.parse(raw);
-    return Array.isArray(list) ? list.length : 0;
-  } catch {
-    return 0;
-  }
-}
-
 export function Header() {
   const router = useRouter();
   const { data: session, status } = useSession();
+  const { wishlistCount } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [logoutPending, setLogoutPending] = useState(false);
 
   // Close category menu when account or mobile menu opens
@@ -98,17 +86,14 @@ export function Header() {
 
   const refreshCounts = useCallback(() => {
     setCartCount(getCartCount());
-    setWishlistCount(getWishlistCount());
   }, []);
 
   useEffect(() => {
     refreshCounts();
     window.addEventListener('cart-updated', refreshCounts);
-    window.addEventListener('wishlist-updated', refreshCounts);
     window.addEventListener('storage', refreshCounts);
     return () => {
       window.removeEventListener('cart-updated', refreshCounts);
-      window.removeEventListener('wishlist-updated', refreshCounts);
       window.removeEventListener('storage', refreshCounts);
     };
   }, [refreshCounts]);

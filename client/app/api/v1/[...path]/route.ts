@@ -409,7 +409,7 @@ async function proxyToBackend(
   const authHeader = request.headers.get('authorization');
   const userId = decodeJwtSub(authHeader);
   if (userId) {
-    forwardHeaders['X-User-Id'] = userId;
+    forwardHeaders['X-User-Id'] = userId;	
   }
 
   const hasBody = !['GET', 'HEAD', 'DELETE'].includes(request.method);

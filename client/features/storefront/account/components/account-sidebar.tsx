@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, KeyRound, Monitor, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Heart, KeyRound, Monitor, ShieldCheck, UserRound } from 'lucide-react';
 
 const links = [
   { key: 'profile', label: 'Hồ sơ', href: '/user', icon: UserRound, exact: true },
   { key: 'account', label: 'Tài khoản', href: '/user/account', icon: KeyRound, exact: false },
   { key: 'appearance', label: 'Giao diện', href: '/user/appearance', icon: Monitor, exact: false },
   { key: 'notifications', label: 'Thông báo', href: '/user/notifications', icon: Bell, exact: false },
+  { key: 'wishlist', label: 'Yêu thích', href: '/user/wishlist', icon: Heart, exact: false },
   { key: 'sessions', label: 'Phiên đăng nhập', href: '/user/sessions', icon: ShieldCheck, exact: false },
 ] as const;
 

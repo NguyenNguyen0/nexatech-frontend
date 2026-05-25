@@ -8,32 +8,9 @@ import { updateCartItem, getApiErrorMessage, getCart } from '@/features/cart/ser
 import { fetchProductBySlug } from '@/features/products/services/products-api';
 import type { StockStatus } from '@/features/products/types';
 import { getStockStatusLabel } from '@/features/products/utils';
+import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import { formatCurrency } from '@/lib/utils';
 import { PdpPromotions } from './pdp-promotions';
-
-const WISHLIST_KEY = 'nexatech_wishlist';
-
-type WishlistItem = { productId: string; name: string; price: number; thumbnail?: string; slug: string; addedAt: string };
-
-function getWishlist(): WishlistItem[] {
-  if (typeof window === 'undefined') return [];
-  try { return JSON.parse(localStorage.getItem(WISHLIST_KEY) ?? '[]'); } catch { return []; }
-}
-
-function toggleWishlist(item: Omit<WishlistItem, 'addedAt'>): boolean {
-  const list = getWishlist();
-  const idx = list.findIndex((i) => i.productId === item.productId);
-  if (idx >= 0) {
-    list.splice(idx, 1);
-    localStorage.setItem(WISHLIST_KEY, JSON.stringify(list));
-    window.dispatchEvent(new Event('wishlist-updated'));
-    return false;
-  }
-  list.push({ ...item, addedAt: new Date().toISOString() });
-  localStorage.setItem(WISHLIST_KEY, JSON.stringify(list));
-  window.dispatchEvent(new Event('wishlist-updated'));
-  return true;
-}
 
 type PdpSummaryProps = {
   productId: string;
@@ -81,12 +58,9 @@ export function PdpSummary({
   const [liveStockStatus, setLiveStockStatus] = useState<StockStatus>(
     deriveStockStatus(stockQuantity, stockStatus)
   );
-  const [wishlisted, setWishlisted] = useState(false);
-
-  useEffect(() => {
-    const list = getWishlist();
-    setWishlisted(list.some((i) => i.productId === productId));
-  }, [productId]);
+  const { isWishlisted, isMutating, toggleWishlist } = useWishlist();
+  const wishlisted = isWishlisted(productId);
+  const isWishlistUpdating = isMutating(productId);
 
   const isOutOfStock = liveStockStatus === 'OUT_OF_STOCK' || liveStockQuantity === 0;
   const stockStateText = useMemo(() => {
@@ -254,16 +228,18 @@ export function PdpSummary({
 		
         <button
           type="button"
-          onClick={() => {
-            const added = toggleWishlist({ productId, name, price, thumbnail, slug });
-            setWishlisted(added);
-            toast.success(added ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
+          onClick={async () => {
+            const next = await toggleWishlist(productId);
+            if (typeof next === 'boolean') {
+              toast.success(next ? 'Đã thêm vào yêu thích' : 'Đã xóa khỏi yêu thích');
+            }
           }}
+          disabled={isWishlistUpdating}
           className={`h-12 w-12 shrink-0 rounded-md border-2 flex items-center justify-center transition-all active:scale-[0.98] ${
             wishlisted
               ? 'border-[#e30019] bg-[#fff0f0] text-[#e30019]'
               : 'border-outline-variant bg-white text-on-surface-variant hover:border-[#e30019] hover:text-[#e30019] hover:bg-[#fff5f5]'
-          }`}
+          } ${isWishlistUpdating ? 'cursor-not-allowed opacity-60' : ''}`}
           title={wishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
         >
           <span
