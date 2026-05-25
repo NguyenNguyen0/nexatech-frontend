@@ -60,21 +60,29 @@ export function FlashSaleStrip({ items, endsAt }: FlashSaleStripProps) {
   return (
     <section className="mx-auto w-full max-w-[1200px] px-4 pt-7 pb-2">
       {/* Section Header */}
-      <div className="mb-3 flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-5 w-5 text-[#e30019]" />
-          <h2 className="text-lg font-bold text-[#1b1c1c]">Flash Sale</h2>
-        </div>
-        <div className="flex items-center gap-1">
-          {[countdown.hours, countdown.minutes, countdown.seconds].map((unit, i) => (
-            <span key={i} className="flex items-center gap-1">
-              {i > 0 && <span className="text-xs font-bold text-[#333]">:</span>}
-              <span className="rounded bg-[#1b1c1c] px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
-                {unit}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-5 w-5 text-[#e30019]" />
+            <h2 className="text-lg font-bold text-[#1b1c1c]">Flash Sale</h2>
+          </div>
+          <div className="flex items-center gap-1">
+            {[countdown.hours, countdown.minutes, countdown.seconds].map((unit, i) => (
+              <span key={i} className="flex items-center gap-1">
+                {i > 0 && <span className="text-xs font-bold text-[#333]">:</span>}
+                <span className="rounded bg-[#1b1c1c] px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
+                  {unit}
+                </span>
               </span>
-            </span>
-          ))}
+            ))}
+          </div>
         </div>
+        <Link
+          href="/flash-sale"
+          className="flex items-center gap-1 text-[12px] font-semibold text-[#004d75] hover:text-[#e30019] transition-colors"
+        >
+          Xem tất cả <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
 
       {/* Products Carousel */}
@@ -144,6 +152,18 @@ export function FlashSaleStrip({ items, endsAt }: FlashSaleStripProps) {
             <ChevronRight className="h-3.5 w-3.5" />
           </CarouselNext>
         </Carousel>
+      </div>
+
+      {/* CTA button */}
+      <div className="mt-3 flex justify-center">
+        <Link
+          href="/flash-sale"
+          className="inline-flex items-center gap-1.5 rounded border border-[#e30019] px-5 py-1.5 text-[13px] font-semibold text-[#e30019] transition hover:bg-[#e30019] hover:text-white"
+        >
+          <Zap className="h-3.5 w-3.5" />
+          Xem chi tiết Flash Sale
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
       </div>
     </section>
   );
