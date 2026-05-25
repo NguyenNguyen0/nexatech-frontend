@@ -4,9 +4,12 @@ import { type FormEvent, type KeyboardEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { cn, formatCurrency } from '@/lib/utils';
 import { fetchProductSuggestions } from '@/features/products/services/products-api';
 import type { ProductSuggestion } from '@/features/products/types';
+
+const SEARCH_SUGGESTION_DEBOUNCE_MS = 300;
 
 interface ProductSearchProps {
   className?: string;
@@ -48,7 +51,7 @@ export function ProductSearch({ className, placeholder = 'Tìm kiếm sản ph�
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, SEARCH_SUGGESTION_DEBOUNCE_MS);
 
     return () => window.clearTimeout(handle);
   }, [keyword]);
@@ -63,8 +66,18 @@ export function ProductSearch({ className, placeholder = 'Tìm kiếm sản ph�
     setActiveIndex(-1);
   };
 
-  const goToSuggestion = (slug: string) => {
-    router.push(`/product/${slug}`);
+  const goToSuggestion = (suggestion: ProductSuggestion) => {
+    void trackBehavior({
+      productId: suggestion.id,
+      eventType: 'SEARCH_CLICK',
+      categoryIds: suggestion.categoryIds,
+      brandId: suggestion.brandId,
+      price: suggestion.price,
+    }).catch(() => {
+      // Navigation should not be blocked by analytics failures.
+    });
+
+    router.push(`/product/${suggestion.slug}`);
     setIsOpen(false);
     setActiveIndex(-1);
   };
@@ -91,7 +104,7 @@ export function ProductSearch({ className, placeholder = 'Tìm kiếm sản ph�
 
     if (event.key === 'Enter' && activeIndex >= 0 && activeIndex < suggestions.length) {
       event.preventDefault();
-      goToSuggestion(suggestions[activeIndex].slug);
+      goToSuggestion(suggestions[activeIndex]);
       return;
     }
 
@@ -155,7 +168,7 @@ export function ProductSearch({ className, placeholder = 'Tìm kiếm sản ph�
                   key={item.id}
                   type="button"
                   onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => goToSuggestion(item.slug)}
+                  onClick={() => goToSuggestion(item)}
                   className={cn(
                     'flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-gray-50',
                     suggestions[activeIndex]?.id === item.id ? 'bg-gray-50' : ''

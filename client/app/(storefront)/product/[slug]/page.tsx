@@ -50,12 +50,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
     notFound();
   }
 
-  const [reviewsPage, flashSale] = await Promise.all([
-    fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
+  const reviewsPage = await fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
       () => ({ items: [], page: 1, size: 10, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductReview>),
-    ),
-    fetchFlashSaleByProductSlug(slug).catch(() => null),
-  ]);
+    );
 
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
   const categoryName = product.primaryCategoryName;
@@ -72,11 +69,11 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             name={product.name}
             slug={product.slug}
             categoryName={categoryName}
+            categoryIds={product.categoryIds}
             brandName={product.brandName}
-            price={flashSale ? flashSale.salePrice : product.price}
-            compareAtPrice={flashSale ? product.price : product.compareAtPrice}
-            flashSaleId={flashSale?.id}
-            flashSalePrice={flashSale?.salePrice}
+            brandId={product.brandId}
+            price={product.price}
+            compareAtPrice={product.compareAtPrice}
             averageRating={product.averageRating}
             reviewCount={reviewsPage.totalItems ?? product.reviewCount ?? 0}
             stockStatus={product.stockStatus}
@@ -94,6 +91,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             productId={product.id}
             productSlug={product.slug}
             productName={product.name}
+            categoryIds={product.categoryIds}
+            brandId={product.brandId}
+            price={product.price}
             averageRating={product.averageRating}
             reviewCount={reviewsPage.totalItems ?? reviewsPage.items.length}
             initialReviews={reviewsPage.items}
@@ -114,7 +114,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
 
       <div className="mt-12">
         <Suspense fallback={<PdpRelatedProductsFallback />}>
-          <PdpRelatedProductsSection productSlug={product.slug} productId={product.id} />
+          <PdpRelatedProductsSection productId={product.id} />
         </Suspense>
       </div>
     </section>
