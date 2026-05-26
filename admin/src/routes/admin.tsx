@@ -268,6 +268,12 @@ export const admin: RouteObject[] = [
                             Component: (await import('@/pages/admin/audit')).default,
                         }),
                     },
+                    {
+                        path: 'trace',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/audit/components/AuditTrace')).AuditTrace,
+                        }),
+                    },
                 ],
             },
 

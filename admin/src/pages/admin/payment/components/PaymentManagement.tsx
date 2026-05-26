@@ -1,44 +1,18 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  RefreshCw,
-  Search,
   ChevronLeft,
   ChevronRight,
-  Eye,
   ClipboardList,
+  CreditCard,
+  Eye,
   MoreVertical,
+  RefreshCw,
   RotateCcw,
-} from 'lucide-react';
+  Search,
+} from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/custom/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/custom/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,141 +22,184 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  adminGetAllPayments,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from '@/components/ui/use-toast'
+import { adminGetAllOrders, type OrderResponse } from '@/services/orderApi'
+import {
   adminRefundPayment,
+  getOptionalPaymentByOrderId,
   type PaymentResponse,
   type PaymentStatus,
-} from '@/services/paymentApi';
-
-// ── helpers ───────────────────────────────────────────────────────────────────
+} from '@/services/paymentApi'
 
 const STATUS_COLORS: Record<PaymentStatus, string> = {
-  PENDING:    'bg-yellow-100 text-yellow-800',
-  PROCESSING: 'bg-indigo-100 text-indigo-800',
-  COMPLETED:  'bg-green-100 text-green-800',
-  FAILED:     'bg-red-100 text-red-800',
-  REFUNDED:   'bg-gray-100 text-gray-700',
-};
+  PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  PROCESSING: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  COMPLETED: 'bg-green-100 text-green-800 border-green-200',
+  FAILED: 'bg-red-100 text-red-800 border-red-200',
+  REFUNDED: 'bg-gray-100 text-gray-700 border-gray-200',
+}
 
-const ALL_STATUSES: PaymentStatus[] = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED'];
+const ALL_STATUSES: PaymentStatus[] = ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED']
+const PAGE_SIZE = 15
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value ?? 0)
 
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+const formatDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'
 
-// ── PaymentDetailDialog ────────────────────────────────────────────────────────
+const customerLabel = (order?: OrderResponse) =>
+  order?.guestName || order?.guestEmail || order?.guestPhone || order?.customerId || 'Guest customer'
+
+type PaymentRow = {
+  payment: PaymentResponse
+  order: OrderResponse
+}
 
 function PaymentDetailDialog({
-  payment,
+  row,
   onClose,
   onRefund,
 }: {
-  payment: PaymentResponse | null;
-  onClose: () => void;
-  onRefund: (id: string) => Promise<void>;
+  row: PaymentRow | null
+  onClose: () => void
+  onRefund: (id: string) => Promise<void>
 }) {
-  const navigate = useNavigate();
-  const [confirmRefund, setConfirmRefund] = useState(false);
-  const [refunding, setRefunding] = useState(false);
+  const navigate = useNavigate()
+  const [confirmRefund, setConfirmRefund] = useState(false)
+  const [refunding, setRefunding] = useState(false)
 
-  if (!payment) return null;
+  if (!row) return null
+
+  const { payment, order } = row
 
   const handleRefund = async () => {
-    setRefunding(true);
+    setRefunding(true)
     try {
-      await onRefund(payment.id);
-      toast({ title: 'Hoàn tiền thành công', description: `Giao dịch ${payment.id.slice(0, 8)}...` });
-      setConfirmRefund(false);
-      onClose();
-    } catch (e: unknown) {
-      toast({ title: 'Lỗi hoàn tiền', description: (e as Error).message, variant: 'destructive' });
+      await onRefund(payment.id)
+      toast({
+        title: 'Refund completed',
+        description: `Payment ${payment.id.slice(0, 8)}... has been refunded.`,
+      })
+      setConfirmRefund(false)
+      onClose()
+    } catch (error: unknown) {
+      toast({
+        title: 'Refund failed',
+        description: (error as Error).message,
+        variant: 'destructive',
+      })
     } finally {
-      setRefunding(false);
+      setRefunding(false)
     }
-  };
+  }
 
   return (
     <>
-      <Dialog open={!!payment} onOpenChange={onClose}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={Boolean(row)} onOpenChange={onClose}>
+        <DialogContent className='max-h-[90vh] w-[92vw] overflow-y-auto sm:max-w-3xl'>
           <DialogHeader>
-            <DialogTitle>Chi tiết giao dịch</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 text-sm">
-            <div className="flex items-center gap-2 flex-wrap">
+            <DialogTitle className='flex flex-wrap items-center gap-2'>
+              Payment details
               <Badge className={STATUS_COLORS[payment.status]}>{payment.status}</Badge>
-              <span className="text-muted-foreground">{fmtDate(payment.createdAt)}</span>
-            </div>
+            </DialogTitle>
+            <DialogDescription>
+              Review transaction details, customer context, refund actions, and trace log access.
+            </DialogDescription>
+          </DialogHeader>
 
+          <div className='space-y-4 text-sm'>
             <Card>
-              <CardHeader className="py-2 px-4">
-                <CardTitle className="text-sm">Thông tin</CardTitle>
+              <CardHeader className='px-4 py-3'>
+                <CardTitle className='flex items-center gap-2 text-sm'>
+                  <CreditCard className='h-4 w-4' />
+                  Transaction
+                </CardTitle>
               </CardHeader>
-              <CardContent className="px-4 pb-3 grid grid-cols-2 gap-2">
+              <CardContent className='grid gap-3 px-4 pb-4 md:grid-cols-2'>
                 <div>
-                  <p className="text-muted-foreground">ID giao dịch</p>
-                  <p className="font-mono text-xs break-all">{payment.id}</p>
+                  <p className='text-muted-foreground'>Payment ID</p>
+                  <p className='break-all font-mono text-xs'>{payment.id}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Đơn hàng</p>
-                  <p className="font-mono text-xs break-all">{payment.orderId}</p>
+                  <p className='text-muted-foreground'>Order</p>
+                  <p className='font-mono text-xs'>{order.orderNumber}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Khách hàng</p>
-                  <p className="font-mono text-xs break-all">{payment.customerId}</p>
+                  <p className='text-muted-foreground'>Customer</p>
+                  <p>{customerLabel(order)}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Phương thức</p>
+                  <p className='text-muted-foreground'>Method</p>
                   <p>{payment.method}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Số tiền</p>
-                  <p className="font-bold">{fmt(payment.amount)}</p>
+                  <p className='text-muted-foreground'>Amount</p>
+                  <p className='font-semibold'>{formatCurrency(payment.amount)}</p>
                 </div>
-                {payment.transactionId && (
-                  <div>
-                    <p className="text-muted-foreground">Mã transaction</p>
-                    <p className="font-mono text-xs">{payment.transactionId}</p>
-                  </div>
-                )}
+                <div>
+                  <p className='text-muted-foreground'>Created at</p>
+                  <p>{formatDate(payment.createdAt)}</p>
+                </div>
+                <div>
+                  <p className='text-muted-foreground'>Completed at</p>
+                  <p>{formatDate(payment.completedAt)}</p>
+                </div>
+                <div>
+                  <p className='text-muted-foreground'>Transaction ID</p>
+                  <p className='break-all font-mono text-xs'>{payment.transactionId || '-'}</p>
+                </div>
                 {payment.failureReason && (
-                  <div className="col-span-2">
-                    <p className="text-muted-foreground">Lý do thất bại</p>
-                    <p className="text-red-600">{payment.failureReason}</p>
+                  <div className='md:col-span-2'>
+                    <p className='text-muted-foreground'>Failure reason</p>
+                    <p className='text-red-600'>{payment.failureReason}</p>
                   </div>
                 )}
-                {payment.completedAt && (
-                  <div>
-                    <p className="text-muted-foreground">Hoàn thành lúc</p>
-                    <p>{fmtDate(payment.completedAt)}</p>
-                  </div>
-                )}
+                <div className='md:col-span-2'>
+                  <p className='text-muted-foreground'>Shipping address</p>
+                  <p>{order.shippingAddress || '-'}</p>
+                </div>
               </CardContent>
             </Card>
 
-            <div className="flex gap-2">
+            <div className='flex flex-wrap gap-2'>
               {payment.status === 'COMPLETED' && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setConfirmRefund(true)}
-                >
-                  <RotateCcw size={14} className="mr-1" />
-                  Hoàn tiền
+                <Button size='sm' variant='destructive' onClick={() => setConfirmRefund(true)}>
+                  <RotateCcw className='mr-1 h-4 w-4' />
+                  Refund
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/admin/audit?paymentId=${payment.id}`)}
-              >
-                <ClipboardList size={14} className="mr-1" />
-                Xem audit log
+              <Button size='sm' variant='outline' onClick={() => navigate(`/admin/audit/trace?paymentId=${payment.id}`)}>
+                <ClipboardList className='mr-1 h-4 w-4' />
+                Trace log
               </Button>
             </div>
           </div>
@@ -192,179 +209,234 @@ function PaymentDetailDialog({
       <AlertDialog open={confirmRefund} onOpenChange={setConfirmRefund}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận hoàn tiền?</AlertDialogTitle>
+            <AlertDialogTitle>Confirm refund?</AlertDialogTitle>
             <AlertDialogDescription>
-              Hoàn tiền {fmt(payment.amount)} cho khách hàng. Hành động này không thể hoàn tác.
+              Refund {formatCurrency(payment.amount)} for this customer. This action cannot be undone from the admin UI.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleRefund} disabled={refunding}>
-              {refunding ? 'Đang xử lý...' : 'Xác nhận hoàn tiền'}
+              {refunding ? 'Processing...' : 'Confirm refund'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }
 
-// ── main component ────────────────────────────────────────────────────────────
-
 export function PaymentManagement() {
-  const [payments, setPayments] = useState<PaymentResponse[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'ALL'>('ALL');
-  const [search, setSearch] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<PaymentResponse | null>(null);
-  const PAGE_SIZE = 15;
+  const [rows, setRows] = useState<PaymentRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(0)
+  const [totalOrderPages, setTotalOrderPages] = useState(0)
+  const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'ALL'>('ALL')
+  const [search, setSearch] = useState('')
+  const [selectedRow, setSelectedRow] = useState<PaymentRow | null>(null)
 
   const fetchPayments = useCallback(async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const params = {
+      const orderPage = await adminGetAllOrders({
         page,
         size: PAGE_SIZE,
         sort: 'createdAt,desc',
-        ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
-      };
-      const result = await adminGetAllPayments(params);
-      setPayments(result.content);
-      setTotalPages(result.totalPages);
-      setTotalElements(result.totalElements);
-    } catch (e: unknown) {
+      })
+
+      setTotalOrderPages(orderPage.totalPages)
+
+      const entries = await Promise.allSettled(
+        orderPage.content.map(async (order) => {
+          const payment = await getOptionalPaymentByOrderId(order.id).catch(() => null)
+          return payment ? ({ payment, order } satisfies PaymentRow) : null
+        }),
+      )
+
+      setRows(
+        entries
+          .map((entry) => (entry.status === 'fulfilled' ? entry.value : null))
+          .filter((entry): entry is PaymentRow => Boolean(entry)),
+      )
+    } catch (error: unknown) {
       toast({
-        title: 'Lỗi tải danh sách thanh toán',
-        description: (e as Error).message,
+        title: 'Unable to load payments',
+        description: (error as Error).message,
         variant: 'destructive',
-      });
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [page, statusFilter]);
+  }, [page])
 
   useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
+    fetchPayments()
+  }, [fetchPayments])
 
   useEffect(() => {
-    setPage(0);
-  }, [statusFilter]);
+    setPage(0)
+  }, [statusFilter])
 
   const handleRefund = async (paymentId: string) => {
-    const updated = await adminRefundPayment(paymentId);
-    setPayments(prev => prev.map(p => (p.id === paymentId ? updated : p)));
-    if (selectedPayment?.id === paymentId) setSelectedPayment(updated);
-  };
+    const updated = await adminRefundPayment(paymentId)
+    setRows((prev) =>
+      prev.map((row) => (row.payment.id === paymentId ? { ...row, payment: updated } : row)),
+    )
+    if (selectedRow?.payment.id === paymentId) {
+      setSelectedRow({ ...selectedRow, payment: updated })
+    }
+  }
 
-  const filtered = search.trim()
-    ? payments.filter(
-        p =>
-          p.id.toLowerCase().includes(search.toLowerCase()) ||
-          p.orderId.toLowerCase().includes(search.toLowerCase()) ||
-          p.customerId.toLowerCase().includes(search.toLowerCase()),
-      )
-    : payments;
+  const filteredRows = useMemo(() => {
+    const keyword = search.trim().toLowerCase()
+    return rows.filter(({ payment, order }) => {
+      if (statusFilter !== 'ALL' && payment.status !== statusFilter) return false
+      if (!keyword) return true
+      return [
+        payment.id,
+        payment.orderId,
+        payment.customerId,
+        payment.transactionId,
+        order.orderNumber,
+        order.guestName,
+        order.guestEmail,
+        order.guestPhone,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    })
+  }, [rows, search, statusFilter])
+
+  const completedCount = rows.filter((row) => row.payment.status === 'COMPLETED').length
+  const pageAmount = rows.reduce((sum, row) => sum + Number(row.payment.amount || 0), 0)
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+    <div className='space-y-4 p-4'>
+      <div className='flex flex-wrap items-start justify-between gap-3'>
         <div>
-          <h2 className="text-xl font-semibold">Quản lý thanh toán</h2>
-          <p className="text-sm text-muted-foreground">{totalElements} giao dịch</p>
+          <h2 className='text-xl font-semibold'>Payment Management</h2>
+          <p className='text-sm text-muted-foreground'>
+            Payments are resolved from orders via /api/v1/payments/order/:orderId.
+          </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchPayments} disabled={loading}>
-          <RefreshCw size={14} className={loading ? 'animate-spin mr-1' : 'mr-1'} />
-          Làm mới
+        <Button variant='outline' size='sm' onClick={fetchPayments} disabled={loading}>
+          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
         </Button>
       </div>
 
-      <Tabs value={statusFilter} onValueChange={v => setStatusFilter(v as PaymentStatus | 'ALL')}>
-        <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="ALL">Tất cả</TabsTrigger>
-          {ALL_STATUSES.map(s => (
-            <TabsTrigger key={s} value={s}>{s}</TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      <div className="relative max-w-xs">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Tìm ID, đơn hàng, khách hàng..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className='grid gap-3 md:grid-cols-3'>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>Payments on this order page</p>
+            <p className='mt-1 text-xl font-semibold'>{rows.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>Completed</p>
+            <p className='mt-1 text-xl font-semibold'>{completedCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>Amount on page</p>
+            <p className='mt-1 text-xl font-semibold'>{formatCurrency(pageAmount)}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
+      <div className='flex flex-wrap items-center gap-3'>
+        <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as PaymentStatus | 'ALL')}>
+          <TabsList className='h-auto flex-wrap gap-1'>
+            <TabsTrigger value='ALL'>All</TabsTrigger>
+            {ALL_STATUSES.map((status) => (
+              <TabsTrigger key={status} value={status}>
+                {status}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className='relative min-w-72 flex-1 md:max-w-sm'>
+          <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            className='pl-9'
+            placeholder='Search payment, order, customer...'
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className='rounded-md border'>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID giao dịch</TableHead>
-              <TableHead>Đơn hàng</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Phương thức</TableHead>
-              <TableHead className="text-right">Số tiền</TableHead>
-              <TableHead>Ngày tạo</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Order</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead className='text-right'>Amount</TableHead>
+              <TableHead>Created</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+              Array.from({ length: 8 }).map((_, row) => (
+                <TableRow key={row}>
+                  {Array.from({ length: 8 }).map((__, cell) => (
+                    <TableCell key={cell}>
+                      <Skeleton className='h-4 w-full' />
+                    </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : filtered.length === 0 ? (
+            ) : filteredRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Không có giao dịch nào
+                <TableCell colSpan={8} className='py-10 text-center text-muted-foreground'>
+                  No payments found on the current order page.
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map(payment => (
+              filteredRows.map((row) => (
                 <TableRow
-                  key={payment.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedPayment(payment)}
+                  key={row.payment.id}
+                  className='cursor-pointer hover:bg-muted/50'
+                  onClick={() => setSelectedRow(row)}
                 >
-                  <TableCell className="font-mono text-xs">{payment.id.slice(0, 8)}...</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {payment.orderId.slice(0, 8)}...
+                  <TableCell className='font-mono text-xs'>{row.payment.id.slice(0, 8)}...</TableCell>
+                  <TableCell>
+                    <div className='font-mono text-xs font-medium'>{row.order.orderNumber}</div>
+                    <div className='text-xs text-muted-foreground'>{row.payment.orderId.slice(0, 8)}...</div>
                   </TableCell>
                   <TableCell>
-                    <Badge className={STATUS_COLORS[payment.status]}>{payment.status}</Badge>
+                    <div className='max-w-52 truncate font-medium'>{customerLabel(row.order)}</div>
+                    <div className='max-w-52 truncate text-xs text-muted-foreground'>{row.order.guestPhone || row.payment.customerId || 'guest'}</div>
                   </TableCell>
-                  <TableCell>{payment.method}</TableCell>
-                  <TableCell className="text-right font-medium">{fmt(payment.amount)}</TableCell>
-                  <TableCell className="text-muted-foreground">{fmtDate(payment.createdAt)}</TableCell>
+                  <TableCell>
+                    <Badge className={STATUS_COLORS[row.payment.status]}>{row.payment.status}</Badge>
+                  </TableCell>
+                  <TableCell>{row.payment.method}</TableCell>
+                  <TableCell className='text-right font-medium'>{formatCurrency(row.payment.amount)}</TableCell>
+                  <TableCell className='text-muted-foreground'>{formatDate(row.payment.createdAt)}</TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical size={14} />
+                      <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
+                        <Button variant='ghost' size='icon' className='h-8 w-8'>
+                          <MoreVertical className='h-4 w-4' />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={e => { e.stopPropagation(); setSelectedPayment(payment); }}>
-                          <Eye size={14} className="mr-2" /> Xem chi tiết
+                      <DropdownMenuContent align='end'>
+                        <DropdownMenuItem onClick={(event) => { event.stopPropagation(); setSelectedRow(row) }}>
+                          <Eye className='mr-2 h-4 w-4' />
+                          View details
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={e => {
-                            e.stopPropagation();
-                            window.location.href = `/admin/audit?paymentId=${payment.id}`;
-                          }}
-                        >
-                          <ClipboardList size={14} className="mr-2" /> Audit log
+                        <DropdownMenuItem onClick={(event) => { event.stopPropagation(); window.location.href = `/admin/audit/trace?paymentId=${row.payment.id}` }}>
+                          <ClipboardList className='mr-2 h-4 w-4' />
+                          Trace log
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -376,37 +448,27 @@ export function PaymentManagement() {
         </Table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Trang {page + 1} / {totalPages}
+      {totalOrderPages > 1 && (
+        <div className='flex items-center justify-between'>
+          <span className='text-sm text-muted-foreground'>
+            Order page {page + 1} / {totalOrderPages}
           </span>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={page === 0}
-              onClick={() => setPage(p => p - 1)}
-            >
-              <ChevronLeft size={14} />
+          <div className='flex gap-1'>
+            <Button variant='outline' size='icon' disabled={page === 0} onClick={() => setPage((value) => value - 1)}>
+              <ChevronLeft className='h-4 w-4' />
             </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(p => p + 1)}
-            >
-              <ChevronRight size={14} />
+            <Button variant='outline' size='icon' disabled={page >= totalOrderPages - 1} onClick={() => setPage((value) => value + 1)}>
+              <ChevronRight className='h-4 w-4' />
             </Button>
           </div>
         </div>
       )}
 
       <PaymentDetailDialog
-        payment={selectedPayment}
-        onClose={() => setSelectedPayment(null)}
+        row={selectedRow}
+        onClose={() => setSelectedRow(null)}
         onRefund={handleRefund}
       />
     </div>
-  );
+  )
 }
