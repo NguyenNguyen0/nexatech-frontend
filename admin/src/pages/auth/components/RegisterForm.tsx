@@ -186,14 +186,18 @@ export function RegisterForm({ toggleMode }: RegisterFormProps) {
                             required
                         />
                     </div>
-                    <Button className="w-full" type="submit" disabled={submitting}>
+                    <Button
+                        className="w-full bg-primary text-primary-foreground hover:bg-[var(--color-primary-light)]"
+                        type="submit"
+                        disabled={submitting}
+                    >
                         {submitting ? 'Creating account...' : 'Create Account'}
                     </Button>
                 </div>
             </form>
             <p className="px-8 text-center text-sm text-muted-foreground">
                 Already have an account?{' '}
-                <button type="button" onClick={toggleMode} className="underline underline-offset-4 hover:text-primary">
+                <button type="button" onClick={toggleMode} className="font-medium text-primary underline-offset-4 hover:underline hover:text-[var(--color-primary-light)]">
                     Sign in
                 </button>
             </p>

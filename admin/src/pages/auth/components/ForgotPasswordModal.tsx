@@ -34,7 +34,7 @@ export function ForgotPasswordModal() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <button type="button" className="ml-auto inline-block text-sm underline-offset-4 hover:underline">
+                <button type="button" className="ml-auto inline-block text-sm text-primary underline-offset-4 hover:underline hover:text-[var(--color-primary-light)]">
                     Forgot your password?
                 </button>
             </DialogTrigger>
@@ -60,7 +60,7 @@ export function ForgotPasswordModal() {
                 </div>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>Hủy</Button>
-                    <Button type="button" onClick={handleSubmit} disabled={submitting}>
+                    <Button type="button" className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-light)]" onClick={handleSubmit} disabled={submitting}>
                         {submitting ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

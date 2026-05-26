@@ -148,14 +148,18 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                             </div>
                             <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={submitting} />
                         </div>
-                        <Button className="w-full" type="submit" disabled={submitting}>
+                        <Button
+                            className="w-full bg-primary text-primary-foreground hover:bg-[var(--color-primary-light)]"
+                            type="submit"
+                            disabled={submitting}
+                        >
                             {submitting ? 'Signing in...' : 'Sign In'}
                         </Button>
                     </div>
                 </form>
                 <p className="px-8 text-center text-sm text-muted-foreground">
                     Don't have an account?{' '}
-                    <button type="button" onClick={toggleMode} className="underline underline-offset-4 hover:text-primary">
+                    <button type="button" onClick={toggleMode} className="font-medium text-primary underline-offset-4 hover:underline hover:text-[var(--color-primary-light)]">
                         Sign up
                     </button>
                 </p>
@@ -179,7 +183,11 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                         <Button variant="outline" onClick={handleResendOtp} disabled={resendingOtp || verifyingOtp || resendCooldown > 0}>
                             {resendingOtp ? 'Resending...' : 'Resend OTP'}
                         </Button>
-                        <Button onClick={handleVerifyOtp} disabled={verifyingOtp || otpCode.trim().length < 6}>
+                        <Button
+                            className="bg-primary text-primary-foreground hover:bg-[var(--color-primary-light)]"
+                            onClick={handleVerifyOtp}
+                            disabled={verifyingOtp || otpCode.trim().length < 6}
+                        >
                             {verifyingOtp ? 'Verifying...' : 'Verify'}
                         </Button>
                     </DialogFooter>
