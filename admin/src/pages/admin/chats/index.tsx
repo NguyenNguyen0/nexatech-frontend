@@ -74,6 +74,20 @@ function sortConversations(items: Conversation[]): Conversation[] {
     return [...items].sort((a, b) => conversationSortTime(b).localeCompare(conversationSortTime(a)));
 }
 
+function formatProductPrice(value?: number | null): string {
+    if (typeof value !== "number") return "";
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(value);
+}
+
+function productHref(slug: string): string {
+    const base = import.meta.env.VITE_STOREFRONT_BASE_URL || "http://localhost:3000";
+    return `${String(base).replace(/\/$/, "")}/product/${slug}`;
+}
+
 function sameOptimisticMessage(message: ChatMessage, candidate: ChatMessage): boolean {
     return (
         candidate.id.startsWith("temp-")
@@ -649,6 +663,39 @@ export default function Chats() {
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
+                                                    {item.productReference ? (
+                                                        <a
+                                                            href={productHref(item.productReference.slug)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className={cn(
+                                                                "mb-2 flex gap-2 rounded-md border bg-background/95 p-2 text-left text-foreground shadow-sm transition hover:border-primary/50",
+                                                                isMine && "bg-primary-foreground/95 text-foreground",
+                                                            )}
+                                                        >
+                                                            {item.productReference.thumbnail ? (
+                                                                <img
+                                                                    src={item.productReference.thumbnail}
+                                                                    alt={item.productReference.name}
+                                                                    className="h-12 w-12 shrink-0 rounded object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="grid h-12 w-12 shrink-0 place-items-center rounded bg-muted text-xs font-semibold text-muted-foreground">
+                                                                    SP
+                                                                </div>
+                                                            )}
+                                                            <span className="min-w-0 flex-1">
+                                                                <span className="line-clamp-2 block text-xs font-semibold leading-4 text-primary">
+                                                                    {item.productReference.name}
+                                                                </span>
+                                                                {item.productReference.price ? (
+                                                                    <span className="mt-0.5 block text-xs font-bold">
+                                                                        {formatProductPrice(item.productReference.price)}
+                                                                    </span>
+                                                                ) : null}
+                                                            </span>
+                                                        </a>
+                                                    ) : null}
                                                     <p className="whitespace-pre-wrap">{item.content}</p>
                                                     <span className={cn("mt-1 block text-xs font-light italic text-muted-foreground", isMine && "text-right text-primary-foreground/75")}>
                                                         {dayjs(item.createdAt).format("HH:mm")}

@@ -50,12 +50,21 @@ export type ConversationDeleted = {
 
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'SEEN';
 
+export type ProductReference = {
+  productId: string;
+  slug: string;
+  name: string;
+  thumbnail?: string | null;
+  price?: number | null;
+};
+
 export type ChatMessage = {
   id: string;
   conversationId: string;
   senderId: string;
   recipientId?: string | null;
   content: string;
+  productReference?: ProductReference | null;
   status: MessageStatus;
   deliveredAt?: string | null;
   seenAt?: string | null;

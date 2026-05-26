@@ -56,6 +56,13 @@ export type ChatMessage = {
     senderId: string;
     recipientId?: string | null;
     content: string;
+    productReference?: {
+        productId: string;
+        slug: string;
+        name: string;
+        thumbnail?: string | null;
+        price?: number | null;
+    } | null;
     status: "SENT" | "DELIVERED" | "SEEN";
     deliveredAt?: string | null;
     seenAt?: string | null;
