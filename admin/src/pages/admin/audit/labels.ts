@@ -1,5 +1,5 @@
 /**
- * Friendly Vietnamese labels for audit codes.
+ * Friendly labels for audit codes.
  *
  * The dictionaries here are the SOURCE OF TRUTH for human-readable names.
  * Whenever a new service / action is introduced and emits its first audit
@@ -9,55 +9,69 @@
  */
 
 const SERVICE_LABELS: Record<string, string> = {
-  'identity-service': 'Tài khoản & Đăng nhập',
-  'user-service': 'Quản lý người dùng',
-  'product-service': 'Sản phẩm',
-  'order-service': 'Đơn hàng',
-  'inventory-service': 'Kho hàng',
-  'payment-service': 'Thanh toán',
-  'shipping-service': 'Vận chuyển',
-  'notification-service': 'Thông báo',
-  'news-service': 'Tin tức',
-  'chat-service': 'Tin nhắn',
-  'storage-service': 'Tệp tin',
-  'recommendation-service': 'Gợi ý sản phẩm',
-  'agent-service': 'Trợ lý AI',
-  'audit-service': 'Nhật ký kiểm toán',
+  'identity-service': 'Identity & Sign-in',
+  'user-service': 'User Management',
+  'product-service': 'Products',
+  'order-service': 'Orders',
+  'inventory-service': 'Inventory',
+  'payment-service': 'Payments',
+  'shipping-service': 'Shipping',
+  'notification-service': 'Notifications',
+  'news-service': 'News',
+  'chat-service': 'Chat',
+  'storage-service': 'Storage',
+  'recommendation-service': 'Recommendations',
+  'agent-service': 'AI Agent',
+  'audit-service': 'Audit Log',
 };
 
 const ENTITY_LABELS: Record<string, string> = {
-  User: 'Người dùng',
-  Role: 'Vai trò',
-  Permission: 'Quyền',
-  Product: 'Sản phẩm',
-  Category: 'Danh mục',
-  Brand: 'Thương hiệu',
-  Order: 'Đơn hàng',
-  Payment: 'Thanh toán',
-  Inventory: 'Tồn kho',
-  News: 'Tin tức',
-  Shipping: 'Vận đơn',
-  Notification: 'Thông báo',
-  File: 'Tệp tin',
+  User: 'User',
+  Role: 'Role',
+  Permission: 'Permission',
+  Product: 'Product',
+  Category: 'Category',
+  Brand: 'Brand',
+  Order: 'Order',
+  Payment: 'Payment',
+  Inventory: 'Inventory',
+  News: 'News article',
+  Shipping: 'Shipment',
+  Notification: 'Notification',
+  Email: 'Email',
+  File: 'File',
 };
 
 const ACTION_LABELS: Record<string, string> = {
-  USER_REGISTERED: 'Đăng ký tài khoản',
-  USER_LOGIN: 'Đăng nhập',
-  USER_LOGIN_SOCIAL: 'Đăng nhập (mạng xã hội)',
-  USER_LOGOUT: 'Đăng xuất',
-  USER_FORGOT_PASSWORD: 'Quên mật khẩu',
-  USER_PASSWORD_CHANGED: 'Đổi mật khẩu',
-  USER_CREATED: 'Tạo người dùng',
-  USER_UPDATED: 'Cập nhật người dùng',
-  USER_DELETED: 'Xoá người dùng',
-  USER_DISABLED: 'Khoá tài khoản',
-  USER_ENABLED: 'Mở khoá tài khoản',
-  ROLE_ASSIGNED: 'Gán vai trò',
-  ROLE_REVOKED: 'Thu hồi vai trò',
+  USER_REGISTERED: 'Account registered',
+  USER_LOGIN: 'Signed in',
+  USER_LOGIN_SOCIAL: 'Signed in (social)',
+  USER_LOGOUT: 'Signed out',
+  USER_FORGOT_PASSWORD: 'Forgot password',
+  USER_PASSWORD_CHANGED: 'Password changed',
+  USER_CREATED: 'User created',
+  USER_UPDATED: 'User updated',
+  USER_DELETED: 'User deleted',
+  USER_DISABLED: 'User disabled',
+  USER_ENABLED: 'User enabled',
+  USER_ROLE_CHANGED: 'Role changed',
+  USER_ROLE_REVOKED: 'Role revoked',
+  ROLE_ASSIGNED: 'Role assigned',
+  ROLE_REVOKED: 'Role revoked',
+  NEWS_CREATED: 'News article created',
+  NEWS_UPDATED: 'News article updated',
+  NEWS_PUBLISHED: 'News article published',
+  NEWS_UNPUBLISHED: 'News article unpublished',
+  NEWS_DELETED: 'News article deleted',
+  NOTIFICATION_MARK_ALL_READ: 'Marked all notifications read',
+  NOTIFICATION_RETRY_EXHAUSTED: 'Notification delivery abandoned',
+  EMAIL_SEND_FAILED: 'Email delivery failed',
 };
 
-const ACTION_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'> = {
+const ACTION_VARIANTS: Record<
+  string,
+  'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning'
+> = {
   USER_REGISTERED: 'success',
   USER_LOGIN: 'default',
   USER_LOGIN_SOCIAL: 'default',
@@ -69,8 +83,18 @@ const ACTION_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 
   USER_DELETED: 'destructive',
   USER_DISABLED: 'destructive',
   USER_ENABLED: 'success',
+  USER_ROLE_CHANGED: 'secondary',
+  USER_ROLE_REVOKED: 'destructive',
   ROLE_ASSIGNED: 'secondary',
   ROLE_REVOKED: 'destructive',
+  NEWS_CREATED: 'success',
+  NEWS_UPDATED: 'secondary',
+  NEWS_PUBLISHED: 'success',
+  NEWS_UNPUBLISHED: 'warning',
+  NEWS_DELETED: 'destructive',
+  NOTIFICATION_MARK_ALL_READ: 'outline',
+  NOTIFICATION_RETRY_EXHAUSTED: 'destructive',
+  EMAIL_SEND_FAILED: 'destructive',
 };
 
 const titleCase = (value: string): string =>
@@ -80,17 +104,22 @@ const titleCase = (value: string): string =>
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
 const ACTION_VERBS: Array<{ pattern: RegExp; verb: string }> = [
-  { pattern: /CREATED?$|_CREATE$/, verb: 'Tạo' },
-  { pattern: /UPDATED?$|_UPDATE$/, verb: 'Cập nhật' },
-  { pattern: /DELETED?$|_DELETE$|_REMOVE$/, verb: 'Xoá' },
-  { pattern: /DISABLED?$|_DISABLE$/, verb: 'Vô hiệu' },
-  { pattern: /ENABLED?$|_ENABLE$/, verb: 'Kích hoạt' },
-  { pattern: /APPROVED?$/, verb: 'Phê duyệt' },
-  { pattern: /REJECTED?$/, verb: 'Từ chối' },
-  { pattern: /CANCEL(L)?ED?$/, verb: 'Huỷ' },
-  { pattern: /SENT$/, verb: 'Gửi' },
-  { pattern: /LOGIN$/, verb: 'Đăng nhập' },
-  { pattern: /LOGOUT$/, verb: 'Đăng xuất' },
+  { pattern: /CREATED?$|_CREATE$/, verb: 'Created' },
+  { pattern: /UPDATED?$|_UPDATE$/, verb: 'Updated' },
+  { pattern: /DELETED?$|_DELETE$|_REMOVE$/, verb: 'Deleted' },
+  { pattern: /DISABLED?$|_DISABLE$/, verb: 'Disabled' },
+  { pattern: /ENABLED?$|_ENABLE$/, verb: 'Enabled' },
+  { pattern: /PUBLISHED?$/, verb: 'Published' },
+  { pattern: /UNPUBLISHED?$/, verb: 'Unpublished' },
+  { pattern: /APPROVED?$/, verb: 'Approved' },
+  { pattern: /REJECTED?$/, verb: 'Rejected' },
+  { pattern: /CANCEL(L)?ED?$/, verb: 'Cancelled' },
+  { pattern: /REVOKED?$/, verb: 'Revoked' },
+  { pattern: /CHANGED?$/, verb: 'Changed' },
+  { pattern: /SENT$/, verb: 'Sent' },
+  { pattern: /_FAILED$/, verb: 'Failed' },
+  { pattern: /LOGIN$/, verb: 'Signed in' },
+  { pattern: /LOGOUT$/, verb: 'Signed out' },
 ];
 
 export const labelService = (code?: string | null): string => {
@@ -109,7 +138,9 @@ export const labelAction = (code?: string | null): string => {
   for (const { pattern, verb } of ACTION_VERBS) {
     if (pattern.test(code)) {
       const subject = code.replace(pattern, '').replace(/_$/, '');
-      const subjectLabel = subject ? labelEntityType(titleCase(subject).replace(/\s+/g, '')) : '';
+      const subjectLabel = subject
+        ? labelEntityType(titleCase(subject).replace(/\s+/g, ''))
+        : '';
       return subjectLabel ? `${verb} ${subjectLabel.toLowerCase()}` : verb;
     }
   }

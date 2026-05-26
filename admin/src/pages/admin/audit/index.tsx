@@ -54,13 +54,14 @@ const DEFAULT_PAGE_SIZE = 20;
 const formatDateTime = (value?: string): string => {
   if (!value) return '-';
   try {
-    return new Date(value).toLocaleString('vi-VN', {
+    return new Date(value).toLocaleString('en-GB', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      hour12: false,
     });
   } catch {
     return value;
@@ -132,7 +133,7 @@ export default function AuditLogsPage() {
         const result = await getAuditFacets();
         setFacets(result);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Không thể tải bộ lọc';
+        const message = err instanceof Error ? err.message : 'Failed to load filters';
         toast.error(message);
       }
     })();
@@ -155,7 +156,7 @@ export default function AuditLogsPage() {
       const result = await searchAuditLogs(currentPage + 1, pageSize, filters);
       setData(result);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Không thể tải audit logs';
+      const message = err instanceof Error ? err.message : 'Failed to load audit logs';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -232,7 +233,7 @@ export default function AuditLogsPage() {
   const columns: Column<AuditLogRecord>[] = [
     {
       key: 'timestamp',
-      header: 'Thời gian',
+      header: 'Time',
       cell: (item) => (
         <div className="flex items-center gap-2 text-sm whitespace-nowrap">
           <Clock className="h-4 w-4 text-muted-foreground" />
@@ -243,7 +244,7 @@ export default function AuditLogsPage() {
     },
     {
       key: 'action',
-      header: 'Hoạt động',
+      header: 'Activity',
       cell: (item) => (
         <StatusBadge label={labelAction(item.action)} variant={actionVariant(item.action)} />
       ),
@@ -251,7 +252,7 @@ export default function AuditLogsPage() {
     },
     {
       key: 'entityType',
-      header: 'Đối tượng',
+      header: 'Target',
       cell: (item) => (
         <div className="flex flex-col">
           <span className="text-sm font-medium">{labelEntityType(item.entityType)}</span>
@@ -266,19 +267,19 @@ export default function AuditLogsPage() {
     },
     {
       key: 'actor',
-      header: 'Người thực hiện',
+      header: 'Performed by',
       cell: (item) => <ActorCell actor={item.actor} actorId={item.actorId} />,
     },
     {
       key: 'sourceService',
-      header: 'Phân hệ',
+      header: 'Module',
       cell: (item) => (
         <span className="text-sm">{labelService(item.sourceService)}</span>
       ),
     },
     {
       key: 'message',
-      header: 'Mô tả',
+      header: 'Description',
       cell: (item) => (
         <span className="text-sm text-muted-foreground line-clamp-2 max-w-[380px]">
           {item.message ?? '—'}
@@ -296,7 +297,7 @@ export default function AuditLogsPage() {
             setSelectedLog(item);
             setDetailOpen(true);
           }}
-          title="Xem chi tiết"
+          title="View details"
         >
           <Eye className="h-4 w-4" />
         </Button>
@@ -308,8 +309,8 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Nhật ký hoạt động"
-        description="Theo dõi mọi thao tác quan trọng trên hệ thống (đăng nhập, tạo/sửa/xoá dữ liệu...)"
+        title="Audit Logs"
+        description="Track every significant action across the platform (sign-in, create / update / delete, ...)"
         onRefresh={() => void loadLogs()}
         isLoading={loading}
       />
@@ -318,19 +319,19 @@ export default function AuditLogsPage() {
         <CardHeader>
           <CardTitle className="text-lg font-medium flex items-center gap-2">
             <Tag className="h-4 w-4" />
-            Bộ lọc
+            Filters
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <SearchFilter
             searchValue={searchKeyword}
             onSearchChange={setSearchKeyword}
-            searchPlaceholder="Tìm theo người thực hiện (tên đăng nhập, email...)"
+            searchPlaceholder="Search by performer (username, email...)"
             filters={[
               {
                 key: 'sourceService',
-                label: 'Phân hệ',
-                placeholder: 'Tất cả phân hệ',
+                label: 'Module',
+                placeholder: 'All modules',
                 value: selectedSource,
                 options: sourceOptions,
                 onChange: (value) => {
@@ -340,8 +341,8 @@ export default function AuditLogsPage() {
               },
               {
                 key: 'entityType',
-                label: 'Đối tượng',
-                placeholder: 'Tất cả đối tượng',
+                label: 'Target',
+                placeholder: 'All targets',
                 value: selectedEntityType,
                 options: entityTypeOptions,
                 onChange: (value) => {
@@ -351,8 +352,8 @@ export default function AuditLogsPage() {
               },
               {
                 key: 'action',
-                label: 'Hoạt động',
-                placeholder: 'Tất cả hoạt động',
+                label: 'Activity',
+                placeholder: 'All activities',
                 value: selectedAction,
                 options: actionOptions,
                 onChange: (value) => {
@@ -366,7 +367,7 @@ export default function AuditLogsPage() {
 
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <label className="text-sm text-muted-foreground">Từ ngày</label>
+            <label className="text-sm text-muted-foreground">From</label>
             <Input
               type="date"
               value={fromDate}
@@ -376,7 +377,7 @@ export default function AuditLogsPage() {
               }}
               className="w-[180px]"
             />
-            <label className="text-sm text-muted-foreground">đến ngày</label>
+            <label className="text-sm text-muted-foreground">to</label>
             <Input
               type="date"
               value={toDate}
@@ -393,7 +394,7 @@ export default function AuditLogsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg font-medium">
-            Danh sách hoạt động ({totalElements})
+            Activity log ({totalElements})
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
@@ -402,7 +403,7 @@ export default function AuditLogsPage() {
             data={logs}
             keyExtractor={(item) => item.id}
             isLoading={loading}
-            emptyMessage="Chưa có nhật ký nào khớp với bộ lọc"
+            emptyMessage="No audit entries match the current filters"
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -425,7 +426,7 @@ export default function AuditLogsPage() {
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Chi tiết hoạt động</SheetTitle>
+            <SheetTitle>Activity details</SheetTitle>
             <SheetDescription>
               {selectedLog?.id && (
                 <span className="font-mono text-xs">{selectedLog.id}</span>
@@ -436,11 +437,11 @@ export default function AuditLogsPage() {
           {selectedLog && (
             <div className="mt-6 space-y-4 px-4 pb-6">
               <DetailRow
-                label="Thời gian"
+                label="Time"
                 value={formatDateTime(selectedLog.timestamp ?? selectedLog.createdAt)}
               />
               <DetailRow
-                label="Hoạt động"
+                label="Activity"
                 value={
                   <StatusBadge
                     label={labelAction(selectedLog.action)}
@@ -448,20 +449,17 @@ export default function AuditLogsPage() {
                   />
                 }
               />
-              <DetailRow label="Phân hệ" value={labelService(selectedLog.sourceService)} />
-              <DetailRow label="Đối tượng" value={labelEntityType(selectedLog.entityType)} />
-              <DetailRow
-                label="Tên đối tượng"
-                value={selectedLog.entityLabel ?? '—'}
-              />
-              <DetailRow label="Mã đối tượng" value={selectedLog.entityId ?? '—'} mono />
-              <DetailRow label="Người thực hiện" value={selectedLog.actor ?? 'system'} />
-              <DetailRow label="ID người thực hiện" value={selectedLog.actorId ?? '—'} mono />
-              <DetailRow label="Lý do" value={selectedLog.reason ?? '—'} />
-              <DetailRow label="Mô tả" value={selectedLog.message ?? '—'} />
+              <DetailRow label="Module" value={labelService(selectedLog.sourceService)} />
+              <DetailRow label="Target" value={labelEntityType(selectedLog.entityType)} />
+              <DetailRow label="Target name" value={selectedLog.entityLabel ?? '—'} />
+              <DetailRow label="Target id" value={selectedLog.entityId ?? '—'} mono />
+              <DetailRow label="Performed by" value={selectedLog.actor ?? 'system'} />
+              <DetailRow label="Performer id" value={selectedLog.actorId ?? '—'} mono />
+              <DetailRow label="Reason" value={selectedLog.reason ?? '—'} />
+              <DetailRow label="Description" value={selectedLog.message ?? '—'} />
 
-              <DetailBlock label="Giá trị trước" value={prettyJson(selectedLog.oldValue)} />
-              <DetailBlock label="Giá trị sau" value={prettyJson(selectedLog.newValue)} />
+              <DetailBlock label="Old value" value={prettyJson(selectedLog.oldValue)} />
+              <DetailBlock label="New value" value={prettyJson(selectedLog.newValue)} />
               <DetailBlock label="Metadata" value={prettyJson(selectedLog.metadata)} />
             </div>
           )}

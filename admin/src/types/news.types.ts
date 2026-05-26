@@ -118,7 +118,7 @@ export const NEWS_CATEGORY_CONFIG: Record<NewsCategory, { label: string; color: 
   PROMOTION: { label: 'Khuyến mãi', color: 'bg-green-100 text-green-800' },
   EVENT: { label: 'Sự kiện', color: 'bg-purple-100 text-purple-800' },
   TIP: { label: 'Mẹo hay', color: 'bg-yellow-100 text-yellow-800' },
-  NEWS: { label: 'Tin tức', color: 'bg-gray-100 text-gray-800' },
+  NEWS: { label: 'News', color: 'bg-gray-100 text-gray-800' },
 };
 
 // Status configurations

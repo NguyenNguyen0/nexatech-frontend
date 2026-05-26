@@ -79,7 +79,7 @@ export const searchAuditLogs = async (
   });
 
   if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể tải danh sách audit logs');
+    throw new Error(data.message || 'Failed to load audit logs');
   }
   return data.result;
 };
@@ -87,7 +87,7 @@ export const searchAuditLogs = async (
 export const getAuditLogById = async (id: string): Promise<AuditLogRecord> => {
   const { data } = await axiosClient.get<ApiResponse<AuditLogRecord>>(`${AUDIT_API_BASE}/${id}`);
   if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể tải chi tiết audit log');
+    throw new Error(data.message || 'Failed to load audit log details');
   }
   return data.result;
 };
@@ -95,7 +95,7 @@ export const getAuditLogById = async (id: string): Promise<AuditLogRecord> => {
 export const getAuditFacets = async (): Promise<AuditFacets> => {
   const { data } = await axiosClient.get<ApiResponse<AuditFacets>>(`${AUDIT_API_BASE}/facets`);
   if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không thể tải danh sách facets');
+    throw new Error(data.message || 'Failed to load filter facets');
   }
   return data.result;
 };
