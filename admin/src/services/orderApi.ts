@@ -55,6 +55,9 @@ export interface OrderResponse {
   orderNumber: string;
   customerId: string;
   status: OrderStatus;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
   totalAmount: number;
   shippingFee: number;
   discount: number;

@@ -1,9 +1,9 @@
 /**
  * AuditTrace — admin page for event sourcing / audit log exploration.
  *
- * Tab 1: Order Timeline   — full history of 1 order  (GET /api/v1/admin/audit/orders/{id}/timeline)
- * Tab 2: Payment Timeline — full history of 1 payment (GET /api/v1/admin/audit/payments/{id}/timeline)
- * Tab 3: Trace            — cross-service events by correlationId (GET /api/v1/admin/audit/trace/{cid})
+ * Tab 1: Order Timeline   — full history of 1 order  (GET /api/v1/admin/orders/{id}/timeline)
+ * Tab 2: Payment Timeline — full history of 1 payment (GET /api/v1/admin/payments/{id}/timeline)
+ * Tab 3: Trace            — cross-service events by correlationId (GET /api/v1/admin/orders|payments/trace/{cid})
  * Tab 4: State-at-time    — point-in-time reconstruction (GET …/state-at?t=ISO)
  *
  * Pre-populates orderId/paymentId from query params (?orderId=... or ?paymentId=...).
