@@ -1,14 +1,14 @@
 'use client';
 
-import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, Search, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
+import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import { CategoryDialog } from './category-dialog';
+import { ProductSearch } from './product-search';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
@@ -35,14 +35,12 @@ function getCartCount(): number {
 }
 
 export function Header() {
-  const router = useRouter();
   const { data: session, status } = useSession();
   const { wishlistCount } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
   const [logoutPending, setLogoutPending] = useState(false);
 
@@ -98,13 +96,6 @@ export function Header() {
     };
   }, [refreshCounts]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
   return (
     <header className="sticky top-0 z-50 shadow-sm">
       {/* Top Bar - Logo, Search, Account */}
@@ -123,23 +114,12 @@ export function Header() {
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden flex-1 max-w-[480px] md:block">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm sản phẩm..."
-                className="h-[38px] w-full rounded-sm border border-[#004d75] bg-white px-3 pr-11 text-[13px] text-[#1b1c1c] placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-[#004d75]"
-              />
-              <button
-                type="submit"
-                className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-[#004d75] text-white transition hover:bg-[#003d5c]"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+          <div className="hidden flex-1 max-w-[480px] md:block">
+            <ProductSearch
+              placeholder="Tìm kiếm sản phẩm..."
+              formClassName="h-[38px] rounded-sm border-[#004d75] shadow-none"
+            />
+          </div>
 
           {/* Right Actions */}
           <div className="flex items-center gap-1">
@@ -274,21 +254,10 @@ export function Header() {
 
         {/* Mobile Search */}
         <div className="border-t border-[#e0e0e0] px-4 py-2 md:hidden">
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm sản phẩm..."
-              className="h-9 w-full rounded-sm border border-[#004d75] bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-[#004d75] text-white"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
+          <ProductSearch
+            placeholder="Tìm kiếm sản phẩm..."
+            formClassName="h-9 rounded-sm border-[#004d75] shadow-none"
+          />
         </div>
       </div>
 
