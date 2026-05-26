@@ -420,7 +420,7 @@ export function Header() {
       )}
 
       {/* Category Dialog */}
-      <div id="category-menu" className="hidden lg:block relative">
+      <div id="category-menu" className="relative">
         <CategoryDialog
           open={categoryMenuOpen}
           onClose={() => setCategoryMenuOpen(false)}
