@@ -235,6 +235,26 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Audit logs (Kafka-consumed audit-service) */
+            {
+                path: 'audit',
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <Outlet />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true,
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/audit')).default,
+                        }),
+                    },
+                ],
+            },
+
             /** Settings with sub-sections (profile/account/appearance/...) */
             {
                 path: 'settings',

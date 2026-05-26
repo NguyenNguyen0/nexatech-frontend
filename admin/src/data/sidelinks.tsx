@@ -16,6 +16,7 @@ import {
     IconShieldLock,
     IconKey,
     IconNews,
+    IconHistory,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -161,6 +162,12 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/supports',
         icon: <IconHelpHexagon size={18} />,
+    },
+    {
+        title: 'Audit Logs',
+        label: '',
+        href: '/admin/audit',
+        icon: <IconHistory size={18} />,
     },
     {
         title: 'Settings',
