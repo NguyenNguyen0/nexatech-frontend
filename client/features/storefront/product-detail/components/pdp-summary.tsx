@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart } from 'lucide-react';
+import { MessageCircle, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateCartItem, getApiErrorMessage, getCart } from '@/features/cart/services/cart-api';
 import { fetchProductBySlug } from '@/features/products/services/products-api';
@@ -10,6 +10,7 @@ import type { StockStatus } from '@/features/products/types';
 import { getStockStatusLabel } from '@/features/products/utils';
 import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import { formatCurrency } from '@/lib/utils';
+import { PRODUCT_CONSULT_CHAT_EVENT } from '@/components/shared/chat-widget';
 import { PdpPromotions } from './pdp-promotions';
 
 type PdpSummaryProps = {
@@ -128,6 +129,20 @@ export function PdpSummary({
     } finally {
       setIsBuyingNow(false);
     }
+  };
+
+  const handleConsultProduct = () => {
+    window.dispatchEvent(
+      new CustomEvent(PRODUCT_CONSULT_CHAT_EVENT, {
+        detail: {
+          productId,
+          slug,
+          name,
+          thumbnail,
+          price,
+        },
+      }),
+    );
   };
 
   return (
@@ -250,6 +265,15 @@ export function PdpSummary({
           </span>
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={handleConsultProduct}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-primary bg-primary/5 text-[14px] font-bold text-primary transition-all hover:bg-primary/10 active:scale-[0.99]"
+      >
+        <MessageCircle className="h-4.5 w-4.5 shrink-0" />
+        Tư vấn sản phẩm
+      </button>
     </div>
   );
 }
