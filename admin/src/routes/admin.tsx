@@ -168,6 +168,30 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Payment management */
+            {
+                path: 'payment',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/payment')).default,
+                }),
+            },
+
+            /** Audit Trace Log */
+            {
+                path: 'audit',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/audit')).default,
+                }),
+            },
+
+            /** Shipping Management */
+            {
+                path: 'shipping',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/shipping')).default,
+                }),
+            },
+
             /** Calendar (fullcalendar-based) */
             {
                 path: 'calendar',
