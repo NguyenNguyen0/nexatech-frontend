@@ -208,16 +208,6 @@ function handleProducts(sub: string[], url: URL) {
     return ok(product);
   }
 
-  // /api/v1/products/suggest
-  if (sub[0] === 'suggest') {
-    const q = url.searchParams.get('q')?.toLowerCase() ?? '';
-    const suggestions = PRODUCTS
-      .filter((p) => p.name.toLowerCase().includes(q))
-      .slice(0, 8)
-      .map((p) => ({ id: p.id, name: p.name, slug: p.slug, imageUrl: p.thumbnail, price: p.price }));
-    return ok(suggestions);
-  }
-
   // /api/v1/products/featured
   if (sub[0] === 'featured') {
     const featured = PRODUCTS.slice(0, 6);
@@ -360,10 +350,15 @@ const SERVICE_BASES: Record<string, string> = {
   checkout: 'http://localhost:8084',
   returns:  'http://localhost:8084',
   admin:    'http://localhost:8084',   // /api/v1/admin/orders — order admin endpoints
+  // recommendation-service (8095)
+  behaviors: 'http://localhost:8095',
   // payment-service (8086)
   payments: 'http://localhost:8086',
   // shipping-service (8091)
   shipping: 'http://localhost:8091',
+  // promotion-service (8093)
+  'flash-sales': 'http://localhost:8093',
+  promotions:    'http://localhost:8093',
 };
 
 // Hop-by-hop headers that must not be forwarded to upstream

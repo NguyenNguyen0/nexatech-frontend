@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Star, ThumbsUp, PencilLine, Trash2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { authStorage } from '@/features/auth/utils/auth-storage';
+import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { fetchProductReviews } from '../services/products-api';
 import { createProductReview, deleteProductReview, markReviewHelpful, updateProductReview } from '../services/reviews-api';
 import type { ProductReview, ReviewWriteBody } from '../types';
@@ -13,6 +14,9 @@ interface ProductReviewSectionProps {
   productId: string;
   productSlug?: string;
   productName: string;
+  categoryIds?: string[];
+  brandId?: string;
+  price?: number;
   averageRating?: number;
   reviewCount?: number;
   initialReviews: ProductReview[];
@@ -48,6 +52,9 @@ export function ProductReviewSection({
   productId,
   productSlug,
   productName,
+  categoryIds,
+  brandId,
+  price,
   averageRating,
   reviewCount,
   initialReviews,
@@ -178,6 +185,18 @@ export function ProductReviewSection({
         content: form.content.trim(),
         images: form.images,
       });
+
+      await trackBehavior({
+        productId,
+        eventType: 'RATE',
+        rating: form.rating,
+        categoryIds,
+        brandId,
+        price,
+      }).catch(() => {
+        // Review submission should remain successful even if analytics fails.
+      });
+
       toast.success('Đã gửi đánh giá');
       setForm(initialFormState);
       await reloadCurrentFilter();
@@ -225,6 +244,18 @@ export function ProductReviewSection({
 
     try {
       await updateProductReview(reviewId, draft);
+
+      await trackBehavior({
+        productId,
+        eventType: 'RATE',
+        rating: draft.rating,
+        categoryIds,
+        brandId,
+        price,
+      }).catch(() => {
+        // Editing a review should not fail due to analytics.
+      });
+
       toast.success('Đã cập nhật đánh giá');
       setEditingId(null);
       await reloadCurrentFilter();

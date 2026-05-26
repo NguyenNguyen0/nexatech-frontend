@@ -4,6 +4,7 @@ import { Suspense, cache } from 'react';
 import { ProductReviewSection } from '@/features/products/components/product-review-section';
 import { fetchProductBySlug, fetchProductReviews } from '@/features/products/services/products-api';
 import type { PageResult, ProductReview } from '@/features/products/types';
+import { fetchFlashSaleByProductSlug } from '@/features/flash-sale/services/flash-sale-strip-loader';
 import {
   PdpBreadcrumb,
   PdpBlogReview,
@@ -68,7 +69,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             name={product.name}
             slug={product.slug}
             categoryName={categoryName}
+            categoryIds={product.categoryIds}
             brandName={product.brandName}
+            brandId={product.brandId}
             price={product.price}
             compareAtPrice={product.compareAtPrice}
             averageRating={product.averageRating}
@@ -88,6 +91,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             productId={product.id}
             productSlug={product.slug}
             productName={product.name}
+            categoryIds={product.categoryIds}
+            brandId={product.brandId}
+            price={product.price}
             averageRating={product.averageRating}
             reviewCount={reviewsPage.totalItems ?? reviewsPage.items.length}
             initialReviews={reviewsPage.items}
@@ -108,7 +114,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
 
       <div className="mt-12">
         <Suspense fallback={<PdpRelatedProductsFallback />}>
-          <PdpRelatedProductsSection productSlug={product.slug} productId={product.id} />
+          <PdpRelatedProductsSection productId={product.id} />
         </Suspense>
       </div>
     </section>

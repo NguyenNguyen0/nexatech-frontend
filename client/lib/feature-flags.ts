@@ -15,6 +15,24 @@ export const featureFlags = {
    * Environment variable: NEXT_PUBLIC_FEATURE_FLAG_USE_MOCK_API
    */
   USE_MOCK_API: process.env.NEXT_PUBLIC_FEATURE_FLAG_USE_MOCK_API === 'true',
+
+  /**
+   * ENABLE_RECOMMENDATION: Toggle recommendation API integration rollout.
+   * - true (default): Use recommendation endpoints for home/PDP.
+   * - false: Skip recommendation calls and fall back to legacy product flows.
+   *
+   * Environment variable: NEXT_PUBLIC_FEATURE_FLAG_ENABLE_RECOMMENDATION
+   */
+  ENABLE_RECOMMENDATION: process.env.NEXT_PUBLIC_FEATURE_FLAG_ENABLE_RECOMMENDATION !== 'false',
+
+  /**
+   * ENABLE_BEHAVIOR_TRACKING: Toggle behavior event collection rollout.
+   * - true (default): Collect and send behavior events.
+   * - false: Disable behavior tracking and guest queue flush.
+   *
+   * Environment variable: NEXT_PUBLIC_FEATURE_FLAG_ENABLE_BEHAVIOR_TRACKING
+   */
+  ENABLE_BEHAVIOR_TRACKING: process.env.NEXT_PUBLIC_FEATURE_FLAG_ENABLE_BEHAVIOR_TRACKING !== 'false',
 } as const;
 
 /**
