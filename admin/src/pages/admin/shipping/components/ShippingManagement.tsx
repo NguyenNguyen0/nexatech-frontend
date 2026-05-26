@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, RefreshCw, PackageCheck, Truck, XCircle, MapPin, Clock } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Eye,
+  MapPin,
+  PackageCheck,
+  RefreshCw,
+  Search,
+  Truck,
+  XCircle,
+} from 'lucide-react'
 
-import { Button } from '@/components/custom/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/custom/button'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,162 +23,223 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/use-toast';
-
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
-  getShipmentByOrderId,
-  getShipmentTracking,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from '@/components/ui/use-toast'
+import type { OrderResponse } from '@/services/orderApi'
+import {
   cancelShipment,
-  type TrackingInfo,
+  getShipments,
+  getShipmentTracking,
   type ShipmentStatus,
-} from '@/services/shippingApi';
-
-// ── helpers ────────────────────────────────────────────────────────────────────
+  type TrackingInfo,
+} from '@/services/shippingApi'
 
 const STATUS_COLORS: Record<ShipmentStatus, string> = {
-  PENDING_PICKUP: 'bg-yellow-100 text-yellow-800',
-  PICKED_UP:      'bg-blue-100 text-blue-800',
-  IN_TRANSIT:     'bg-indigo-100 text-indigo-800',
-  DELIVERED:      'bg-green-100 text-green-800',
-  FAILED:         'bg-red-100 text-red-800',
-  RETURNED:       'bg-orange-100 text-orange-800',
-  CANCELLED:      'bg-gray-100 text-gray-600',
-};
+  PENDING_PICKUP: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  PICKED_UP: 'bg-blue-100 text-blue-800 border-blue-200',
+  IN_TRANSIT: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+  DELIVERED: 'bg-green-100 text-green-800 border-green-200',
+  FAILED: 'bg-red-100 text-red-800 border-red-200',
+  RETURNED: 'bg-orange-100 text-orange-800 border-orange-200',
+  CANCELLED: 'bg-gray-100 text-gray-700 border-gray-200',
+}
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
-  PENDING_PICKUP: 'Chờ lấy hàng',
-  PICKED_UP:      'Đã lấy hàng',
-  IN_TRANSIT:     'Đang vận chuyển',
-  DELIVERED:      'Đã giao',
-  FAILED:         'Giao thất bại',
-  RETURNED:       'Đã hoàn hàng',
-  CANCELLED:      'Đã huỷ',
-};
+  PENDING_PICKUP: 'Pending pickup',
+  PICKED_UP: 'Picked up',
+  IN_TRANSIT: 'In transit',
+  DELIVERED: 'Delivered',
+  FAILED: 'Failed',
+  RETURNED: 'Returned',
+  CANCELLED: 'Cancelled',
+}
 
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'medium' });
+const ALL_STATUSES: ShipmentStatus[] = [
+  'PENDING_PICKUP',
+  'PICKED_UP',
+  'IN_TRANSIT',
+  'DELIVERED',
+  'FAILED',
+  'RETURNED',
+  'CANCELLED',
+]
 
-// ── TrackingCard ───────────────────────────────────────────────────────────────
+type ShipmentRow = {
+  order: OrderResponse
+  shipment: TrackingInfo
+}
 
-function TrackingCard({
-  info,
+const PAGE_SIZE = 20
+
+const formatDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'
+
+const customerLabel = (order: OrderResponse) =>
+  order.guestName || order.guestEmail || order.guestPhone || order.customerId || 'Guest customer'
+
+const orderStatusFromShipment = (status: ShipmentStatus): OrderResponse['status'] => {
+  if (status === 'DELIVERED') return 'DELIVERED'
+  if (status === 'CANCELLED') return 'CANCELLED'
+  if (status === 'RETURNED') return 'RETURNED'
+  if (status === 'PENDING_PICKUP') return 'PROCESSING'
+  return 'SHIPPED'
+}
+
+const orderFromShipment = (shipment: TrackingInfo): OrderResponse => {
+  const shortOrderId = shipment.orderId ? shipment.orderId.slice(0, 8).toUpperCase() : '-'
+
+  return {
+    id: shipment.orderId ?? '',
+    orderNumber: shortOrderId,
+    customerId: '',
+    status: orderStatusFromShipment(shipment.status),
+    guestName: shipment.customerName,
+    guestPhone: shipment.customerPhone,
+    totalAmount: 0,
+    shippingFee: Number(shipment.shippingFee ?? 0),
+    discount: 0,
+    shippingAddress: shipment.customerAddress ?? '',
+    shippingMethod: shipment.provider,
+    paymentMethod: 'COD',
+    items: [],
+    createdAt: shipment.createdAt ?? '',
+    trackingNumber: shipment.trackingCode,
+    carrierName: shipment.provider,
+  }
+}
+
+function TrackingDetail({
+  row,
   onCancel,
 }: {
-  info: TrackingInfo;
-  onCancel: () => void;
+  row: ShipmentRow
+  onCancel: (trackingCode: string) => Promise<void>
 }) {
-  const navigate = useNavigate();
-  const [confirmCancel, setConfirmCancel] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
+  const navigate = useNavigate()
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const { order, shipment } = row
+  const canCancel = !['DELIVERED', 'CANCELLED', 'RETURNED'].includes(shipment.status)
 
   const handleCancel = async () => {
-    setCancelling(true);
+    setCancelling(true)
     try {
-      await onCancel();
-      setConfirmCancel(false);
+      await onCancel(shipment.trackingCode)
+      setConfirmCancel(false)
     } finally {
-      setCancelling(false);
+      setCancelling(false)
     }
-  };
-
-  const canCancel = !['DELIVERED', 'CANCELLED', 'RETURNED'].includes(info.status);
+  }
 
   return (
     <>
       <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-2 flex-wrap">
+        <CardHeader className='pb-3'>
+          <div className='flex flex-wrap items-start justify-between gap-3'>
             <div>
-              <CardTitle className="text-base font-mono">{info.trackingCode}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Đơn vị vận chuyển: <span className="font-medium">{info.provider}</span>
+              <CardTitle className='flex items-center gap-2 text-base'>
+                <Truck className='h-4 w-4' />
+                {shipment.trackingCode}
+              </CardTitle>
+              <p className='mt-1 text-xs text-muted-foreground'>
+                Order {order.orderNumber} · {shipment.provider}
               </p>
             </div>
-            <Badge className={STATUS_COLORS[info.status]}>
-              {STATUS_LABELS[info.status] ?? info.status}
+            <Badge className={STATUS_COLORS[shipment.status]}>
+              {STATUS_LABELS[shipment.status] ?? shipment.status}
             </Badge>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          {/* current location */}
-          {info.currentLocation && (
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin size={14} className="mt-0.5 text-muted-foreground shrink-0" />
-              <span>
-                {info.currentLocation.address
-                  ? info.currentLocation.address
-                  : `${info.currentLocation.lat ?? '—'}, ${info.currentLocation.lng ?? '—'}`}
-              </span>
+        <CardContent className='space-y-4'>
+          <div className='grid gap-3 text-sm md:grid-cols-3'>
+            <div>
+              <p className='text-muted-foreground'>Customer</p>
+              <p className='mt-1 font-medium'>{customerLabel(order)}</p>
             </div>
-          )}
+            <div>
+              <p className='text-muted-foreground'>Phone</p>
+              <p className='mt-1'>{order.guestPhone || '-'}</p>
+            </div>
+            <div>
+              <p className='text-muted-foreground'>Order created</p>
+              <p className='mt-1'>{formatDate(order.createdAt)}</p>
+            </div>
+            <div className='md:col-span-3'>
+              <p className='text-muted-foreground'>Ship to</p>
+              <p className='mt-1'>{order.shippingAddress || '-'}</p>
+            </div>
+            <div className='md:col-span-3'>
+              <p className='text-muted-foreground'>Current location</p>
+              <p className='mt-1 flex items-center gap-1'>
+                <MapPin className='h-3.5 w-3.5 text-muted-foreground' />
+                {shipment.currentLocation?.address ||
+                  `${shipment.currentLocation?.lat ?? '-'}, ${shipment.currentLocation?.lng ?? '-'}`}
+              </p>
+            </div>
+          </div>
 
-          {/* action buttons */}
-          <div className="flex gap-2 flex-wrap">
+          <div className='flex flex-wrap gap-2'>
             {canCancel && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setConfirmCancel(true)}
-              >
-                <XCircle size={14} className="mr-1" />
-                Huỷ lô hàng
+              <Button size='sm' variant='destructive' onClick={() => setConfirmCancel(true)}>
+                <XCircle className='mr-1 h-4 w-4' />
+                Cancel shipment
               </Button>
             )}
-            {/* link to audit if needed */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => navigate(`/admin/order`)}
-            >
-              <PackageCheck size={14} className="mr-1" />
-              Xem đơn hàng
+            <Button size='sm' variant='outline' onClick={() => navigate('/admin/order')}>
+              <PackageCheck className='mr-1 h-4 w-4' />
+              View order
             </Button>
           </div>
 
           <Separator />
 
-          {/* history timeline */}
           <div>
-            <h4 className="text-sm font-medium mb-3 flex items-center gap-1">
-              <Clock size={14} />
-              Lịch sử vận chuyển ({info.histories.length} sự kiện)
+            <h4 className='mb-3 flex items-center gap-2 text-sm font-medium'>
+              <Clock className='h-4 w-4' />
+              Tracking history ({shipment.histories.length})
             </h4>
-
-            {info.histories.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Chưa có sự kiện nào.</p>
+            {shipment.histories.length === 0 ? (
+              <p className='text-sm text-muted-foreground'>No tracking events yet.</p>
             ) : (
-              <ScrollArea className="h-64">
-                <div className="relative pl-5">
-                  <div className="absolute left-1.5 top-0 bottom-0 w-0.5 bg-border" />
-                  {[...info.histories]
-                    .sort(
-                      (a, b) =>
-                        new Date(b.eventTime).getTime() - new Date(a.eventTime).getTime(),
-                    )
-                    .map((h, idx) => (
-                      <div key={idx} className="relative mb-4">
-                        <div className="absolute -left-3.5 mt-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-background" />
-                        <div className="rounded-lg border bg-card p-2.5">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <Badge className={`text-xs ${STATUS_COLORS[h.status]}`}>
-                              {STATUS_LABELS[h.status] ?? h.status}
+              <ScrollArea className='h-64'>
+                <div className='relative pl-5'>
+                  <div className='absolute bottom-0 left-1.5 top-0 w-0.5 bg-border' />
+                  {[...shipment.histories]
+                    .sort((a, b) => new Date(b.eventTime).getTime() - new Date(a.eventTime).getTime())
+                    .map((history, index) => (
+                      <div key={`${history.eventTime}-${index}`} className='relative mb-4'>
+                        <div className='absolute -left-3.5 mt-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-background' />
+                        <div className='rounded-md border bg-card p-3'>
+                          <div className='mb-1 flex flex-wrap items-center gap-2'>
+                            <Badge className={`text-xs ${STATUS_COLORS[history.status]}`}>
+                              {STATUS_LABELS[history.status] ?? history.status}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">
-                              {fmtDate(h.eventTime)}
-                            </span>
+                            <span className='text-xs text-muted-foreground'>{formatDate(history.eventTime)}</span>
                           </div>
-                          {h.locationAddress && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin size={10} />
-                              {h.locationAddress}
+                          {history.locationAddress && (
+                            <p className='flex items-center gap-1 text-xs text-muted-foreground'>
+                              <MapPin className='h-3 w-3' />
+                              {history.locationAddress}
                             </p>
                           )}
-                          {h.note && (
-                            <p className="text-xs mt-1">{h.note}</p>
-                          )}
+                          {history.note && <p className='mt-1 text-xs'>{history.note}</p>}
                         </div>
                       </div>
                     ))}
@@ -188,150 +253,355 @@ function TrackingCard({
       <AlertDialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận huỷ lô hàng?</AlertDialogTitle>
+            <AlertDialogTitle>Cancel shipment?</AlertDialogTitle>
             <AlertDialogDescription>
-              Lô hàng <span className="font-mono">{info.trackingCode}</span> sẽ được yêu cầu huỷ.
-              Hành động này không thể hoàn tác.
+              Shipment {shipment.trackingCode} will be cancelled through the shipping service.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Đóng</AlertDialogCancel>
+            <AlertDialogCancel>Close</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancel} disabled={cancelling}>
-              {cancelling ? 'Đang xử lý...' : 'Xác nhận huỷ'}
+              {cancelling ? 'Processing...' : 'Confirm cancel'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
+  )
 }
 
-// ── main component ─────────────────────────────────────────────────────────────
-
 export function ShippingManagement() {
-  const [mode, setMode] = useState<'order' | 'tracking'>('order');
+  const [searchParams] = useSearchParams()
+  const [rows, setRows] = useState<ShipmentRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(0)
+  const [totalShipmentPages, setTotalShipmentPages] = useState(0)
+  const [statusFilter, setStatusFilter] = useState<ShipmentStatus | 'ALL'>('ALL')
+  const [search, setSearch] = useState(searchParams.get('trackingCode') ?? '')
+  const [manualLookup, setManualLookup] = useState(searchParams.get('trackingCode') ?? '')
+  const [selected, setSelected] = useState<ShipmentRow | null>(null)
 
-  const [orderId, setOrderId]         = useState('');
-  const [trackingCode, setTrackingCode] = useState('');
-
-  const [info, setInfo]       = useState<TrackingInfo | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const search = async () => {
-    const query = mode === 'order' ? orderId.trim() : trackingCode.trim();
-    if (!query) {
-      toast({ title: 'Vui lòng nhập ID để tìm kiếm', variant: 'destructive' });
-      return;
-    }
-    setLoading(true);
-    setInfo(null);
+  const fetchShipments = useCallback(async () => {
+    setLoading(true)
     try {
-      const result =
-        mode === 'order'
-          ? await getShipmentByOrderId(query)
-          : await getShipmentTracking(query);
-      setInfo(result);
-    } catch (e: unknown) {
-      toast({ title: 'Không tìm thấy lô hàng', description: (e as Error).message, variant: 'destructive' });
+      const shipmentPage = await getShipments({
+        page,
+        size: PAGE_SIZE,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        sort: 'createdAt,desc',
+      })
+      setTotalShipmentPages(shipmentPage.totalPages)
+
+      const nextRows = shipmentPage.content.map((shipment) => ({
+        order: orderFromShipment(shipment),
+        shipment,
+      }))
+      setRows(nextRows)
+
+      const trackingCode = searchParams.get('trackingCode')
+      if (trackingCode) {
+        const found = nextRows.find((row) => row.shipment.trackingCode === trackingCode)
+        if (found) setSelected(found)
+      }
+    } catch (error: unknown) {
+      toast({
+        title: 'Unable to load shipments',
+        description: (error as Error).message,
+        variant: 'destructive',
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }, [page, searchParams, statusFilter])
 
-  const handleCancel = async () => {
-    if (!info) return;
-    try {
-      const result = await cancelShipment(info.trackingCode);
-      toast({ title: 'Đã gửi yêu cầu huỷ', description: result.message });
-      // refresh
-      setInfo(prev => prev ? { ...prev, status: result.status } : prev);
-    } catch (e: unknown) {
-      toast({ title: 'Lỗi huỷ lô hàng', description: (e as Error).message, variant: 'destructive' });
+  useEffect(() => {
+    fetchShipments()
+  }, [fetchShipments])
+
+  const filteredRows = useMemo(() => {
+    const keyword = search.trim().toLowerCase()
+    return rows.filter((row) => {
+      const statusMatched = statusFilter === 'ALL' || row.shipment.status === statusFilter
+      if (!statusMatched) return false
+      if (!keyword) return true
+      return [
+        row.order.orderNumber,
+        row.order.customerId,
+        row.order.guestName,
+        row.order.guestEmail,
+        row.order.guestPhone,
+        row.shipment.trackingCode,
+        row.shipment.provider,
+        row.order.shippingAddress,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    })
+  }, [rows, search, statusFilter])
+
+  const lookupTracking = async () => {
+    const trackingCode = manualLookup.trim()
+    if (!trackingCode) {
+      toast({ title: 'Enter a tracking code', variant: 'destructive' })
+      return
     }
-  };
+
+    setLoading(true)
+    try {
+      const shipment = await getShipmentTracking(trackingCode)
+      const existing = rows.find((row) => row.shipment.trackingCode === shipment.trackingCode)
+      if (existing) {
+        setSelected({ ...existing, shipment })
+        return
+      }
+
+      setSelected({ order: orderFromShipment(shipment), shipment })
+    } catch (error: unknown) {
+      toast({
+        title: 'Shipment not found',
+        description: (error as Error).message,
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCancel = async (trackingCode: string) => {
+    const result = await cancelShipment(trackingCode)
+    toast({ title: 'Cancel request sent', description: result.message })
+    setRows((prev) =>
+      prev.map((row) =>
+        row.shipment.trackingCode === trackingCode
+          ? { ...row, shipment: { ...row.shipment, status: result.status } }
+          : row,
+      ),
+    )
+    setSelected((prev) =>
+      prev && prev.shipment.trackingCode === trackingCode
+        ? { ...prev, shipment: { ...prev.shipment, status: result.status } }
+        : prev,
+    )
+  }
+
+  const selectRow = useCallback(async (row: ShipmentRow) => {
+    setSelected(row)
+    if (row.shipment.histories.length > 0) return
+
+    try {
+      const shipment = await getShipmentTracking(row.shipment.trackingCode)
+      const nextRow = { ...row, shipment }
+      setRows((prev) =>
+        prev.map((item) =>
+          item.shipment.trackingCode === shipment.trackingCode ? nextRow : item,
+        ),
+      )
+      setSelected((prev) =>
+        prev?.shipment.trackingCode === shipment.trackingCode ? nextRow : prev,
+      )
+    } catch {
+      // Summary data is still useful if history lookup is temporarily unavailable.
+    }
+  }, [])
 
   return (
-    <div className="p-4 space-y-4">
-      {/* header */}
-      <div>
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <Truck size={20} />
-          Quản lý vận chuyển
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Tra cứu và theo dõi lô hàng theo Order ID hoặc mã vận đơn
-        </p>
+    <div className='space-y-4 p-4'>
+      <div className='flex flex-wrap items-start justify-between gap-3'>
+        <div>
+          <h2 className='flex items-center gap-2 text-xl font-semibold'>
+            <Truck className='h-5 w-5' />
+            Shipping Management
+          </h2>
+          <p className='text-sm text-muted-foreground'>
+            Review shipment status, tracking history, and delivery exceptions from the shipping service.
+          </p>
+        </div>
+        <Button variant='outline' size='sm' onClick={fetchShipments} disabled={loading}>
+          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      <Separator />
+      <div className='grid gap-3 md:grid-cols-4'>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>Shipments on page</p>
+            <p className='mt-1 text-xl font-semibold'>{rows.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>In transit</p>
+            <p className='mt-1 text-xl font-semibold'>{rows.filter((row) => row.shipment.status === 'IN_TRANSIT').length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>Delivered</p>
+            <p className='mt-1 text-xl font-semibold'>{rows.filter((row) => row.shipment.status === 'DELIVERED').length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className='p-4'>
+            <p className='text-xs font-medium text-muted-foreground'>Needs attention</p>
+            <p className='mt-1 text-xl font-semibold'>{rows.filter((row) => ['FAILED', 'RETURNED'].includes(row.shipment.status)).length}</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* search mode tabs */}
-      <Tabs value={mode} onValueChange={v => { setMode(v as 'order' | 'tracking'); setInfo(null); }}>
-        <TabsList>
-          <TabsTrigger value="order">Theo Order ID</TabsTrigger>
-          <TabsTrigger value="tracking">Theo mã vận đơn</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="order" className="mt-4">
-          <div className="flex gap-2 items-end max-w-lg">
-            <div className="flex-1">
-              <Label className="text-xs mb-1 block">Order ID (UUID)</Label>
-              <Input
-                placeholder="3f2a1b...UUID..."
-                value={orderId}
-                onChange={e => setOrderId(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && search()}
-              />
-            </div>
-            <Button onClick={search} disabled={loading}>
-              {loading
-                ? <RefreshCw size={14} className="animate-spin mr-1" />
-                : <Search size={14} className="mr-1" />
-              }
-              Tìm kiếm
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tracking" className="mt-4">
-          <div className="flex gap-2 items-end max-w-lg">
-            <div className="flex-1">
-              <Label className="text-xs mb-1 block">Mã vận đơn</Label>
-              <Input
-                placeholder="TRK-20240101-ABCD1234"
-                value={trackingCode}
-                onChange={e => setTrackingCode(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && search()}
-              />
-            </div>
-            <Button onClick={search} disabled={loading}>
-              {loading
-                ? <RefreshCw size={14} className="animate-spin mr-1" />
-                : <Search size={14} className="mr-1" />
-              }
-              Tìm kiếm
-            </Button>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* result */}
-      {loading && (
-        <div className="space-y-3">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-48 w-full" />
+      <div className='flex flex-wrap items-end gap-3'>
+        <Tabs
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value as ShipmentStatus | 'ALL')
+            setPage(0)
+          }}
+        >
+          <TabsList className='h-auto flex-wrap gap-1'>
+            <TabsTrigger value='ALL'>All</TabsTrigger>
+            {ALL_STATUSES.map((status) => (
+              <TabsTrigger key={status} value={status}>
+                {status}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <div className='relative min-w-72 flex-1 md:max-w-sm'>
+          <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            className='pl-9'
+            placeholder='Search order, customer, tracking code...'
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
         </div>
-      )}
+      </div>
 
-      {!loading && info && (
-        <TrackingCard info={info} onCancel={handleCancel} />
-      )}
+      <div className='grid gap-4 xl:grid-cols-[1.35fr_0.85fr]'>
+        <div className='space-y-3'>
+          <div className='rounded-md border'>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tracking code</TableHead>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Current location</TableHead>
+                  <TableHead>Order created</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  Array.from({ length: 8 }).map((_, row) => (
+                    <TableRow key={row}>
+                      {Array.from({ length: 7 }).map((__, cell) => (
+                        <TableCell key={cell}>
+                          <Skeleton className='h-4 w-full' />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : filteredRows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className='py-10 text-center text-muted-foreground'>
+                      No shipments found on the current page.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredRows.map((row) => (
+                    <TableRow
+                      key={row.shipment.trackingCode}
+                      className='cursor-pointer hover:bg-muted/50'
+                      onClick={() => void selectRow(row)}
+                    >
+                      <TableCell className='font-mono text-xs font-medium'>{row.shipment.trackingCode}</TableCell>
+                      <TableCell>
+                        <div className='font-mono text-sm'>{row.order.orderNumber}</div>
+                        <div className='text-xs text-muted-foreground'>{row.order.shippingMethod || '-'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className='max-w-48 truncate font-medium'>{customerLabel(row.order)}</div>
+                        <div className='max-w-48 truncate text-xs text-muted-foreground'>{row.order.guestPhone || row.order.customerId || 'guest'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={STATUS_COLORS[row.shipment.status]}>
+                          {STATUS_LABELS[row.shipment.status] ?? row.shipment.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='max-w-56 truncate text-sm text-muted-foreground'>
+                        {row.shipment.currentLocation?.address || '-'}
+                      </TableCell>
+                      <TableCell className='text-muted-foreground'>{formatDate(row.order.createdAt)}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='h-8 w-8'
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            void selectRow(row)
+                          }}
+                        >
+                          <Eye className='h-4 w-4' />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-      {!loading && !info && (
-        <div className="text-center py-16 text-muted-foreground text-sm">
-          Nhập Order ID hoặc mã vận đơn và nhấn Tìm kiếm
+          {totalShipmentPages > 1 && (
+            <div className='flex items-center justify-between'>
+              <span className='text-sm text-muted-foreground'>
+                Shipment page {page + 1} / {totalShipmentPages}
+              </span>
+              <div className='flex gap-1'>
+                <Button variant='outline' size='icon' disabled={page === 0} onClick={() => setPage((value) => value - 1)}>
+                  <ChevronLeft className='h-4 w-4' />
+                </Button>
+                <Button variant='outline' size='icon' disabled={page >= totalShipmentPages - 1} onClick={() => setPage((value) => value + 1)}>
+                  <ChevronRight className='h-4 w-4' />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        <div className='space-y-3'>
+          <Card>
+            <CardHeader className='pb-3'>
+              <CardTitle className='text-sm'>Quick lookup</CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-2'>
+              <Label className='text-xs'>Tracking code</Label>
+              <div className='flex gap-2'>
+                <Input
+                  placeholder='TRK-...'
+                  value={manualLookup}
+                  onChange={(event) => setManualLookup(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && lookupTracking()}
+                />
+                <Button onClick={lookupTracking} disabled={loading}>
+                  <Search className='mr-1 h-4 w-4' />
+                  Search
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {selected ? (
+            <TrackingDetail row={selected} onCancel={handleCancel} />
+          ) : (
+            <div className='rounded-md border border-dashed py-12 text-center text-sm text-muted-foreground'>
+              Select a shipment to review tracking details.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-  );
+  )
 }
