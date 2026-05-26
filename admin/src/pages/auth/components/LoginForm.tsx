@@ -63,17 +63,17 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
             });
             persistTokensFromExchange(result);
 
-            setOtpStepUpPending();
             if (result.requires_password_change) {
                 setPasswordChangeRequired(true);
             }
-            /** Mỗi lần đăng nhập đều gửi OTP (step-up). `onBoarded` vẫn do backend set lần đầu verify. */
             await requestEmailOtp();
+            setOtpStepUpPending();
             setOtpCode('');
             setResendCooldown(30);
             setOtpDialogOpen(true);
             toast.info('Nhập OTP email vừa gửi để xác minh chính chủ (bắt buộc mỗi lần đăng nhập).');
         } catch (err) {
+            clearAuthTokens();
             toast.error(getApiErrorMessage(err, 'Login failed'));
         } finally {
             setSubmitting(false);
