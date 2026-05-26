@@ -34,8 +34,9 @@ import {
     sendMessage,
 } from "./chat-api";
 
-const MESSAGE_PAGE_SIZE = 50;
-const REALTIME_FALLBACK_INTERVAL_MS = 1500;
+const CONVERSATION_PAGE_SIZE = 20;
+const MESSAGE_PAGE_SIZE = 30;
+const REALTIME_FALLBACK_INTERVAL_MS = 15000;
 
 function resolveWsUrl(): string {
     const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080";
@@ -136,6 +137,8 @@ export default function Chats() {
     const subscriptionsRef = useRef<Record<string, StompSubscription>>({});
     const selectedConversationIdRef = useRef<string | null>(null);
     const adminUserIdRef = useRef<string | null>(null);
+    const loadingConversationsRef = useRef(false);
+    const loadingMessagesRef = useRef<Set<string>>(new Set());
     const adminUserId = useMemo(() => getUserIdFromAccessToken(getAccessToken()), []);
     const adminRole = useMemo(() => pickPrimaryRole(getRolesFromAccessToken(getAccessToken())) ?? "ADMIN", []);
     const wsUrl = useMemo(resolveWsUrl, []);
@@ -179,10 +182,12 @@ export default function Chats() {
     }, []);
 
     const loadConversations = useCallback(async () => {
+        if (loadingConversationsRef.current) return;
+        loadingConversationsRef.current = true;
         setIsLoading(true);
         setErrorMessage(null);
         try {
-            const page = await fetchConversations(0, 50);
+            const page = await fetchConversations(0, CONVERSATION_PAGE_SIZE);
             setConversations(sortConversations(page.content));
             setSelectedConversationId((current) => current ?? page.content[0]?.id ?? null);
         } catch (error) {
@@ -194,11 +199,14 @@ export default function Chats() {
                     : "Không thể tải danh sách hội thoại",
             );
         } finally {
+            loadingConversationsRef.current = false;
             setIsLoading(false);
         }
     }, []);
 
     const loadMessages = useCallback(async (conversationId: string) => {
+        if (loadingMessagesRef.current.has(conversationId)) return;
+        loadingMessagesRef.current.add(conversationId);
         try {
             const page = await fetchMessages(conversationId, undefined, MESSAGE_PAGE_SIZE);
             const ordered = [...page.content].reverse();
@@ -214,6 +222,8 @@ export default function Chats() {
                     ? error.message
                     : "Không thể tải tin nhắn",
             );
+        } finally {
+            loadingMessagesRef.current.delete(conversationId);
         }
     }, [adminUserId]);
 
@@ -247,11 +257,10 @@ export default function Chats() {
 
     const handleGlobalMessage = useCallback((incoming: ChatMessage) => {
         handleIncomingMessage(incoming);
-        void loadConversations();
         if (incoming.conversationId === selectedConversationIdRef.current) {
             void loadMessages(incoming.conversationId);
         }
-    }, [handleIncomingMessage, loadConversations, loadMessages]);
+    }, [handleIncomingMessage, loadMessages]);
 
     const handleDeletedMessage = useCallback((deleted: ChatMessageDeleted) => {
         setMessages((current) => current.filter((item) => item.id !== deleted.id));
@@ -456,6 +465,8 @@ export default function Chats() {
     }, [ensureConversationSubscriptions]);
 
     useEffect(() => {
+        if (connected) return;
+
         const intervalId = window.setInterval(() => {
             if (document.visibilityState !== "visible") return;
             void loadConversations();
@@ -466,7 +477,7 @@ export default function Chats() {
         }, REALTIME_FALLBACK_INTERVAL_MS);
 
         return () => window.clearInterval(intervalId);
-    }, [loadConversations, loadMessages]);
+    }, [connected, loadConversations, loadMessages]);
 
     useEffect(() => {
         if (!selectedConversation?.id) return;
