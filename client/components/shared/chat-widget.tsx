@@ -26,6 +26,7 @@ import type {
   ChatMessageDeleted,
   Conversation,
   ConversationDeleted,
+  ProductReference,
 } from '@/features/chat/types';
 import { getOrCreateGuestChatSessionId } from '@/features/chat/utils/guest-chat-session';
 
@@ -33,6 +34,10 @@ const MESSAGE_PAGE_SIZE = 30;
 const AUTO_SCROLL_THRESHOLD = 80;
 
 type WidgetState = 'closed' | 'minimized' | 'open';
+
+export const PRODUCT_CONSULT_CHAT_EVENT = 'nexatech:chat-consult-product';
+
+type ProductConsultEvent = CustomEvent<ProductReference>;
 
 function resolveWsUrl(): string {
   const base =
@@ -52,6 +57,66 @@ function statusLabel(status: ChatMessage['status']): string {
   if (status === 'SEEN') return 'Đã xem';
   if (status === 'DELIVERED') return 'Đã nhận';
   return 'Đã gửi';
+}
+
+function formatProductPrice(value?: number | null): string {
+  if (typeof value !== 'number') return '';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function ProductReferenceCard({
+  product,
+  compact = false,
+  onClear,
+}: {
+  product: ProductReference;
+  compact?: boolean;
+  onClear?: () => void;
+}) {
+  const productUrl = `/product/${product.slug}`;
+
+  return (
+    <div className="mb-2 flex gap-2 rounded-xl border border-outline-variant bg-white/95 p-2 text-on-surface shadow-sm">
+      {product.thumbnail ? (
+        <img
+          src={product.thumbnail}
+          alt={product.name}
+          className="h-12 w-12 shrink-0 rounded-lg object-cover"
+        />
+      ) : (
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-surface-container-low text-xs font-bold text-primary">
+          SP
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <a
+          href={productUrl}
+          className="line-clamp-2 text-xs font-semibold leading-4 text-primary hover:underline"
+        >
+          {product.name}
+        </a>
+        {!compact && product.price ? (
+          <p className="mt-0.5 text-xs font-bold text-on-surface">
+            {formatProductPrice(product.price)}
+          </p>
+        ) : null}
+      </div>
+      {onClear ? (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Bo chon san pham tu van"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 function sameOptimisticMessage(message: ChatMessage, candidate: ChatMessage): boolean {
@@ -105,6 +170,7 @@ export function ChatWidget() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductReference | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<Client | null>(null);
@@ -388,6 +454,7 @@ export function ChatWidget() {
       senderId: conversation.currentParticipantId,
       recipientId: conversation.otherUserId ?? null,
       content: trimmed,
+      productReference: selectedProduct,
       status: 'SENT',
       createdAt: new Date().toISOString(),
       deliveredAt: null,
@@ -397,10 +464,14 @@ export function ChatWidget() {
     setMessages((current) => [...current, optimisticMessage]);
     updateConversationPreview(optimisticMessage);
     setInputValue('');
+    setSelectedProduct(null);
     setTimeout(() => scrollToBottom('smooth'), 0);
 
     try {
-      const saved = await sendMessage(conversation.id, trimmed, { guestSessionId });
+      const saved = await sendMessage(conversation.id, trimmed, {
+        guestSessionId,
+        productReference: selectedProduct,
+      });
       setMessages((current) => replaceOptimisticMessage(current, optimisticMessage.id, saved));
       updateConversationPreview(saved);
 
@@ -420,6 +491,7 @@ export function ChatWidget() {
     guestSessionId,
     inputValue,
     scrollToBottom,
+    selectedProduct,
     updateConversationPreview,
     upsertConversation,
   ]);
@@ -498,6 +570,21 @@ export function ChatWidget() {
       ),
     );
   }, [activeConversationId, isOpen]);
+
+  useEffect(() => {
+    const handleConsultProduct = (event: Event) => {
+      const product = (event as ProductConsultEvent).detail;
+      if (!product?.productId || !product.slug || !product.name) return;
+
+      setSelectedProduct(product);
+      setWidgetState('open');
+      setInputValue((current) => current || `Tư vấn về sản phẩm ${product.name}`);
+      setTimeout(() => scrollToBottom('smooth'), 0);
+    };
+
+    window.addEventListener(PRODUCT_CONSULT_CHAT_EVENT, handleConsultProduct);
+    return () => window.removeEventListener(PRODUCT_CONSULT_CHAT_EVENT, handleConsultProduct);
+  }, [scrollToBottom]);
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
@@ -617,6 +704,9 @@ export function ChatWidget() {
                       isMine ? 'bg-primary text-white' : 'bg-surface text-on-surface'
                     }`}
                   >
+                    {message.productReference ? (
+                      <ProductReferenceCard product={message.productReference} compact={isMine} />
+                    ) : null}
                     <p className="whitespace-pre-wrap leading-5">{message.content}</p>
                     <div
                       className={`mt-1 flex items-center gap-2 text-[10px] ${
@@ -633,6 +723,12 @@ export function ChatWidget() {
           </div>
 
           <footer className="border-t border-outline-variant bg-surface p-3">
+            {selectedProduct ? (
+              <ProductReferenceCard
+                product={selectedProduct}
+                onClear={() => setSelectedProduct(null)}
+              />
+            ) : null}
             <div className="flex items-center gap-2">
               <input
                 value={inputValue}

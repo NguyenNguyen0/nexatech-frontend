@@ -1,6 +1,16 @@
 import axiosClient from '@/lib/axiosClient';
 import type { ApiResponse } from '@/types/auth';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin Audit Log — audit-service (Kafka consumer + Mongo store)
+//
+//   GET  /api/v1/admin/audit          (paged search + filters)
+//   GET  /api/v1/admin/audit/{id}     (single record)
+//   GET  /api/v1/admin/audit/facets   (distinct actions/entities/services)
+//
+// All endpoints return ApiResponse<T> with code=1000 on success.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const AUDIT_API_BASE = '/api/v1/admin/audit';
 
 export interface AuditLogRecord {
@@ -99,3 +109,103 @@ export const getAuditFacets = async (): Promise<AuditFacets> => {
   }
   return data.result;
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Order / Payment trace logs — order-service + payment-service
+//
+//   GET  /api/v1/admin/audit/orders/{id}/timeline
+//   GET  /api/v1/admin/audit/orders/{id}/state-at?t=<ISO-8601>
+//   GET  /api/v1/admin/audit/payments/{id}/timeline
+//   GET  /api/v1/admin/audit/payments/{id}/state-at?t=<ISO-8601>
+//   GET  /api/v1/admin/audit/trace/{correlationId}
+//
+// These services use the { success, message?, data } envelope (different from
+// the audit-service above — kept separate intentionally).
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface AuditApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+const AUDIT_ORDER_BASE = '/api/v1/admin/audit/orders';
+const AUDIT_PAYMENT_BASE = '/api/v1/admin/audit/payments';
+const AUDIT_TRACE_BASE = '/api/v1/admin/audit/trace';
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  oldValue?: string;
+  newValue?: string;
+  actor?: string;
+  reason?: string;
+  sourceService?: string;
+  payload?: Record<string, unknown>;
+  correlationId?: string;
+  createdAt: string;
+}
+
+/** Full event timeline for a single order (sorted by createdAt ascending). */
+export async function getOrderTimeline(orderId: string): Promise<AuditLogEntry[]> {
+  const { data } = await axiosClient.get<AuditApiResponse<AuditLogEntry[]>>(
+    `${AUDIT_ORDER_BASE}/${orderId}/timeline`,
+  );
+  if (!data.data) throw new Error(data.message ?? 'Không tải được lịch sử đơn hàng');
+  return data.data;
+}
+
+/**
+ * Point-in-time query: reconstructed order state at timestamp T.
+ * @param t ISO-8601 datetime string e.g. "2025-05-26T10:00:00Z"
+ */
+export async function getOrderStateAt(
+  orderId: string,
+  t: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await axiosClient.get<AuditApiResponse<Record<string, unknown>>>(
+    `${AUDIT_ORDER_BASE}/${orderId}/state-at`,
+    { params: { t } },
+  );
+  if (!data.data) throw new Error(data.message ?? 'Không tải được state đơn hàng');
+  return data.data;
+}
+
+/** Full event timeline for a single payment. */
+export async function getPaymentTimeline(paymentId: string): Promise<AuditLogEntry[]> {
+  const { data } = await axiosClient.get<AuditApiResponse<AuditLogEntry[]>>(
+    `${AUDIT_PAYMENT_BASE}/${paymentId}/timeline`,
+  );
+  if (!data.data) throw new Error(data.message ?? 'Không tải được lịch sử giao dịch');
+  return data.data;
+}
+
+/**
+ * Point-in-time query: reconstructed payment state at timestamp T.
+ * @param t ISO-8601 datetime string e.g. "2025-05-26T10:05:00Z"
+ */
+export async function getPaymentStateAt(
+  paymentId: string,
+  t: string,
+): Promise<Record<string, unknown>> {
+  const { data } = await axiosClient.get<AuditApiResponse<Record<string, unknown>>>(
+    `${AUDIT_PAYMENT_BASE}/${paymentId}/state-at`,
+    { params: { t } },
+  );
+  if (!data.data) throw new Error(data.message ?? 'Không tải được state giao dịch');
+  return data.data;
+}
+
+/**
+ * All audit events sharing the same OpenTelemetry correlationId (traceId).
+ * Shows the full business flow: ORDER_CREATED → PAYMENT_INITIATED → PAYMENT_COMPLETED, etc.
+ */
+export async function traceByCorrelationId(correlationId: string): Promise<AuditLogEntry[]> {
+  const { data } = await axiosClient.get<AuditApiResponse<AuditLogEntry[]>>(
+    `${AUDIT_TRACE_BASE}/${correlationId}`,
+  );
+  if (!data.data) throw new Error(data.message ?? 'Không tải được trace log');
+  return data.data;
+}
