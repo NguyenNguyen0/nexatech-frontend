@@ -23,6 +23,7 @@ type RawProduct = {
   reviewCount?: number;
   description?: string;
   status?: string;
+  tags?: string[];
   specs?: Record<string, string> | Array<{ name: string; value: string }>;
 };
 
@@ -61,11 +62,86 @@ function notFound(message = 'Not found') {
   return NextResponse.json({ code: 1404, message }, { status: 404 });
 }
 
+function normalizeFilterValue(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function collectSpecsFilters(url: URL) {
+  const specsFilter: Record<string, string[]> = {};
+
+  for (const [key, value] of url.searchParams.entries()) {
+    if (!key.startsWith('specs.') || !value.trim()) continue;
+
+    const specKey = key.slice(6);
+    specsFilter[specKey] ??= [];
+    specsFilter[specKey].push(normalizeFilterValue(value));
+  }
+
+  return specsFilter;
+}
+
+function readSpecValue(specs: Record<string, string> | undefined, targetKey: string) {
+  if (!specs) return '';
+
+  const direct = specs[targetKey];
+  if (typeof direct === 'string') return direct;
+
+  const matchedKey = Object.keys(specs).find((key) => key.toLowerCase() === targetKey.toLowerCase());
+  return matchedKey ? specs[matchedKey] ?? '' : '';
+}
+
+function filterProducts(products: typeof PRODUCTS, url: URL, forcedCategorySlug?: string) {
+  const keyword = normalizeFilterValue(url.searchParams.get('keyword') ?? '');
+  const categorySlug = forcedCategorySlug ?? url.searchParams.get('categorySlug') ?? '';
+  const normalizedCategorySlug = normalizeFilterValue(categorySlug);
+  const brandId = url.searchParams.get('brandId') ?? '';
+  const minRating = Number(url.searchParams.get('minRating') ?? '0');
+  const tags = url.searchParams.getAll('tags').map(normalizeFilterValue).filter(Boolean);
+  const specsFilter = collectSpecsFilters(url);
+
+  return products.filter((product) => {
+    if (keyword) {
+      const matchesKeyword =
+        product.name.toLowerCase().includes(keyword) ||
+        (product.brandName?.toLowerCase() ?? '').includes(keyword);
+      if (!matchesKeyword) return false;
+    }
+
+    if (normalizedCategorySlug) {
+      const matchesCategory = (product.categorySlugs ?? []).some(
+        (slug) => normalizeFilterValue(slug) === normalizedCategorySlug,
+      );
+      if (!matchesCategory) return false;
+    }
+
+    if (brandId && product.brandId !== brandId) {
+      return false;
+    }
+
+    if (minRating > 0 && (product.averageRating ?? 0) < minRating) {
+      return false;
+    }
+
+    if (tags.length > 0) {
+      const productTags = (product.tags ?? []).map(normalizeFilterValue);
+      const matchesTags = tags.some((tag) => productTags.includes(tag));
+      if (!matchesTags) return false;
+    }
+
+    for (const [specKey, values] of Object.entries(specsFilter)) {
+      const specValue = normalizeFilterValue(readSpecValue(product.specs, specKey));
+      if (!specValue || !values.some((value) => specValue === value)) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
 // ── PRODUCTS ──────────────────────────────────────────────────────────────────
 
 function handleProducts(sub: string[], url: URL) {
-  const keyword = url.searchParams.get('keyword')?.toLowerCase() ?? '';
-  const categorySlug = url.searchParams.get('categorySlug') ?? '';
   const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
   const size = Math.max(1, Number(url.searchParams.get('size') ?? '12'));
 
@@ -132,16 +208,6 @@ function handleProducts(sub: string[], url: URL) {
     return ok(product);
   }
 
-  // /api/v1/products/suggest
-  if (sub[0] === 'suggest') {
-    const q = url.searchParams.get('q')?.toLowerCase() ?? '';
-    const suggestions = PRODUCTS
-      .filter((p) => p.name.toLowerCase().includes(q))
-      .slice(0, 8)
-      .map((p) => ({ id: p.id, name: p.name, slug: p.slug, imageUrl: p.thumbnail, price: p.price }));
-    return ok(suggestions);
-  }
-
   // /api/v1/products/featured
   if (sub[0] === 'featured') {
     const featured = PRODUCTS.slice(0, 6);
@@ -150,21 +216,18 @@ function handleProducts(sub: string[], url: URL) {
 
   // /api/v1/products/search
   if (sub[0] === 'search') {
-    let filtered = [...PRODUCTS];
-    if (keyword) filtered = filtered.filter((p) => p.name.toLowerCase().includes(keyword) || (p.brandName?.toLowerCase() ?? '').includes(keyword));
+    const filtered = filterProducts(PRODUCTS, url);
     return paginate(filtered, page, size);
   }
 
   // /api/v1/products/category/slug/:slug
   if (sub[0] === 'category' && sub[1] === 'slug' && sub[2]) {
-    const filtered = PRODUCTS.filter((p) => (p.categorySlugs ?? []).includes(sub[2]));
+    const filtered = filterProducts(PRODUCTS, url, sub[2]);
     return paginate(filtered, page, size);
   }
 
   // /api/v1/products — list all with optional filters
-  let filtered = [...PRODUCTS];
-  if (keyword) filtered = filtered.filter((p) => p.name.toLowerCase().includes(keyword));
-  if (categorySlug) filtered = filtered.filter((p) => (p.categorySlugs ?? []).includes(categorySlug));
+  const filtered = filterProducts(PRODUCTS, url);
   return paginate(filtered, page, size);
 }
 
@@ -188,6 +251,84 @@ function handleCategories(sub: string[]) {
   return ok(CATEGORIES);
 }
 
+// ── BUILD PC ──────────────────────────────────────────────────────────────────
+
+const PC_PART_SLUGS = ['cpu', 'mainboard', 'ram', 'ssd', 'hdd', 'gpu', 'psu'] as const;
+
+function normalizeBuildCategorySlug(slug: string): string {
+  return slug.toLowerCase().replace(/_/g, '-');
+}
+
+function handleBuildPc(sub: string[], url: URL) {
+  // GET /api/v1/build-pc/parts — static part definitions
+  if (sub[0] === 'parts') {
+    return ok([
+      { key: 'cpu',       label: 'Vi xử lý',     shortLabel: 'CPU',       icon: 'memory',           description: 'Bộ não của toàn bộ hệ thống',          categorySlug: 'cpu' },
+      { key: 'mainboard', label: 'Bo mạch chủ',   shortLabel: 'Mainboard', icon: 'developer_board',  description: 'Nền tảng kết nối các linh kiện',       categorySlug: 'mainboard' },
+      { key: 'ram',       label: 'RAM',            shortLabel: 'RAM',       icon: 'memory_alt',       description: 'Bộ nhớ đa nhiệm cho máy',              categorySlug: 'ram' },
+      { key: 'hdd',       label: 'Ổ HDD',          shortLabel: 'HDD',       icon: 'storage',          description: 'Lưu trữ dung lượng lớn',               categorySlug: 'hdd' },
+      { key: 'ssd',       label: 'Ổ SSD',          shortLabel: 'SSD',       icon: 'sd_storage',       description: 'Tăng tốc khởi động và tải ứng dụng',   categorySlug: 'ssd' },
+      { key: 'gpu',       label: 'Card đồ họa',    shortLabel: 'VGA',       icon: 'videogame_asset',  description: 'Xử lý hình ảnh và game',               categorySlug: 'gpu' },
+      { key: 'psu',       label: 'Nguồn',          shortLabel: 'PSU',       icon: 'power',            description: 'Cấp điện ổn định cho toàn bộ máy',     categorySlug: 'psu' },
+    ]);
+  }
+
+  // GET /api/v1/build-pc/suggested-builds
+  if (sub[0] === 'suggested-builds') {
+    const categorySlug = url.searchParams.get('categorySlug')?.trim();
+    const builds = PRODUCTS.filter((p) => {
+      if (!(p.tags ?? []).includes('suggested-build')) return false;
+      if (!categorySlug) return true;
+
+      const target = normalizeBuildCategorySlug(categorySlug);
+      const productSlugs = (p.categorySlugs ?? []).map(normalizeBuildCategorySlug);
+      return productSlugs.includes(target);
+    });
+    return ok(builds);
+  }
+
+  // GET /api/v1/build-pc/catalog
+  if (sub[0] === 'catalog') {
+    const categorySlug = url.searchParams.get('categorySlug') ?? '';
+    const keyword = url.searchParams.get('keyword')?.toLowerCase() ?? '';
+    const brandId = url.searchParams.get('brandId') ?? '';
+    const minRating = Number(url.searchParams.get('minRating') ?? '0');
+    const page = Math.max(1, Number(url.searchParams.get('page') ?? '1'));
+    const size = Math.max(1, Number(url.searchParams.get('size') ?? '12'));
+
+    let filtered = PRODUCTS.filter((p) =>
+      (p.categorySlugs ?? []).some((s) => (PC_PART_SLUGS as readonly string[]).includes(s)),
+    );
+
+    if (categorySlug) filtered = filtered.filter((p) => (p.categorySlugs ?? []).includes(categorySlug));
+    if (keyword) filtered = filtered.filter((p) =>
+      p.name.toLowerCase().includes(keyword) || (p.brandName?.toLowerCase() ?? '').includes(keyword),
+    );
+    if (brandId) filtered = filtered.filter((p) => p.brandId === brandId);
+    if (minRating > 0) filtered = filtered.filter((p) => (p.averageRating ?? 0) >= minRating);
+
+    // specs.<key>=value filters (exact, case-insensitive; multiple values for same key = OR)
+    const specsFilter: Record<string, string[]> = {};
+    for (const [key, value] of url.searchParams.entries()) {
+      if (key.startsWith('specs.') && value) {
+        const specKey = key.slice(6);
+        specsFilter[specKey] ??= [];
+        specsFilter[specKey].push(value.toLowerCase());
+      }
+    }
+    for (const [specKey, values] of Object.entries(specsFilter)) {
+      filtered = filtered.filter((p) => {
+        const specVal = (p.specs as Record<string, string>)?.[specKey]?.toLowerCase() ?? '';
+        return values.some((v) => specVal.includes(v));
+      });
+    }
+
+    return paginate(filtered, page, size);
+  }
+
+  return notFound();
+}
+
 // ── BRANDS ───────────────────────────────────────────────────────────────────
 
 function handleBrands() {
@@ -209,10 +350,15 @@ const SERVICE_BASES: Record<string, string> = {
   checkout: 'http://localhost:8084',
   returns:  'http://localhost:8084',
   admin:    'http://localhost:8084',   // /api/v1/admin/orders — order admin endpoints
+  // recommendation-service (8095)
+  behaviors: 'http://localhost:8095',
   // payment-service (8086)
   payments: 'http://localhost:8086',
   // shipping-service (8091)
   shipping: 'http://localhost:8091',
+  // promotion-service (8093)
+  'flash-sales': 'http://localhost:8093',
+  promotions:    'http://localhost:8093',
 };
 
 // Hop-by-hop headers that must not be forwarded to upstream
@@ -258,7 +404,7 @@ async function proxyToBackend(
   const authHeader = request.headers.get('authorization');
   const userId = decodeJwtSub(authHeader);
   if (userId) {
-    forwardHeaders['X-User-Id'] = userId;
+    forwardHeaders['X-User-Id'] = userId;	
   }
 
   const hasBody = !['GET', 'HEAD', 'DELETE'].includes(request.method);
@@ -301,6 +447,7 @@ async function handleRequest(
   if (base === 'products') return handleProducts(sub, url);
   if (base === 'categories') return handleCategories(sub);
   if (base === 'brands') return handleBrands();
+  if (base === 'build-pc') return handleBuildPc(sub, url);
 
   // Proxy order-service, payment-service, shipping-service
   const upstreamBase = SERVICE_BASES[base];

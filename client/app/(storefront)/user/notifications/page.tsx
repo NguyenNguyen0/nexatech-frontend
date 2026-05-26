@@ -76,9 +76,9 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
+      <section className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
             <Bell className="h-5 w-5 text-primary" />
           </div>
           <div>
@@ -98,7 +98,7 @@ export default function NotificationsPage() {
               { value: 'direct', label: 'Tin nhắn trực tiếp và đề cập' },
               { value: 'none', label: 'Không nhận thông báo' },
             ] as { value: NotifyType; label: string }[]).map((o) => (
-              <label key={o.value} className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-bg-base px-4 py-3 hover:border-primary/40 transition">
+              <label key={o.value} className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-bg-base px-4 py-3 hover:border-primary/40 transition">
                 <input
                   type="radio"
                   name="notifyType"
@@ -123,7 +123,7 @@ export default function NotificationsPage() {
               return (
                 <div
                   key={item.key}
-                  className="flex items-center justify-between rounded-2xl border border-border bg-bg-base px-4 py-3"
+                  className="flex items-center justify-between rounded-md border border-border bg-bg-base px-4 py-3"
                 >
                   <div className="flex items-center gap-3">
                     <Icon className="h-4 w-4 shrink-0 text-primary" />
@@ -145,7 +145,7 @@ export default function NotificationsPage() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={handleSave}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition"
           >
             Lưu cài đặt
           </button>

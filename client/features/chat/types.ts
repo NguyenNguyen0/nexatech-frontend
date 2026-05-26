@@ -43,7 +43,20 @@ export type Conversation = {
   unreadCount?: number;
 };
 
+export type ConversationDeleted = {
+  id: string;
+  deletedAt: string;
+};
+
 export type MessageStatus = 'SENT' | 'DELIVERED' | 'SEEN';
+
+export type ProductReference = {
+  productId: string;
+  slug: string;
+  name: string;
+  thumbnail?: string | null;
+  price?: number | null;
+};
 
 export type ChatMessage = {
   id: string;
@@ -51,8 +64,15 @@ export type ChatMessage = {
   senderId: string;
   recipientId?: string | null;
   content: string;
+  productReference?: ProductReference | null;
   status: MessageStatus;
   deliveredAt?: string | null;
   seenAt?: string | null;
   createdAt: string;
+};
+
+export type ChatMessageDeleted = {
+  id: string;
+  conversationId: string;
+  deletedAt: string;
 };

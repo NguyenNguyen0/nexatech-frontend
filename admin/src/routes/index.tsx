@@ -9,7 +9,6 @@ import { admin } from './admin';
 import { accountant } from './accountant';
 import { manager } from './manager';
 import { staff } from './staff';
-import { warehouse } from './warehouse';
 import { authRoutes } from './auth';
 
 export const router = createBrowserRouter([
@@ -17,12 +16,15 @@ export const router = createBrowserRouter([
         path: '/',
         element: <Navigate to="/auth" replace />,
     },
+    {
+        path: '/warehouse/*',
+        element: <Navigate to='/admin/warehouse' replace />,
+    },
     ...authRoutes,
     ...admin,
     ...accountant,
     ...manager,
     ...staff,
-    ...warehouse,
 
     // Status pages
     { path: '/500', element: <GeneralError /> },

@@ -5,3 +5,4 @@ export * from './pdp-promotions';
 export * from './pdp-specs';
 export * from './pdp-blog-review';
 export * from './pdp-related-products';
+export * from './pdp-related-products-section';

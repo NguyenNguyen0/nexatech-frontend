@@ -48,13 +48,13 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
         {hasPrevious ? (
           <Link
             href={`${basePath}?${buildQuery(searchParams, { page: String(currentPage - 1) })}`}
-            className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
             aria-label="Trang trước"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
           </Link>
         ) : (
-          <span className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed">
+          <span className="w-10 h-10 flex items-center justify-center rounded-sm border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed">
             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
           </span>
         )}
@@ -65,14 +65,14 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
               ...
             </span>
           ) : p === currentPage ? (
-            <span key={p} className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary text-on-primary font-medium" aria-current="page">
+            <span key={p} className="w-10 h-10 flex items-center justify-center rounded-sm bg-primary text-on-primary font-medium" aria-current="page">
               {p}
             </span>
           ) : (
             <Link
               key={p}
               href={`${basePath}?${buildQuery(searchParams, { page: String(p) })}`}
-              className="w-10 h-10 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors font-medium"
+              className="w-10 h-10 flex items-center justify-center rounded-sm text-on-surface-variant hover:bg-surface-container transition-colors font-medium"
             >
               {p}
             </Link>
@@ -82,13 +82,13 @@ export function CatalogPagination({ currentPage, totalPages, hasPrevious, hasNex
         {hasNext ? (
           <Link
             href={`${basePath}?${buildQuery(searchParams, { page: String(currentPage + 1) })}`}
-            className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-sm border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
             aria-label="Trang sau"
           >
             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
           </Link>
         ) : (
-          <span className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed">
+          <span className="w-10 h-10 flex items-center justify-center rounded-sm border border-outline-variant text-on-surface-variant opacity-50 cursor-not-allowed">
             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
           </span>
         )}
