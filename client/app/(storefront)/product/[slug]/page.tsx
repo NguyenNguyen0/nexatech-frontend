@@ -61,9 +61,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
     <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
       <PdpBreadcrumb categoryName={categoryName} brandName={product.brandName} />
 
-      <div className="flex flex-col lg:flex-row gap-8 mb-12">
+      <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:items-start mb-12">
         <PdpGallery images={gallery} productName={product.name} />
-        <div className="w-full lg:w-1/3">
+        <div className="w-full lg:w-[420px] lg:shrink-0">
           <PdpSummary
             productId={product.id}
             name={product.name}

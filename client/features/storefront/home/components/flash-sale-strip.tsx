@@ -13,6 +13,7 @@ import {
 import type { FlashSaleStripItem } from '@/features/flash-sale/services/flash-sale-strip-loader';
 
 type Countdown = { hours: string; minutes: string; seconds: string };
+const INITIAL_COUNTDOWN: Countdown = { hours: '08', minutes: '45', seconds: '30' };
 
 function getCountdown(target: number): Countdown {
   const distance = Math.max(0, target - Date.now());

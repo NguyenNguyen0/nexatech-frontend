@@ -13,7 +13,7 @@ export async function HomeShowcase() {
   const flashSaleData = await fetchFlashSaleStripData();
 
   return (
-    <div className="overflow-x-hidden bg-[#fbf9f8]">
+    <div className="overflow-x-hidden bg-surface-container-lowest">
       <HeroBanner />
       <FlashSaleStrip items={flashSaleData.items} endsAt={flashSaleData.endsAt} />
       <CategoryGrid />

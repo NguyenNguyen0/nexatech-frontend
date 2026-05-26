@@ -285,7 +285,7 @@ export function LoginForm() {
 
     return (
         <>
-            <Card className="w-full max-w-[450px] shadow-2xl border-none overflow-hidden rounded-[20px]">
+            <Card className="w-full max-w-[450px] shadow-2xl border border-border/60 overflow-hidden rounded-md">
                 <CardContent className="p-8 sm:p-10 space-y-6 relative">
                     <div className="flex items-center justify-center">
                         <h2 className="text-2xl font-semibold text-foreground">Đăng nhập NexaTech</h2>
@@ -302,7 +302,7 @@ export function LoginForm() {
                                 name="username"
                                 autoComplete="username"
                                 placeholder="Tên đăng nhập / Email / Số điện thoại"
-                                className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
+                                className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-sm"
                                 required
                                 value={identifier}
                                 onChange={(ev) => setIdentifier(ev.target.value)}
@@ -320,7 +320,7 @@ export function LoginForm() {
                                     name="password"
                                     autoComplete="current-password"
                                     placeholder="Mật khẩu"
-                                    className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl pr-12"
+                                    className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-sm pr-12"
                                     required
                                     value={password}
                                     onChange={(ev) => setPassword(ev.target.value)}
@@ -340,7 +340,7 @@ export function LoginForm() {
                         <Button
                             type="submit"
                             disabled={pending || otpOpen}
-                            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl transition-all active:scale-[0.98]"
+                            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-sm transition-all active:scale-[0.98]"
                         >
                             {pending ? 'Đang đăng nhập…' : 'Đăng nhập'}
                         </Button>
@@ -364,7 +364,7 @@ export function LoginForm() {
                         <Button
                             onClick={handleGoogleSignIn}
                             variant="outline"
-                            className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
+                            className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-sm"
                             aria-label="Đăng nhập với Google"
                             type="button"
                             disabled={pending || otpOpen}
