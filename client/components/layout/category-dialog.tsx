@@ -120,9 +120,9 @@ export function CategoryDialog({ open, onClose }: CategoryDialogProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Danh mục sản phẩm"
-        className="absolute top-full left-0 w-screen z-40 bg-white shadow-lg border-t border-[#e0e0e0]"
+        className="absolute top-full left-1/2 z-40 mt-2 w-full max-w-container-max -translate-x-1/2 overflow-hidden rounded-md border border-[#e0e0e0] bg-white shadow-xl"
       >
-        <div className="flex h-[400px] overflow-hidden">
+        <div className="flex max-h-[min(75vh,640px)] min-h-85 flex-col overflow-hidden md:min-h-100 lg:flex-row">
           {/* Loading state */}
           {loading && (
             <div className="flex-1 flex items-center justify-center text-[#888]">
@@ -141,24 +141,26 @@ export function CategoryDialog({ open, onClose }: CategoryDialogProps) {
           {!loading && !error && (
             <>
               {/* Left: Level 1 Categories */}
-              <div className="w-[220px] border-r border-[#e0e0e0] overflow-y-auto bg-[#fbf9f8]">
+              <div className="w-full border-b border-[#e0e0e0] bg-[#fbf9f8] lg:w-65 lg:flex-none lg:border-b-0 lg:border-r lg:overflow-y-auto">
                 {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => handleL1Click(cat.id)}
-                      onMouseEnter={() => handleL1Hover(cat.id)}
-                      onMouseLeave={handleL1HoverLeave}
-                      className={`w-full px-4 py-3 text-left text-[13px] font-medium transition-colors ${
-                        activeL1?.id === cat.id
-                          ? 'bg-white text-[#004d75] border-l-3 border-[#004d75]'
-                          : 'text-[#333] hover:bg-white/50'
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  ))
+                  <div className="flex gap-1 overflow-x-auto px-2 py-2 lg:block lg:overflow-visible lg:px-0 lg:py-0">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => handleL1Click(cat.id)}
+                        onMouseEnter={() => handleL1Hover(cat.id)}
+                        onMouseLeave={handleL1HoverLeave}
+                        className={`shrink-0 rounded-sm px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap transition-colors lg:w-full lg:rounded-none lg:px-4 lg:py-3 ${
+                          activeL1?.id === cat.id
+                            ? 'bg-white text-[#004d75] lg:border-l-3 lg:border-[#004d75]'
+                            : 'text-[#333] hover:bg-white/50'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
                   <div className="px-4 py-3 text-[13px] text-[#999] italic">
                     Không có danh mục
@@ -167,7 +169,7 @@ export function CategoryDialog({ open, onClose }: CategoryDialogProps) {
               </div>
 
               {/* Right: Level 2 & 3 */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 {categories.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-[#888] text-sm">
                     Danh mục trống
@@ -178,23 +180,23 @@ export function CategoryDialog({ open, onClose }: CategoryDialogProps) {
                       activeL1.children.map((l2) => (
                         <div key={l2.id}>
                           {/* Level 2 header (group title) */}
-                          <h3 className="text-[13px] font-semibold text-[#1b1c1c] mb-3">
+                          <h3 className="my-3 text-[14px] font-semibold text-[#1b1c1c]">
                             {l2.name}
                           </h3>
 
                           {/* Level 3 items (clickable links) */}
-                          <div className="space-y-2">
+                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                             {Array.isArray(l2.children) && l2.children.length > 0 ? (
                               l2.children.map((l3) => (
                                 <div key={l3.id}>
                                   {l3.slug ? (
                                     <Link
                                       href={`/product/collection/${l3.slug}`}
-                                      className="flex items-center justify-between px-3 py-2 text-[12px] text-[#666] hover:text-[#004d75] hover:bg-[#f0f0f0] rounded transition-colors group"
+                                      className="group flex items-center justify-between rounded px-3 py-2 text-[12px] text-[#666] transition-colors hover:bg-[#f0f0f0] hover:text-[#004d75]"
                                       onClick={handleItemClick}
                                     >
                                       <span>{l3.name}</span>
-                                      <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      <ChevronRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
                                     </Link>
                                   ) : (
                                     <span className="block px-3 py-2 text-[12px] text-[#999] cursor-not-allowed">

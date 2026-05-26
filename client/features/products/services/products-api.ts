@@ -312,7 +312,7 @@ async function hydrateRecommendationItems(items: RecommendationItem[]): Promise<
       try {
         const product = await requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(productId)}`);
         const mapped = toRecommendationProductPayload(product);
-        return mapped ? [productId, mapped] : null;
+        return mapped ? ([productId, mapped] as const) : null;
       } catch {
         return null;
       }
@@ -447,9 +447,14 @@ export async function fetchProductReviews(productSlugOrId: string, params?: Prod
   return { items: [], page: params?.page ?? 1, size: params?.size ?? 10, totalItems: 0, totalPages: 1, hasNext: false };
 }
 
-export async function fetchProductSuggestions(keyword: string, params?: { limit?: number; categoryId?: string; brandId?: string }): Promise<ProductSuggestion[]> {
+export interface ProductSuggestionsResult {
+  suggestions: ProductSuggestion[];
+  totalItems: number;
+}
+
+export async function fetchProductSuggestions(keyword: string, params?: { limit?: number; categoryId?: string; brandId?: string }): Promise<ProductSuggestionsResult> {
   const normalized = keyword.trim();
-  if (normalized.length < 2) return [];
+  if (normalized.length < 2) return { suggestions: [], totalItems: 0 };
 
   const limit = Math.max(1, Math.min(params?.limit ?? 6, 20));
   const result = await searchProducts(normalized, {
@@ -460,16 +465,19 @@ export async function fetchProductSuggestions(keyword: string, params?: { limit?
     brandId: params?.brandId,
   });
 
-  return result.items.slice(0, limit).map((product) => ({
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    thumbnail: product.thumbnail,
-    price: product.price,
-    compareAtPrice: product.compareAtPrice,
-    categoryIds: product.categoryIds,
-    brandId: product.brandId,
-  }));
+  return {
+    suggestions: result.items.slice(0, limit).map((product) => ({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      thumbnail: product.thumbnail,
+      price: product.price,
+      compareAtPrice: product.compareAtPrice,
+      categoryIds: product.categoryIds,
+      brandId: product.brandId,
+    })),
+    totalItems: result.totalItems,
+  };
 }
 
 export async function fetchPopularRecommendations(topK = 8): Promise<ProductMinimal[]> {

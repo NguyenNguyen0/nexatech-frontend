@@ -30,7 +30,7 @@ function PasswordInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-xl border border-border bg-bg-base px-4 py-2.5 pr-10 text-sm text-text-primary outline-none focus:border-primary transition"
+          className="w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 pr-10 text-sm text-text-primary outline-none focus:border-primary transition"
         />
         <button
           type="button"
@@ -82,9 +82,9 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
+      <section className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
             <KeyRound className="h-5 w-5 text-primary" />
           </div>
           <div>
@@ -119,7 +119,7 @@ export default function AccountPage() {
             <button
               type="submit"
               disabled={loading || !oldPassword || !newPassword || !confirmPassword}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 transition"
+              className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 transition"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
               Đổi mật khẩu
@@ -129,7 +129,7 @@ export default function AccountPage() {
       </section>
 
       {/* Security tip */}
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+      <section className="rounded-md border border-amber-200 bg-amber-50 px-5 py-4">
         <p className="inline-flex items-center gap-2 text-sm font-semibold text-amber-700">
           <ShieldAlert className="h-4 w-4" />
           Lưu ý bảo mật

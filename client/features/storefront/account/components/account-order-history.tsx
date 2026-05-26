@@ -16,7 +16,7 @@ type AccountOrderHistoryProps = {
 
 export function AccountOrderHistory({ orders }: AccountOrderHistoryProps) {
   return (
-    <section id="orders" className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
+    <section id="orders" className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-bold text-text-primary">Lịch sử đơn hàng</h3>
         <Link href="/user#orders" className="inline-flex items-center gap-1 text-sm font-semibold text-primary transition hover:text-primary-dark">
@@ -34,7 +34,7 @@ export function AccountOrderHistory({ orders }: AccountOrderHistoryProps) {
       ) : (
         <div className="mt-4 space-y-3">
           {orders.map((order) => (
-            <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-bg-base px-4 py-3">
+            <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-bg-base px-4 py-3">
               <div>
                 <p className="text-sm font-semibold text-text-primary">Đơn #{order.id}</p>
                 <p className="mt-0.5 text-xs text-text-tertiary">{order.createdAt}</p>

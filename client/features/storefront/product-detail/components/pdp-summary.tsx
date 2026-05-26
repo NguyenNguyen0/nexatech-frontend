@@ -213,7 +213,7 @@ export function PdpSummary({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-on-surface-variant border-b border-outline-variant pb-4">
         <div className="flex items-center gap-1">
           <span
-            className="material-symbols-outlined text-[15px] text-[#f5a623]"
+            className="material-symbols-outlined text-[15px] text-secondary"
             style={{ fontVariationSettings: "'FILL' 1" }}
           >
             star
@@ -228,15 +228,15 @@ export function PdpSummary({
         </div>
         <span className="text-outline-variant">|</span>
         <div
-          className={`flex items-center gap-1 font-semibold ${isOutOfStock ? 'text-error' : 'text-[#0a8a50]'}`}
+          className={`flex items-center gap-1 font-semibold ${isOutOfStock ? 'text-error' : 'text-success'}`}
         >
-          <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-error' : 'bg-[#0a8a50]'}`} />
+          <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-error' : 'bg-success'}`} />
           {stockStateText}
         </div>
       </div>
 
       {/* Price box */}
-      <div className="rounded-md border border-[#c8dce8] bg-[#f0f6fa] p-4">
+      <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-baseline gap-3 mb-3">
           <span className="text-[28px] font-extrabold leading-none text-primary">
             {formatCurrency(price)}
@@ -247,7 +247,7 @@ export function PdpSummary({
                 {formatCurrency(compareAtPrice)}
               </span>
               {discount ? (
-                <span className="text-[11px] font-bold text-white bg-[#e30019] px-2 py-0.5 rounded-sm">
+                <span className="text-[11px] font-bold text-on-error bg-error px-2 py-0.5 rounded-sm">
                   -{discount}%
                 </span>
               ) : null}
@@ -255,10 +255,10 @@ export function PdpSummary({
           )}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <span className="inline-flex items-center text-[11px] bg-white border border-[#c8dce8] text-on-surface-variant px-2.5 py-1 rounded-sm">
+          <span className="inline-flex items-center text-[11px] bg-surface border border-primary/20 text-on-surface-variant px-2.5 py-1 rounded-sm">
             Trả góp 0%
           </span>
-          <span className="inline-flex items-center text-[11px] bg-white border border-[#c8dce8] text-on-surface-variant px-2.5 py-1 rounded-sm">
+          <span className="inline-flex items-center text-[11px] bg-surface border border-primary/20 text-on-surface-variant px-2.5 py-1 rounded-sm">
             Bảo hành chính hãng 12 tháng
           </span>
         </div>
@@ -299,8 +299,8 @@ export function PdpSummary({
           disabled={isWishlistUpdating}
           className={`h-12 w-12 shrink-0 rounded-md border-2 flex items-center justify-center transition-all active:scale-[0.98] ${
             wishlisted
-              ? 'border-[#e30019] bg-[#fff0f0] text-[#e30019]'
-              : 'border-outline-variant bg-white text-on-surface-variant hover:border-[#e30019] hover:text-[#e30019] hover:bg-[#fff5f5]'
+              ? 'border-error bg-error/10 text-error'
+              : 'border-outline-variant bg-white text-on-surface-variant hover:border-error hover:text-error hover:bg-error/5'
           } ${isWishlistUpdating ? 'cursor-not-allowed opacity-60' : ''}`}
           title={wishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
         >
