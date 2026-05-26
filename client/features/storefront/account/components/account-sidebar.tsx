@@ -22,7 +22,7 @@ export function AccountSidebar() {
   }
 
   return (
-    <aside className="rounded-4xl border border-border bg-bg-elevated p-4 shadow-sm">
+    <aside className="rounded-md border border-border bg-bg-elevated p-4 shadow-sm">
       <nav className="mt-4 space-y-1.5">
         {links.map((item) => {
           const Icon = item.icon;
@@ -33,7 +33,7 @@ export function AccountSidebar() {
               key={item.key}
               href={item.href}
               className={[
-                'flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition',
+                'flex items-center gap-3 rounded-sm border px-3 py-2.5 text-sm transition',
                 active
                   ? 'border-primary bg-primary/10 font-semibold text-primary'
                   : 'border-border bg-bg-base text-text-secondary hover:border-primary hover:text-primary',

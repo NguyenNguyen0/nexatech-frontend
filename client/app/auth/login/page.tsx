@@ -23,7 +23,7 @@ export default function LoginPage() {
                 <BrandIllustration />
 
                 <div className="flex justify-center lg:justify-end animate-in fade-in zoom-in-95 duration-500">
-                    <Suspense fallback={<div className="w-full max-w-[450px] h-96 rounded-[20px] bg-card/40 animate-pulse" />}>
+                    <Suspense fallback={<div className="w-full max-w-[450px] h-96 rounded-md bg-card/40 animate-pulse" />}>
                         <LoginForm />
                     </Suspense>
                 </div>

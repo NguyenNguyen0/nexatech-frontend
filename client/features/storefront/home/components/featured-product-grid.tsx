@@ -59,7 +59,7 @@ export function FeaturedProductGrid() {
         }
 
         if (!active) return;
-        setProducts(nextProducts);
+        setProducts(nextProducts.slice(0, HOME_RECOMMEND_LIMIT));
       } finally {
         if (!active) return;
         setLoading(false);
@@ -76,7 +76,7 @@ export function FeaturedProductGrid() {
   return (
     <section className="mx-auto w-full max-w-container-max px-4 py-5">
       <div className="mb-4 flex items-end justify-between">
-        <h2 className="text-lg font-bold text-[#1b1c1c]">Gợi ý cho bạn</h2>
+        <h2 className="text-lg font-bold text-on-surface">Gợi ý cho bạn</h2>
         <Link
           href="/product"
           className="inline-flex items-center gap-0.5 text-[13px] font-medium text-storefront-primary transition hover:underline"
@@ -88,17 +88,17 @@ export function FeaturedProductGrid() {
       {loading ? (
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: HOME_RECOMMEND_LIMIT }).map((_, index) => (
-            <div key={index} className="aspect-[0.8] animate-pulse rounded-md border border-[#e8e8e8] bg-white" />
+            <div key={index} className="aspect-[0.8] animate-pulse rounded-md border border-outline-variant bg-surface" />
           ))}
         </div>
       ) : products.length > 0 ? (
         <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
+          {products.slice(0, HOME_RECOMMEND_LIMIT).map((product) => (
             <ProductCard key={product.id} product={product} variant="compact" />
           ))}
         </div>
       ) : (
-        <div className="rounded-md border border-dashed border-[#e8e8e8] bg-white px-4 py-8 text-sm text-[#666]">
+        <div className="rounded-md border border-dashed border-outline-variant bg-surface px-4 py-8 text-sm text-on-surface-variant">
           Chưa có gợi ý sản phẩm để hiển thị.
         </div>
       )}

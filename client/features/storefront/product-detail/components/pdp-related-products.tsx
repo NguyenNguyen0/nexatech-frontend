@@ -6,7 +6,11 @@ type PdpRelatedProductsProps = {
   products: ProductMinimal[];
 };
 
+const PDP_RELATED_PRODUCTS_LIMIT = 8;
+
 export function PdpRelatedProducts({ products }: PdpRelatedProductsProps) {
+  const visibleProducts = products.slice(0, PDP_RELATED_PRODUCTS_LIMIT);
+
   return (
     <section>
       <div className="flex items-end justify-between gap-4 mb-8">
@@ -18,9 +22,9 @@ export function PdpRelatedProducts({ products }: PdpRelatedProductsProps) {
         </Link>
       </div>
 
-      {products.length > 0 ? (
+      {visibleProducts.length > 0 ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {products.map((product) => (
+          {visibleProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

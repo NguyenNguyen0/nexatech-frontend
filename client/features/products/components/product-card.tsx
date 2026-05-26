@@ -26,7 +26,7 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
 
   return (
     <Link href={`/product/${product.slug}`} className={cn('block h-full', className)}>
-      <div className="bg-surface rounded-md border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full relative">
+      <div className="bg-surface rounded-sm border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group cursor-pointer flex flex-col h-full relative">
         <button
           type="button"
           disabled={isWishlistUpdating}
@@ -40,8 +40,8 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
           }}
           title={wishlisted ? 'Xóa khỏi yêu thích' : 'Thêm vào yêu thích'}
           className={cn(
-            'absolute right-2 top-2 z-20 h-9 w-9 rounded-full border bg-white/95 backdrop-blur flex items-center justify-center transition-colors',
-            wishlisted ? 'border-[#e30019] text-[#e30019]' : 'border-outline-variant text-on-surface-variant hover:border-[#e30019] hover:text-[#e30019]',
+            'absolute right-2 top-2 z-20 h-9 w-9 rounded-sm border bg-white/95 backdrop-blur flex items-center justify-center transition-colors',
+            wishlisted ? 'border-error text-error' : 'border-outline-variant text-on-surface-variant hover:border-error hover:text-error',
             isWishlistUpdating && 'cursor-not-allowed opacity-60',
           )}
         >
@@ -70,12 +70,12 @@ export function ProductCard({ product, variant = 'grid', className }: ProductCar
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {discount ? (
-              <span className="bg-error text-on-error text-[10px] font-bold px-2 py-1 rounded">
+              <span className="bg-error text-on-error text-[10px] font-bold px-2 py-1 rounded-sm">
                 -{discount}%
               </span>
             ) : null}
             {product.stockStatus ? (
-              <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-1 rounded">
+              <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-1 rounded-sm">
                 {getStockStatusLabel(product.stockStatus)}
               </span>
             ) : null}

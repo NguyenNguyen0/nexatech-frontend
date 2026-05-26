@@ -312,7 +312,7 @@ async function hydrateRecommendationItems(items: RecommendationItem[]): Promise<
       try {
         const product = await requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(productId)}`);
         const mapped = toRecommendationProductPayload(product);
-        return mapped ? [productId, mapped] : null;
+        return mapped ? ([productId, mapped] as const) : null;
       } catch {
         return null;
       }

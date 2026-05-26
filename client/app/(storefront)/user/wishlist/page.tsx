@@ -112,7 +112,7 @@ export default function WishlistPage() {
         </div>
 
         {errorMessage ? (
-          <div className="rounded-2xl border border-error/30 bg-error/5 px-5 py-6">
+          <div className="rounded-md border border-error/30 bg-error/5 px-5 py-6">
             <p className="text-body-md text-error">{errorMessage}</p>
             <button
               type="button"
@@ -123,12 +123,12 @@ export default function WishlistPage() {
             </button>
           </div>
         ) : isLoading ? (
-          <div className="rounded-2xl border border-outline-variant bg-surface px-5 py-12 flex items-center justify-center gap-3 text-on-surface-variant">
+          <div className="rounded-md border border-outline-variant bg-surface px-5 py-12 flex items-center justify-center gap-3 text-on-surface-variant">
             <Loader2 className="h-5 w-5 animate-spin" />
             Đang tải wishlist...
           </div>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-6 py-24 bg-surface rounded-2xl border border-outline-variant">
+          <div className="flex flex-col items-center justify-center gap-6 py-24 bg-surface rounded-md border border-outline-variant">
             <span className="material-symbols-outlined text-[72px] text-outline">favorite</span>
             <div className="text-center">
               <p className="text-headline-sm font-headline-sm text-on-surface">Chưa có sản phẩm yêu thích</p>
@@ -136,7 +136,7 @@ export default function WishlistPage() {
             </div>
             <Link
               href="/product"
-              className="h-12 px-8 bg-primary text-on-primary rounded-xl font-bold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
+              className="h-12 px-8 bg-primary text-on-primary rounded-sm font-bold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
             >
               <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
               Khám phá sản phẩm
@@ -147,7 +147,7 @@ export default function WishlistPage() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="bg-surface rounded-xl border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col"
+                className="bg-surface rounded-sm border border-outline-variant overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col"
               >
                 <Link href={`/product/${item.slug}`} className="block relative aspect-square bg-surface-container overflow-hidden">
                   {item.thumbnail ? (
@@ -171,7 +171,7 @@ export default function WishlistPage() {
                     <button
                       onClick={() => void handleRemove(item)}
                       disabled={isRemovingById[item.id] === true}
-                      className="text-error hover:bg-error/10 rounded-full p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      className="text-error hover:bg-error/10 rounded-sm p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                       title="Xóa khỏi yêu thích"
                     >
                       {isRemovingById[item.id] ? (
@@ -193,7 +193,7 @@ export default function WishlistPage() {
               type="button"
               onClick={() => setPage((current) => Math.max(0, current - 1))}
               disabled={!canGoPrev}
-              className="h-10 px-4 rounded-xl border border-outline-variant text-label-sm font-semibold text-on-surface disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary hover:text-primary transition-colors"
+              className="h-10 px-4 rounded-sm border border-outline-variant text-label-sm font-semibold text-on-surface disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary hover:text-primary transition-colors"
             >
               Trước
             </button>
@@ -204,7 +204,7 @@ export default function WishlistPage() {
               type="button"
               onClick={() => setPage((current) => (canGoNext ? current + 1 : current))}
               disabled={!canGoNext}
-              className="h-10 px-4 rounded-xl border border-outline-variant text-label-sm font-semibold text-on-surface disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary hover:text-primary transition-colors"
+              className="h-10 px-4 rounded-sm border border-outline-variant text-label-sm font-semibold text-on-surface disabled:opacity-40 disabled:cursor-not-allowed hover:border-primary hover:text-primary transition-colors"
             >
               Sau
             </button>
