@@ -5,6 +5,7 @@ import type {
   Conversation,
   CursorPageResponse,
   PageResponse,
+  ProductReference,
 } from '../types';
 
 const CHAT_BASE = '/api/v1/conversations';
@@ -75,11 +76,11 @@ export async function fetchMessages(
 export async function sendMessage(
   conversationId: string,
   content: string,
-  options: GuestAwareOptions = {},
+  options: GuestAwareOptions & { productReference?: ProductReference | null } = {},
 ): Promise<ChatMessage> {
   const { data } = await axiosClient.post<ChatApiResponse<ChatMessage>>(
     `${CHAT_BASE}/${conversationId}/messages`,
-    { content },
+    { content, productReference: options.productReference ?? undefined },
     { headers: guestHeaders(options.guestSessionId) },
   );
   return unwrapResponse(data);
