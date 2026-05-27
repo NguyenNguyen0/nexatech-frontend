@@ -11,6 +11,7 @@ export interface AddressDto {
   receiverName: string;
   phone: string;
   province: string;
+  district?: string;
   ward?: string;
   detail: string;
   latitude?: number;
@@ -39,6 +40,7 @@ export function normalizeAddress(raw: AddressDtoRaw): AddressDto {
     receiverName: raw.receiverName,
     phone: raw.phone,
     province: raw.province,
+    district: raw.district,
     ward: raw.ward,
     detail: raw.detail,
     latitude: raw.latitude,
@@ -78,6 +80,7 @@ export interface AddressPayload {
   receiverName: string;
   phone: string;
   province: string;
+  district?: string;
   ward?: string;
   detail: string;
   latitude?: number;
@@ -104,8 +107,8 @@ function assertOk<T>(data: ApiResponse<T>, fallback: string): T {
   return data.result as T;
 }
 
-export function formatAddressLine(addr: Pick<AddressDto, 'detail' | 'ward' | 'province'>): string {
-  return [addr.detail, addr.ward, addr.province].filter(Boolean).join(', ');
+export function formatAddressLine(addr: Pick<AddressDto, 'detail' | 'ward' | 'district' | 'province'>): string {
+  return [addr.detail, addr.ward, addr.district, addr.province].filter(Boolean).join(', ');
 }
 
 export async function listMyAddresses(): Promise<AddressDto[]> {
