@@ -20,6 +20,7 @@ import {
     IconCreditCard,
     IconTruck,
     IconRosetteDiscount,
+    IconTimeline,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -195,8 +196,22 @@ export const sidelinks: SideLink[] = [
     {
         title: 'Audit Logs',
         label: '',
-        href: '/admin/audit',
+        href: '',
         icon: <IconHistory size={18} />,
+        sub: [
+            {
+                title: 'Audit Log',
+                label: '',
+                href: '/admin/audit',
+                icon: <IconHistory size={18} />,
+            },
+            {
+                title: 'Trace Log',
+                label: '',
+                href: '/admin/audit/trace',
+                icon: <IconTimeline size={18} />,
+            },
+        ],
     },
     {
         title: 'Settings',

@@ -37,6 +37,22 @@ export interface AdminPaymentListParams {
   sort?: string
 }
 
+export interface PaymentDailyRevenue {
+  date: string
+  count: number
+  revenue: number
+}
+
+export interface PaymentStatsResponse {
+  from: string
+  to: string
+  totalPayments: number
+  totalRevenue: number
+  byStatus: Record<string, number>
+  byMethod: Record<string, number>
+  dailyRevenue: PaymentDailyRevenue[]
+}
+
 export async function getPaymentById(paymentId: string): Promise<PaymentResponse> {
   const { data } = await axiosClient.get<PaymentApiResponse<PaymentResponse>>(
     `/api/v1/payments/${paymentId}`,
@@ -61,6 +77,15 @@ export async function adminGetAllPayments(
     { params },
   )
   if (!data.success || !data.data) throw new Error(data.message ?? 'Unable to load payments')
+  return data.data
+}
+
+export async function adminGetPaymentStats(from?: string, to?: string): Promise<PaymentStatsResponse> {
+  const { data } = await axiosClient.get<PaymentApiResponse<PaymentStatsResponse>>(
+    '/api/v1/admin/payments/stats',
+    { params: { from, to } },
+  )
+  if (!data.success || !data.data) throw new Error(data.message ?? 'Unable to load payment stats')
   return data.data
 }
 
