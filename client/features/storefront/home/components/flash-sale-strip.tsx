@@ -47,11 +47,13 @@ function RatingStars({ rating }: { rating: number }) {
 }
 
 export function FlashSaleStrip({ items, endsAt }: FlashSaleStripProps) {
-  const [countdown, setCountdown] = useState<Countdown>(() => getCountdown(endsAt));
+  // Keep first SSR/CSR render identical to avoid hydration mismatch.
+  const [countdown, setCountdown] = useState<Countdown>(INITIAL_COUNTDOWN);
   const autoplay = useRef(Autoplay({ delay: 4000, stopOnInteraction: true }));
 
   useEffect(() => {
     if (endsAt === 0) return;
+    setCountdown(getCountdown(endsAt));
     const timer = window.setInterval(() => setCountdown(getCountdown(endsAt)), 1000);
     return () => window.clearInterval(timer);
   }, [endsAt]);

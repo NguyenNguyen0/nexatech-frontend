@@ -5,7 +5,7 @@ import { SectionHeading } from '@/features/storefront/shared/components/section-
 
 export default function UserLayout({ children }: { children: ReactNode }) {
   return (
-    <SectionContainer className="py-8 sm:py-10">
+    <SectionContainer className="py-8 sm:py-10 font-body-md">
       <SectionHeading
         kicker="Account"
         title="Cài đặt tài khoản"
