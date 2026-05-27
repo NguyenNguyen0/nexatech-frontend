@@ -135,7 +135,9 @@ interface AuditApiResponse<T> {
 }
 
 const AUDIT_ORDER_BASE = '/api/v1/admin/orders';
+const AUDIT_ORDER_TRACE_BASE = '/api/v1/admin/audit/orders';
 const AUDIT_PAYMENT_BASE = '/api/v1/admin/payments';
+const AUDIT_PAYMENT_TRACE_BASE = '/api/v1/admin/audit/payments';
 
 export interface AuditLogEntry {
   id: string;
@@ -187,16 +189,51 @@ const getEntityTimelineFromAuditService = async (entityId: string): Promise<Audi
   return result.content.map(toAuditLogEntry);
 };
 
+const readTraceResponse = <T>(payload: AuditApiResponse<T>, fallbackMessage: string): T => {
+  if (!payload.success || !payload.data) {
+    throw new Error(payload.message ?? fallbackMessage);
+  }
+  return payload.data;
+};
+
+const getFirstAvailable = async <T>(
+  urls: string[],
+  fallbackMessage: string,
+  config?: { params?: Record<string, unknown> },
+): Promise<T> => {
+  let lastMessage = fallbackMessage;
+
+  for (const url of urls) {
+    const { data, status } = await axiosClient.get<AuditApiResponse<T>>(url, {
+      params: config?.params,
+      validateStatus: (code) => code < 500,
+    });
+
+    if (status === 404) {
+      lastMessage = data?.message ?? lastMessage;
+      continue;
+    }
+
+    if (status >= 400) {
+      lastMessage = data?.message ?? lastMessage;
+      continue;
+    }
+
+    return readTraceResponse(data, fallbackMessage);
+  }
+
+  throw new Error(lastMessage);
+};
+
 /** Full event timeline for a single order (sorted by createdAt ascending). */
 export async function getOrderTimeline(orderId: string): Promise<AuditLogEntry[]> {
-  const { data } = await axiosClient.get<AuditApiResponse<AuditLogEntry[]>>(
-    `${AUDIT_ORDER_BASE}/${orderId}/timeline`,
+  return getFirstAvailable<AuditLogEntry[]>(
+    [
+      `${AUDIT_ORDER_BASE}/${orderId}/timeline`,
+      `${AUDIT_ORDER_TRACE_BASE}/${orderId}/timeline`,
+    ],
+    'Không tìm thấy lịch sử đơn hàng này',
   );
-
-  if (!data.success || !data.data) {
-    throw new Error(data.message ?? 'Unable to load order timeline');
-  }
-  return data.data;
 }
 
 /**
@@ -207,24 +244,29 @@ export async function getOrderStateAt(
   orderId: string,
   t: string,
 ): Promise<Record<string, unknown>> {
-  const { data } = await axiosClient.get<AuditApiResponse<Record<string, unknown>>>(
-    `${AUDIT_ORDER_BASE}/${orderId}/state-at`,
+  return getFirstAvailable<Record<string, unknown>>(
+    [
+      `${AUDIT_ORDER_BASE}/${orderId}/state-at`,
+      `${AUDIT_ORDER_TRACE_BASE}/${orderId}/state-at`,
+    ],
+    'Không tìm thấy trạng thái đơn hàng tại thời điểm đã chọn',
     { params: { t } },
   );
-  if (!data.data) throw new Error(data.message ?? 'Không tải được state đơn hàng');
-  return data.data;
 }
 
 /** Full event timeline for a single payment. */
 export async function getPaymentTimeline(paymentId: string): Promise<AuditLogEntry[]> {
-  const { data } = await axiosClient.get<AuditApiResponse<AuditLogEntry[]>>(
-    `${AUDIT_PAYMENT_BASE}/${paymentId}/timeline`,
-  );
-
-  if (!data.success || !data.data) {
-    throw new Error(data.message ?? 'Unable to load payment timeline');
+  try {
+    return await getFirstAvailable<AuditLogEntry[]>(
+      [
+        `${AUDIT_PAYMENT_BASE}/${paymentId}/timeline`,
+        `${AUDIT_PAYMENT_TRACE_BASE}/${paymentId}/timeline`,
+      ],
+      'Không tìm thấy lịch sử giao dịch này',
+    );
+  } catch {
+    return getEntityTimelineFromAuditService(paymentId);
   }
-  return data.data;
 }
 
 /**
@@ -235,12 +277,27 @@ export async function getPaymentStateAt(
   paymentId: string,
   t: string,
 ): Promise<Record<string, unknown>> {
-  const { data } = await axiosClient.get<AuditApiResponse<Record<string, unknown>>>(
-    `${AUDIT_PAYMENT_BASE}/${paymentId}/state-at`,
-    { params: { t } },
-  );
-  if (!data.data) throw new Error(data.message ?? 'Không tải được state giao dịch');
-  return data.data;
+  try {
+    return await getFirstAvailable<Record<string, unknown>>(
+      [
+        `${AUDIT_PAYMENT_BASE}/${paymentId}/state-at`,
+        `${AUDIT_PAYMENT_TRACE_BASE}/${paymentId}/state-at`,
+      ],
+      'Không tìm thấy trạng thái giao dịch tại thời điểm đã chọn',
+      { params: { t } },
+    );
+  } catch {
+    const entries = await getPaymentTimeline(paymentId);
+    const point = new Date(t).getTime();
+    return entries
+      .filter((entry) => new Date(entry.createdAt).getTime() <= point)
+      .reduce<Record<string, unknown>>((state, entry) => ({
+        ...state,
+        ...(entry.payload ?? {}),
+        action: entry.action,
+        updatedAt: entry.createdAt,
+      }), {});
+  }
 }
 
 /**
@@ -248,28 +305,18 @@ export async function getPaymentStateAt(
  * Shows the full business flow: ORDER_CREATED → PAYMENT_INITIATED → PAYMENT_COMPLETED, etc.
  */
 export async function traceByCorrelationId(correlationId: string): Promise<AuditLogEntry[]> {
-  const traceUrls = [
-    `${AUDIT_ORDER_BASE}/trace/${correlationId}`,
-    `${AUDIT_PAYMENT_BASE}/trace/${correlationId}`,
-  ];
-
-  const results = await Promise.allSettled(
-    traceUrls.map((url) => axiosClient.get<AuditApiResponse<AuditLogEntry[]>>(url)),
+  const { data } = await axiosClient.get<ApiResponse<AuditLogRecord[]>>(
+    `${AUDIT_API_BASE}/trace/${correlationId}`,
   );
 
-  const entries = results.flatMap((result) => {
-    if (result.status !== 'fulfilled') return [];
-    const payload = result.value.data;
-    return payload.success && payload.data ? payload.data : [];
-  });
-
-  if (entries.length === 0) {
-    const firstFailure = results.find((result) => result.status === 'rejected');
-    if (firstFailure?.status === 'rejected') {
-      throw new Error(firstFailure.reason?.response?.data?.message ?? 'Unable to load trace log');
-    }
-    throw new Error('No trace events found');
+  if (data.code !== 1000 || !data.result) {
+    throw new Error(data.message || 'Không tìm thấy dữ liệu cho mã này');
   }
 
-  return entries.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const traceEntries = data.result.map(toAuditLogEntry);
+  if (traceEntries.length === 0) {
+    throw new Error('Không tìm thấy dữ liệu cho mã này');
+  }
+
+  return traceEntries.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
