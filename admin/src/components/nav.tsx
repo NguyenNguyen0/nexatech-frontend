@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconChevronDown } from '@tabler/icons-react'
 import { Button, buttonVariants } from './custom/button'
@@ -23,6 +24,13 @@ import {
 import { cn } from '@/lib/utils'
 import useCheckActiveNav from '@/hooks/use-check-active-nav'
 import { SideLink } from '@/data/sidelinks'
+import { fetchConversations } from '@/pages/admin/chats/chat-api'
+
+const CHAT_ROUTE = '/admin/chats'
+const CHAT_UNREAD_CHANGED_EVENT = 'admin-chat-unread-changed'
+const CHAT_UNREAD_POLL_INTERVAL_MS = 15000
+
+type ChatUnreadChangedEvent = CustomEvent<{ hasUnread: boolean }>
 
 interface NavProps extends React.HTMLAttributes<HTMLDivElement> {
   isCollapsed: boolean
@@ -36,8 +44,12 @@ export default function Nav({
   className,
   closeNav,
 }: NavProps) {
+  const hasUnreadChat = useChatUnreadBadge()
+
   const renderLink = ({ sub, ...rest }: SideLink) => {
     const key = `${rest.title}-${rest.href}`
+    const hasUnreadBadge = rest.href === CHAT_ROUTE && hasUnreadChat
+
     if (isCollapsed && sub)
       return (
         <NavLinkIconDropdown
@@ -45,18 +57,19 @@ export default function Nav({
           sub={sub}
           key={key}
           closeNav={closeNav}
+          hasUnreadBadge={hasUnreadBadge}
         />
       )
 
     if (isCollapsed)
-      return <NavLinkIcon {...rest} key={key} closeNav={closeNav} />
+      return <NavLinkIcon {...rest} key={key} closeNav={closeNav} hasUnreadBadge={hasUnreadBadge} />
 
     if (sub)
       return (
-        <NavLinkDropdown {...rest} sub={sub} key={key} closeNav={closeNav} />
+        <NavLinkDropdown {...rest} sub={sub} key={key} closeNav={closeNav} hasUnreadBadge={hasUnreadBadge} />
       )
 
-    return <NavLink {...rest} key={key} closeNav={closeNav} />
+    return <NavLink {...rest} key={key} closeNav={closeNav} hasUnreadBadge={hasUnreadBadge} />
   }
   return (
     <div
@@ -78,6 +91,7 @@ export default function Nav({
 interface NavLinkProps extends SideLink {
   subLink?: boolean
   closeNav: () => void
+  hasUnreadBadge?: boolean
 }
 
 function NavLink({
@@ -86,6 +100,7 @@ function NavLink({
   label,
   href,
   closeNav,
+  hasUnreadBadge = false,
   subLink = false,
 }: NavLinkProps) {
   const { checkActiveNav } = useCheckActiveNav()
@@ -104,7 +119,8 @@ function NavLink({
       aria-current={checkActiveNav(href) ? 'page' : undefined}
     >
       <div className='mr-2'>{icon}</div>
-      {title}
+      <span className='truncate'>{title}</span>
+      {hasUnreadBadge && <ChatUnreadDot className='ml-auto' />}
       {label && (
         <div className='ml-2 rounded-lg bg-primary px-1 text-[0.625rem] text-primary-foreground'>
           {label}
@@ -114,7 +130,7 @@ function NavLink({
   )
 }
 
-function NavLinkDropdown({ title, icon, label, sub, closeNav }: NavLinkProps) {
+function NavLinkDropdown({ title, icon, label, sub, closeNav, hasUnreadBadge = false }: NavLinkProps) {
   const { checkActiveNav } = useCheckActiveNav()
 
   /* Open collapsible by default
@@ -131,6 +147,7 @@ function NavLinkDropdown({ title, icon, label, sub, closeNav }: NavLinkProps) {
       >
         <div className='mr-2'>{icon}</div>
         {title}
+        {hasUnreadBadge && <ChatUnreadDot className='ml-auto' />}
         {label && (
           <div className='ml-2 rounded-lg bg-primary px-1 text-[0.625rem] text-primary-foreground'>
             {label}
@@ -138,7 +155,7 @@ function NavLinkDropdown({ title, icon, label, sub, closeNav }: NavLinkProps) {
         )}
         <span
           className={cn(
-            'ml-auto transition-all group-data-[state="open"]:-rotate-180'
+            hasUnreadBadge ? 'ml-2 transition-all group-data-[state="open"]:-rotate-180' : 'ml-auto transition-all group-data-[state="open"]:-rotate-180'
           )}
         >
           <IconChevronDown stroke={1} />
@@ -157,7 +174,7 @@ function NavLinkDropdown({ title, icon, label, sub, closeNav }: NavLinkProps) {
   )
 }
 
-function NavLinkIcon({ title, icon, label, href }: NavLinkProps) {
+function NavLinkIcon({ title, icon, label, href, hasUnreadBadge = false }: NavLinkProps) {
   const { checkActiveNav } = useCheckActiveNav()
   return (
     <Tooltip delayDuration={0}>
@@ -172,12 +189,16 @@ function NavLinkIcon({ title, icon, label, href }: NavLinkProps) {
             'h-12 w-12'
           )}
         >
-          {icon}
+          <span className='relative'>
+            {icon}
+            {hasUnreadBadge && <ChatUnreadDot />}
+          </span>
           <span className='sr-only'>{title}</span>
         </Link>
       </TooltipTrigger>
       <TooltipContent side='right' className='flex items-center gap-4'>
         {title}
+        {hasUnreadBadge && <ChatUnreadDot />}
         {label && (
           <span className='ml-auto text-muted-foreground'>{label}</span>
         )}
@@ -186,7 +207,7 @@ function NavLinkIcon({ title, icon, label, href }: NavLinkProps) {
   )
 }
 
-function NavLinkIconDropdown({ title, icon, label, sub }: NavLinkProps) {
+function NavLinkIconDropdown({ title, icon, label, sub, hasUnreadBadge = false }: NavLinkProps) {
   const { checkActiveNav } = useCheckActiveNav()
 
   /* Open collapsible by default
@@ -203,12 +224,16 @@ function NavLinkIconDropdown({ title, icon, label, sub }: NavLinkProps) {
               size='icon'
               className='h-12 w-12'
             >
-              {icon}
+              <span className='relative'>
+                {icon}
+                {hasUnreadBadge && <ChatUnreadDot />}
+              </span>
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
         <TooltipContent side='right' className='flex items-center gap-4'>
           {title}{' '}
+          {hasUnreadBadge && <ChatUnreadDot />}
           {label && (
             <span className='ml-auto text-muted-foreground'>{label}</span>
           )}
@@ -236,5 +261,55 @@ function NavLinkIconDropdown({ title, icon, label, sub }: NavLinkProps) {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+function useChatUnreadBadge(): boolean {
+  const [hasUnreadChat, setHasUnreadChat] = useState(false)
+
+  const refresh = useCallback(async () => {
+    try {
+      const page = await fetchConversations(0, 100)
+      setHasUnreadChat(page.content.some((conversation) => (conversation.unreadCount ?? 0) > 0))
+    } catch {
+      // Keep the last known badge state if chat-service is temporarily unavailable.
+    }
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh()
+    }, CHAT_UNREAD_POLL_INTERVAL_MS)
+
+    const handleUnreadChanged = (event: Event) => {
+      const unreadEvent = event as ChatUnreadChangedEvent
+      setHasUnreadChat(Boolean(unreadEvent.detail?.hasUnread))
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refresh()
+    }
+
+    window.addEventListener(CHAT_UNREAD_CHANGED_EVENT, handleUnreadChanged)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener(CHAT_UNREAD_CHANGED_EVENT, handleUnreadChanged)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [refresh])
+
+  return hasUnreadChat
+}
+
+function ChatUnreadDot({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden='true'
+      className={cn('block size-2 rounded-full bg-red-500 ring-2 ring-background', className ?? 'absolute -right-1 -top-1')}
+    />
   )
 }
