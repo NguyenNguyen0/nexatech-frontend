@@ -1,3 +1,4 @@
+import axios from "axios";
 import axiosClient from "@/lib/axiosClient";
 import {
     getAccessToken,
@@ -89,6 +90,13 @@ export type CursorPageResponse<T> = {
 };
 
 const CHAT_BASE = "/api/v1/conversations";
+
+export function isChatServiceUnavailable(error: unknown): boolean {
+    if (!axios.isAxiosError(error)) return false;
+
+    const status = error.response?.status;
+    return !status || status === 404 || status >= 500 || error.code === "ECONNABORTED";
+}
 
 function adminChatHeaders(): Record<string, string> {
     const token = getAccessToken();

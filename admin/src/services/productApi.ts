@@ -42,6 +42,31 @@ export async function listProducts(params: ProductListParams = {}): Promise<Prod
   return unwrapApiEnvelope(data, 'Failed to fetch products')
 }
 
+export async function searchProducts(params: ProductListParams & { keyword: string }): Promise<ProductPageResponse> {
+  const queryParams = buildQueryParams({
+    keyword: params.keyword,
+    categoryId: params.categoryId,
+    categorySlug: params.categorySlug,
+    brandId: params.brandId,
+    minPrice: params.minPrice,
+    maxPrice: params.maxPrice,
+    minRating: params.minRating,
+    maxRating: params.maxRating,
+    page: params.page,
+    size: params.size,
+    sort: params.sort,
+    ...Object.fromEntries(
+      Object.entries(params.specs ?? {}).map(([key, value]) => [`specs.${key}`, value])
+    ),
+  })
+
+  const { data } = await axiosClient.get<ApiEnvelope<ProductPageResponse>>(`${PRODUCTS_BASE}/search`, {
+    params: queryParams,
+  })
+
+  return unwrapApiEnvelope(data, 'Failed to search products')
+}
+
 export async function getProductById(productId: string): Promise<ProductItem> {
   const { data } = await axiosClient.get<ApiEnvelope<ProductItem>>(`${PRODUCTS_BASE}/${productId}`)
   return unwrapApiEnvelope(data, 'Failed to fetch product details')
