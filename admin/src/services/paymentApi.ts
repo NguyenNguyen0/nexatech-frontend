@@ -1,4 +1,5 @@
 import axiosClient from '@/lib/axiosClient'
+import type { PageResponse } from '@/types/api-envelope'
 
 export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED'
 
@@ -29,6 +30,13 @@ export interface PaymentResponse {
   completedAt?: string
 }
 
+export interface AdminPaymentListParams {
+  status?: PaymentStatus
+  page?: number
+  size?: number
+  sort?: string
+}
+
 export async function getPaymentById(paymentId: string): Promise<PaymentResponse> {
   const { data } = await axiosClient.get<PaymentApiResponse<PaymentResponse>>(
     `/api/v1/payments/${paymentId}`,
@@ -42,6 +50,17 @@ export async function getPaymentByOrderId(orderId: string): Promise<PaymentRespo
     `/api/v1/payments/order/${orderId}`,
   )
   if (!data.success || !data.data) throw new Error(data.message ?? 'Payment not found')
+  return data.data
+}
+
+export async function adminGetAllPayments(
+  params?: AdminPaymentListParams,
+): Promise<PageResponse<PaymentResponse>> {
+  const { data } = await axiosClient.get<PaymentApiResponse<PageResponse<PaymentResponse>>>(
+    '/api/v1/admin/payments',
+    { params },
+  )
+  if (!data.success || !data.data) throw new Error(data.message ?? 'Unable to load payments')
   return data.data
 }
 

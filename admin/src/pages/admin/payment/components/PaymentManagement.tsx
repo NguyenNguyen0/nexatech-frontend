@@ -51,10 +51,9 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/components/ui/use-toast'
-import { adminGetAllOrders, type OrderResponse } from '@/services/orderApi'
 import {
+  adminGetAllPayments,
   adminRefundPayment,
-  getOptionalPaymentByOrderId,
   type PaymentResponse,
   type PaymentStatus,
 } from '@/services/paymentApi'
@@ -76,12 +75,11 @@ const formatCurrency = (value: number) =>
 const formatDate = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'
 
-const customerLabel = (order?: OrderResponse) =>
-  order?.guestName || order?.guestEmail || order?.guestPhone || order?.customerId || 'Guest customer'
+const customerLabel = (payment?: PaymentResponse) =>
+  payment?.customerId || 'Khách vãng lai'
 
 type PaymentRow = {
   payment: PaymentResponse
-  order: OrderResponse
 }
 
 function PaymentDetailDialog({
@@ -99,7 +97,7 @@ function PaymentDetailDialog({
 
   if (!row) return null
 
-  const { payment, order } = row
+  const { payment } = row
 
   const handleRefund = async () => {
     setRefunding(true)
@@ -151,11 +149,11 @@ function PaymentDetailDialog({
                 </div>
                 <div>
                   <p className='text-muted-foreground'>Order</p>
-                  <p className='font-mono text-xs'>{order.orderNumber}</p>
+                  <p className='break-all font-mono text-xs'>{payment.orderId}</p>
                 </div>
                 <div>
                   <p className='text-muted-foreground'>Customer</p>
-                  <p>{customerLabel(order)}</p>
+                  <p>{customerLabel(payment)}</p>
                 </div>
                 <div>
                   <p className='text-muted-foreground'>Method</p>
@@ -183,10 +181,6 @@ function PaymentDetailDialog({
                     <p className='text-red-600'>{payment.failureReason}</p>
                   </div>
                 )}
-                <div className='md:col-span-2'>
-                  <p className='text-muted-foreground'>Shipping address</p>
-                  <p>{order.shippingAddress || '-'}</p>
-                </div>
               </CardContent>
             </Card>
 
@@ -230,7 +224,7 @@ export function PaymentManagement() {
   const [rows, setRows] = useState<PaymentRow[]>([])
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(0)
-  const [totalOrderPages, setTotalOrderPages] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'ALL'>('ALL')
   const [search, setSearch] = useState('')
   const [selectedRow, setSelectedRow] = useState<PaymentRow | null>(null)
@@ -238,26 +232,15 @@ export function PaymentManagement() {
   const fetchPayments = useCallback(async () => {
     setLoading(true)
     try {
-      const orderPage = await adminGetAllOrders({
+      const paymentPage = await adminGetAllPayments({
         page,
         size: PAGE_SIZE,
         sort: 'createdAt,desc',
+        ...(statusFilter !== 'ALL' ? { status: statusFilter } : {}),
       })
 
-      setTotalOrderPages(orderPage.totalPages)
-
-      const entries = await Promise.allSettled(
-        orderPage.content.map(async (order) => {
-          const payment = await getOptionalPaymentByOrderId(order.id).catch(() => null)
-          return payment ? ({ payment, order } satisfies PaymentRow) : null
-        }),
-      )
-
-      setRows(
-        entries
-          .map((entry) => (entry.status === 'fulfilled' ? entry.value : null))
-          .filter((entry): entry is PaymentRow => Boolean(entry)),
-      )
+      setTotalPages(paymentPage.totalPages)
+      setRows(paymentPage.content.map((payment) => ({ payment })))
     } catch (error: unknown) {
       toast({
         title: 'Unable to load payments',
@@ -267,7 +250,7 @@ export function PaymentManagement() {
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, statusFilter])
 
   useEffect(() => {
     fetchPayments()
@@ -289,18 +272,13 @@ export function PaymentManagement() {
 
   const filteredRows = useMemo(() => {
     const keyword = search.trim().toLowerCase()
-    return rows.filter(({ payment, order }) => {
-      if (statusFilter !== 'ALL' && payment.status !== statusFilter) return false
+    return rows.filter(({ payment }) => {
       if (!keyword) return true
       return [
         payment.id,
         payment.orderId,
         payment.customerId,
         payment.transactionId,
-        order.orderNumber,
-        order.guestName,
-        order.guestEmail,
-        order.guestPhone,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
@@ -316,7 +294,7 @@ export function PaymentManagement() {
         <div>
           <h2 className='text-xl font-semibold'>Payment Management</h2>
           <p className='text-sm text-muted-foreground'>
-            Payments are resolved from orders via /api/v1/payments/order/:orderId.
+            Danh sách giao dịch được lấy trực tiếp từ hệ thống thanh toán.
           </p>
         </div>
         <Button variant='outline' size='sm' onClick={fetchPayments} disabled={loading}>
@@ -408,12 +386,12 @@ export function PaymentManagement() {
                 >
                   <TableCell className='font-mono text-xs'>{row.payment.id.slice(0, 8)}...</TableCell>
                   <TableCell>
-                    <div className='font-mono text-xs font-medium'>{row.order.orderNumber}</div>
+                    <div className='font-mono text-xs font-medium'>{row.payment.orderId.slice(0, 8)}...</div>
                     <div className='text-xs text-muted-foreground'>{row.payment.orderId.slice(0, 8)}...</div>
                   </TableCell>
                   <TableCell>
-                    <div className='max-w-52 truncate font-medium'>{customerLabel(row.order)}</div>
-                    <div className='max-w-52 truncate text-xs text-muted-foreground'>{row.order.guestPhone || row.payment.customerId || 'guest'}</div>
+                    <div className='max-w-52 truncate font-medium'>{customerLabel(row.payment)}</div>
+                    <div className='max-w-52 truncate text-xs text-muted-foreground'>{row.payment.customerId || 'guest'}</div>
                   </TableCell>
                   <TableCell>
                     <Badge className={STATUS_COLORS[row.payment.status]}>{row.payment.status}</Badge>
@@ -448,16 +426,16 @@ export function PaymentManagement() {
         </Table>
       </div>
 
-      {totalOrderPages > 1 && (
+      {totalPages > 1 && (
         <div className='flex items-center justify-between'>
           <span className='text-sm text-muted-foreground'>
-            Order page {page + 1} / {totalOrderPages}
+            Page {page + 1} / {totalPages}
           </span>
           <div className='flex gap-1'>
             <Button variant='outline' size='icon' disabled={page === 0} onClick={() => setPage((value) => value - 1)}>
               <ChevronLeft className='h-4 w-4' />
             </Button>
-            <Button variant='outline' size='icon' disabled={page >= totalOrderPages - 1} onClick={() => setPage((value) => value + 1)}>
+            <Button variant='outline' size='icon' disabled={page >= totalPages - 1} onClick={() => setPage((value) => value + 1)}>
               <ChevronRight className='h-4 w-4' />
             </Button>
           </div>
