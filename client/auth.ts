@@ -76,10 +76,15 @@ function pickTokens(bundle: TokenBundle | undefined) {
 }
 
 type ApiEnvelope<T> = {
-  code: number;
+  code?: number;
+  success?: boolean;
   message?: string | null;
   result?: T;
+  data?: T;
 };
+
+const CUSTOMER_ROLE = 'CUSTOMER';
+const NON_CUSTOMER_ROLES = new Set(['ADMIN', 'MANAGER', 'STAFF', 'WAREHOUSE', 'ACCOUNTANT']);
 
 async function readApiEnvelope<T>(res: Response): Promise<ApiEnvelope<T> | null> {
   const raw = await res.text();
@@ -98,11 +103,48 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     if (!payload) return null;
     const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
-    const json = atob(padded);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const json = new TextDecoder('utf-8').decode(bytes);
     return JSON.parse(json) as Record<string, unknown>;
   } catch {
     return null;
   }
+}
+
+function getTokenBundle<T>(envelope: ApiEnvelope<T> | null): T | undefined {
+  return envelope?.result ?? envelope?.data;
+}
+
+function isSuccessEnvelope(envelope: ApiEnvelope<unknown> | null): boolean {
+  return envelope?.code === 1000 || envelope?.success === true;
+}
+
+function extractRolesFromClaims(claims: Record<string, unknown> | null): string[] {
+  if (!claims) return [];
+
+  const roles = new Set<string>();
+  const addRoles = (value: unknown) => {
+    if (!Array.isArray(value)) return;
+    value.forEach((role) => {
+      if (typeof role === 'string') roles.add(role.toUpperCase());
+    });
+  };
+
+  addRoles((claims.realm_access as { roles?: unknown } | undefined)?.roles);
+
+  const resourceAccess = claims.resource_access as Record<string, { roles?: unknown }> | undefined;
+  if (resourceAccess && typeof resourceAccess === 'object') {
+    Object.values(resourceAccess).forEach((resource) => addRoles(resource?.roles));
+  }
+
+  return [...roles];
+}
+
+function canUseCustomerFrontend(claims: Record<string, unknown> | null): boolean {
+  const roles = extractRolesFromClaims(claims);
+  if (roles.includes(CUSTOMER_ROLE)) return true;
+  return !roles.some((role) => NON_CUSTOMER_ROLES.has(role));
 }
 
 type GoogleSocialProfile = {
@@ -138,11 +180,12 @@ async function exchangeGoogleEmailForTokens(
   if (data?.code === ACCOUNT_DISABLED_CODE) {
     return { ok: false, reason: 'disabled' };
   }
-  const tokens = pickTokens(data?.result);
-  if (!res.ok || data?.code !== 1000 || !tokens) {
+  const tokens = pickTokens(getTokenBundle(data));
+  if (!res.ok || !isSuccessEnvelope(data) || !tokens) {
     return { ok: false, reason: 'failed' };
   }
-  const new_user = data.result?.new_user ?? data.result?.newUser;
+  const payload = getTokenBundle(data);
+  const new_user = payload?.new_user ?? payload?.newUser;
   return { ok: true, ...tokens, new_user: new_user === true };
 }
 
@@ -162,8 +205,8 @@ async function refreshAccessToken(
   if (data?.code === ACCOUNT_DISABLED_CODE) {
     return 'ACCOUNT_DISABLED';
   }
-  const tokens = pickTokens(data?.result);
-  if (!res.ok || data?.code !== 1000 || !tokens) {
+  const tokens = pickTokens(getTokenBundle(data));
+  if (!res.ok || !isSuccessEnvelope(data) || !tokens) {
     return null;
   }
   return tokens;
@@ -205,8 +248,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (data?.code === ACCOUNT_DISABLED_CODE) {
           throw new AccountDisabledError();
         }
-        const tokens = pickTokens(data?.result);
-        if (!res.ok || data?.code !== 1000 || !tokens) {
+        const tokens = pickTokens(getTokenBundle(data));
+        if (!res.ok || !isSuccessEnvelope(data) || !tokens) {
           return null;
         }
 
@@ -216,10 +259,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const name = (claims?.name as string) ?? (claims?.preferred_username as string) ?? identifier;
         const email = (claims?.email as string) ?? undefined;
 
-        const realmRoles = ((claims?.realm_access as { roles?: string[] })?.roles ?? []).map(
-          (r: string) => r.toUpperCase(),
-        );
-        if (!realmRoles.includes('CUSTOMER')) {
+        if (!canUseCustomerFrontend(claims)) {
           throw new AccessDeniedError();
         }
 
@@ -278,10 +318,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
         const claims = decodeJwtPayload(access_token);
         const sub = (claims?.sub as string) ?? user.id;
-        const realmRoles = ((claims?.realm_access as { roles?: string[] })?.roles ?? []).map(
-          (r: string) => r.toUpperCase(),
-        );
-        if (!realmRoles.includes('CUSTOMER')) {
+        if (!canUseCustomerFrontend(claims)) {
           return { ...token, error: 'RefreshTokenError' as const };
         }
 
