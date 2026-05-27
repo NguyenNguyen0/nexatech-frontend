@@ -9,6 +9,13 @@ import type {
 
 const PROMOTION_API_BASE = '/api/v1/promotions';
 const FLASH_SALE_API_BASE = '/api/v1/flash-sales';
+const PENDING_FLASH_SALE_SALES_KEY = 'nexatech_pending_flash_sale_sales';
+
+export interface FlashSaleSoldItem {
+  flashSaleId?: string;
+  productId: string;
+  quantity: number;
+}
 
 async function promotionFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const res = await fetch(input, { ...init, cache: 'no-store' });
@@ -64,22 +71,65 @@ export async function validateCoupon(
   });
 }
 
-/**
- * Notify the promotion service that `quantity` units of a flash sale product
- * have been sold. Fires-and-forgets — errors are silently swallowed so they
- * never block the checkout success flow.
- */
 export async function notifyFlashSaleSold(
   productId: string,
   quantity: number,
+  flashSaleId?: string,
 ): Promise<void> {
   try {
-    await fetch(`${FLASH_SALE_API_BASE}/by-product/${productId}/sell`, {
+    const target = flashSaleId
+      ? `${FLASH_SALE_API_BASE}/${flashSaleId}/sell`
+      : `${FLASH_SALE_API_BASE}/by-product/${productId}/sell`;
+
+    const res = await fetch(target, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quantity }),
     });
+
+    if (!res.ok && flashSaleId) {
+      await fetch(`${FLASH_SALE_API_BASE}/by-product/${productId}/sell`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity }),
+      });
+    }
   } catch {
-    // intentionally silenced — stock decrement is best-effort
+    // Stock decrement is best-effort and must not block checkout completion.
   }
+}
+
+function readPendingSales(): Record<string, FlashSaleSoldItem[]> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(PENDING_FLASH_SALE_SALES_KEY);
+    return raw ? JSON.parse(raw) as Record<string, FlashSaleSoldItem[]> : {};
+  } catch {
+    return {};
+  }
+}
+
+function writePendingSales(data: Record<string, FlashSaleSoldItem[]>) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PENDING_FLASH_SALE_SALES_KEY, JSON.stringify(data));
+}
+
+export function rememberPendingFlashSaleSales(orderId: string, items: FlashSaleSoldItem[]) {
+  if (!items.length) return;
+  const pending = readPendingSales();
+  pending[orderId] = items;
+  writePendingSales(pending);
+}
+
+export async function confirmPendingFlashSaleSales(orderId: string): Promise<void> {
+  const pending = readPendingSales();
+  const items = pending[orderId] ?? [];
+  if (!items.length) return;
+
+  await Promise.allSettled(
+    items.map((item) => notifyFlashSaleSold(item.productId, item.quantity, item.flashSaleId)),
+  );
+
+  delete pending[orderId];
+  writePendingSales(pending);
 }

@@ -425,9 +425,9 @@ export function AuditTrace() {
 
             <TabsContent value="flow" className="mt-4 space-y-3">
               <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
-                Use the business flow ID from an order or payment event to see the related steps across services.
+                Search by business flow ID, order ID, payment ID, or order number to see related steps across services.
               </div>
-              <SearchBar label="Business flow ID" placeholder="Paste the flow ID from an order or payment event" value={flowId} onChange={setFlowId} onSearch={() => void loadFlow()} loading={flowLoading} />
+              <SearchBar label="Flow, order, or payment ID" placeholder="Paste an order ID, payment ID, order number, or flow ID" value={flowId} onChange={setFlowId} onSearch={() => void loadFlow()} loading={flowLoading} />
               {flowTimeline.length > 0 && (
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span>{flowTimeline.length} recorded events</span>
