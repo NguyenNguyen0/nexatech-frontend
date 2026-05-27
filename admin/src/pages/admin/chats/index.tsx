@@ -38,6 +38,7 @@ import {
 const CONVERSATION_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 30;
 const REALTIME_FALLBACK_INTERVAL_MS = 15000;
+const CHAT_UNREAD_CHANGED_EVENT = "admin-chat-unread-changed";
 
 type ReadFilter = "all" | "unread" | "read";
 
@@ -184,6 +185,11 @@ export default function Chats() {
         );
     }, [conversations, dateFilter, readFilter, search]);
 
+    const hasUnreadConversation = useMemo(
+        () => conversations.some(isConversationUnread),
+        [conversations],
+    );
+
     useEffect(() => {
         selectedConversationIdRef.current = selectedConversation?.id ?? null;
     }, [selectedConversation?.id]);
@@ -191,6 +197,14 @@ export default function Chats() {
     useEffect(() => {
         adminUserIdRef.current = adminUserId;
     }, [adminUserId]);
+
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent(CHAT_UNREAD_CHANGED_EVENT, {
+                detail: { hasUnread: hasUnreadConversation },
+            }),
+        );
+    }, [hasUnreadConversation]);
 
     const normalizeConversationReadState = useCallback((conversation: Conversation): Conversation => {
         const activeConversationId = selectedConversationIdRef.current;
