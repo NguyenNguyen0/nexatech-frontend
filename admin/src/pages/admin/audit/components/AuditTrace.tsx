@@ -1,28 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import {
-  Activity,
-  AlertCircle,
-  Clock,
-  CreditCard,
-  Database,
-  GitBranch,
-  PackageCheck,
-  RefreshCw,
-  Search,
-} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { Activity, AlertCircle, Clock, CreditCard, Database, GitBranch, PackageCheck, RefreshCw, Search } from 'lucide-react'
 
-import { Button } from '@/components/custom/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/use-toast';
-
+import { Button } from '@/components/custom/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { toast } from '@/components/ui/use-toast'
 import {
   getOrderStateAt,
   getOrderTimeline,
@@ -30,82 +19,10 @@ import {
   getPaymentTimeline,
   traceByCorrelationId,
   type AuditLogEntry,
-} from '@/services/auditApi';
+} from '@/services/auditApi'
 
-type TraceTab = 'order' | 'payment' | 'flow' | 'order-time' | 'payment-time';
-type StateKind = 'order' | 'payment';
-
-const formatDateTime = (iso: string) => {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'medium' });
-};
-
-const formatValue = (value: unknown): string => {
-  if (value === null || value === undefined || value === '') return 'Chưa có';
-  if (typeof value === 'number') return value.toLocaleString('vi-VN');
-  if (typeof value === 'boolean') return value ? 'Có' : 'Không';
-  if (typeof value === 'string') {
-    const parsedDate = new Date(value);
-    if (!Number.isNaN(parsedDate.getTime()) && value.includes('T')) {
-      return formatDateTime(value);
-    }
-    return value;
-  }
-  return JSON.stringify(value);
-};
-
-const actionLabels: Record<string, string> = {
-  ORDER_CREATED: 'Tạo đơn hàng',
-  ORDER_STATUS_CHANGED: 'Cập nhật đơn hàng',
-  ORDER_CANCELLED: 'Hủy đơn hàng',
-  ORDER_CONFIRMED_RECEIVED: 'Đơn hàng đã xác nhận',
-  PAYMENT_CREATED: 'Tạo thanh toán',
-  PAYMENT_INITIATED: 'Bắt đầu thanh toán',
-  PAYMENT_CONFIRMED: 'Thanh toán thành công',
-  PAYMENT_CONFIRMED_COD: 'Xác nhận COD',
-  PAYMENT_COMPLETED: 'Thanh toán hoàn tất',
-  PAYMENT_COMPLETED_RECEIVED: 'Đơn hàng nhận thanh toán',
-  PAYMENT_REFUNDED: 'Hoàn tiền',
-  PAYMENT_REFUNDED_RECEIVED: 'Đơn hàng nhận hoàn tiền',
-  PAYMENT_FAILED: 'Thanh toán thất bại',
-  SHIPMENT_CREATED_RECEIVED: 'Đã tạo vận chuyển',
-  SHIPMENT_DELIVERED_RECEIVED: 'Giao hàng thành công',
-  RETURN_REQUESTED: 'Yêu cầu trả hàng',
-  RETURN_APPROVED: 'Duyệt trả hàng',
-  RETURN_REJECTED: 'Từ chối trả hàng',
-};
-
-const statusLabels: Record<string, string> = {
-  PENDING: 'Đang chờ',
-  PROCESSING: 'Đang xử lý',
-  COMPLETED: 'Đã thanh toán',
-  FAILED: 'Thất bại',
-  REFUNDED: 'Đã hoàn tiền',
-  CONFIRMED: 'Đã xác nhận',
-  CANCELLED: 'Đã hủy',
-  RETURNED: 'Đã trả hàng',
-  DELIVERED: 'Đã giao',
-};
-
-const actionTone = (action: string) => {
-  if (action.includes('FAILED') || action.includes('CANCELLED') || action.includes('REJECTED')) {
-    return 'bg-red-50 text-red-700 border-red-200';
-  }
-  if (action.includes('REFUND') || action.includes('RETURN')) {
-    return 'bg-amber-50 text-amber-700 border-amber-200';
-  }
-  if (action.includes('PAYMENT')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (action.includes('SHIPMENT')) return 'bg-sky-50 text-sky-700 border-sky-200';
-  return 'bg-blue-50 text-blue-700 border-blue-200';
-};
-
-const displayAction = (action: string) => actionLabels[action] ?? action.replaceAll('_', ' ').toLowerCase();
-
-const displayPayloadValue = (value: unknown) => {
-  const text = formatValue(value);
-  return statusLabels[text] ?? text;
-};
+type TraceTab = 'order' | 'payment' | 'flow' | 'order-time' | 'payment-time'
+type StateKind = 'order' | 'payment'
 
 const importantKeys = [
   'orderId',
@@ -122,35 +39,81 @@ const importantKeys = [
   'transactionId',
   'reason',
   'triggeredBy',
-];
+]
+
+const actionLabels: Record<string, string> = {
+  ORDER_CREATED: 'Order created',
+  ORDER_STATUS_CHANGED: 'Order status updated',
+  ORDER_CANCELLED: 'Order cancelled',
+  ORDER_CONFIRMED_RECEIVED: 'Customer receipt confirmed',
+  PAYMENT_CREATED: 'Payment created',
+  PAYMENT_INITIATED: 'Payment started',
+  PAYMENT_CONFIRMED: 'Payment confirmed',
+  PAYMENT_CONFIRMED_COD: 'COD payment confirmed',
+  PAYMENT_COMPLETED: 'Payment completed',
+  PAYMENT_COMPLETED_RECEIVED: 'Order received payment',
+  PAYMENT_REFUNDED: 'Payment refunded',
+  PAYMENT_REFUNDED_RECEIVED: 'Order received refund',
+  PAYMENT_FAILED: 'Payment failed',
+  SHIPMENT_CREATED_RECEIVED: 'Shipment created',
+  SHIPMENT_DELIVERED_RECEIVED: 'Shipment delivered',
+  RETURN_REQUESTED: 'Return requested',
+  RETURN_APPROVED: 'Return approved',
+  RETURN_REJECTED: 'Return rejected',
+}
 
 const fieldLabels: Record<string, string> = {
-  orderId: 'Mã đơn hàng',
-  paymentId: 'Mã thanh toán',
-  customerId: 'Khách hàng',
-  orderNumber: 'Số đơn',
-  amount: 'Số tiền',
-  totalAmount: 'Tổng tiền',
-  refundAmount: 'Số tiền hoàn',
-  method: 'Phương thức',
-  status: 'Trạng thái',
-  previousStatus: 'Trước đó',
-  newStatus: 'Sau cập nhật',
-  transactionId: 'Mã giao dịch',
-  reason: 'Lý do',
-  triggeredBy: 'Nguồn cập nhật',
-  createdAt: 'Tạo lúc',
-  completedAt: 'Hoàn tất lúc',
-};
+  orderId: 'Order ID',
+  paymentId: 'Payment ID',
+  customerId: 'Customer',
+  orderNumber: 'Order number',
+  amount: 'Amount',
+  totalAmount: 'Total',
+  refundAmount: 'Refund amount',
+  method: 'Method',
+  status: 'Status',
+  previousStatus: 'Previous status',
+  newStatus: 'New status',
+  transactionId: 'Transaction ID',
+  reason: 'Reason',
+  triggeredBy: 'Updated by',
+  createdAt: 'Created at',
+  completedAt: 'Completed at',
+}
+
+const formatDateTime = (iso: string) => {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+const formatValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === '') return 'Not recorded'
+  if (typeof value === 'number') return value.toLocaleString('en-US')
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No'
+  if (typeof value === 'string') {
+    const parsedDate = new Date(value)
+    if (!Number.isNaN(parsedDate.getTime()) && value.includes('T')) return formatDateTime(value)
+    return value.replaceAll('_', ' ')
+  }
+  return JSON.stringify(value)
+}
+
+const displayAction = (action: string) => actionLabels[action] ?? action.replaceAll('_', ' ').toLowerCase()
+
+const actionTone = (action: string) => {
+  if (action.includes('FAILED') || action.includes('CANCELLED') || action.includes('REJECTED')) return 'bg-red-50 text-red-700 border-red-200'
+  if (action.includes('REFUND') || action.includes('RETURN')) return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (action.includes('PAYMENT')) return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (action.includes('SHIPMENT')) return 'bg-sky-50 text-sky-700 border-sky-200'
+  return 'bg-blue-50 text-blue-700 border-blue-200'
+}
 
 function getPayloadRows(entry: AuditLogEntry) {
-  const payload = entry.payload ?? {};
+  const payload = entry.payload ?? {}
   return importantKeys
     .filter((key) => payload[key] !== undefined && payload[key] !== null && payload[key] !== '')
-    .map((key) => ({
-      label: fieldLabels[key] ?? key,
-      value: displayPayloadValue(payload[key]),
-    }));
+    .map((key) => ({ label: fieldLabels[key] ?? key, value: formatValue(payload[key]) }))
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -159,47 +122,35 @@ function EmptyState({ message }: { message: string }) {
       <AlertCircle className="mb-3 h-8 w-8 text-muted-foreground" />
       <p className="text-sm font-medium">{message}</p>
       <p className="mt-1 max-w-md text-xs text-muted-foreground">
-        Nhập mã cần tra cứu rồi bấm tìm kiếm. Nếu chưa có sự kiện, hệ thống sẽ báo rõ thay vì hiển thị lỗi kỹ thuật.
+        Enter an ID and search. If no event has been recorded yet, this page shows a clear empty state instead of a technical error.
       </p>
     </div>
-  );
+  )
 }
 
-function TimelineView({
-  entries,
-  loading,
-  emptyMessage,
-}: {
-  entries: AuditLogEntry[];
-  loading: boolean;
-  emptyMessage: string;
-}) {
+function TimelineView({ entries, loading, emptyMessage }: { entries: AuditLogEntry[]; loading: boolean; emptyMessage: string }) {
   if (loading) {
     return (
       <div className="mt-4 space-y-3">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton key={index} className="h-24 w-full" />
-        ))}
+        {Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-24 w-full" />)}
       </div>
-    );
+    )
   }
 
-  if (entries.length === 0) return <EmptyState message={emptyMessage} />;
+  if (entries.length === 0) return <EmptyState message={emptyMessage} />
 
   return (
     <ScrollArea className="mt-4 h-[calc(100vh-390px)] min-h-[320px] pr-3">
       <div className="relative pl-7">
-        <div className="absolute left-2 top-0 bottom-0 w-px bg-border" />
+        <div className="absolute bottom-0 left-2 top-0 w-px bg-border" />
         {entries.map((entry, index) => {
-          const rows = getPayloadRows(entry);
+          const rows = getPayloadRows(entry)
           return (
             <div key={`${entry.id}-${index}`} className="relative mb-5">
               <div className="absolute -left-[26px] mt-2 h-4 w-4 rounded-full border-2 border-primary bg-background" />
               <div className="rounded-md border bg-background p-4 shadow-sm">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className={actionTone(entry.action)}>
-                    {displayAction(entry.action)}
-                  </Badge>
+                  <Badge variant="outline" className={actionTone(entry.action)}>{displayAction(entry.action)}</Badge>
                   <span className="text-xs text-muted-foreground">{formatDateTime(entry.createdAt)}</span>
                   {entry.sourceService && (
                     <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -224,7 +175,7 @@ function TimelineView({
                     {entry.reason && <div>{entry.reason}</div>}
                     {entry.oldValue && entry.newValue && (
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Thay đổi từ {entry.oldValue} sang {entry.newValue}
+                        Changed from {entry.oldValue} to {entry.newValue}
                       </div>
                     )}
                   </div>
@@ -232,27 +183,23 @@ function TimelineView({
 
                 {entry.correlationId && (
                   <div className="mt-3 text-xs text-muted-foreground">
-                    Mã luồng xử lý: <span className="font-mono">{entry.correlationId}</span>
+                    Business flow ID: <span className="font-mono">{entry.correlationId}</span>
                   </div>
                 )}
 
                 {entry.payload && Object.keys(entry.payload).length > 0 && (
                   <details className="mt-3">
-                    <summary className="cursor-pointer select-none text-xs text-muted-foreground">
-                      Xem dữ liệu chi tiết đã ghi nhận
-                    </summary>
-                    <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-3 text-xs">
-                      {JSON.stringify(entry.payload, null, 2)}
-                    </pre>
+                    <summary className="cursor-pointer select-none text-xs text-muted-foreground">View recorded details</summary>
+                    <pre className="mt-2 max-h-48 overflow-auto rounded bg-muted p-3 text-xs">{JSON.stringify(entry.payload, null, 2)}</pre>
                   </details>
                 )}
               </div>
             </div>
-          );
+          )
         })}
       </div>
     </ScrollArea>
-  );
+  )
 }
 
 function SearchBar({
@@ -263,49 +210,35 @@ function SearchBar({
   onSearch,
   loading,
 }: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSearch: () => void;
-  loading: boolean;
+  label: string
+  placeholder: string
+  value: string
+  onChange: (value: string) => void
+  onSearch: () => void
+  loading: boolean
 }) {
   return (
     <div className="flex flex-col gap-2 md:flex-row md:items-end">
       <div className="min-w-0 flex-1">
         <Label className="mb-1 block text-xs">{label}</Label>
-        <Input
-          placeholder={placeholder}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={(event) => event.key === 'Enter' && onSearch()}
-        />
+        <Input placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && onSearch()} />
       </div>
       <Button onClick={onSearch} disabled={loading} className="shrink-0">
         {loading ? <RefreshCw className="mr-1 h-4 w-4 animate-spin" /> : <Search className="mr-1 h-4 w-4" />}
-        Tìm kiếm
+        Search
       </Button>
     </div>
-  );
+  )
 }
 
 function StateSummary({ state }: { state: Record<string, unknown> }) {
   const rows = importantKeys
     .filter((key) => state[key] !== undefined && state[key] !== null && state[key] !== '')
-    .map((key) => ({
-      label: fieldLabels[key] ?? key,
-      value: displayPayloadValue(state[key]),
-    }));
+    .map((key) => ({ label: fieldLabels[key] ?? key, value: formatValue(state[key]) }))
 
-  const fallbackRows = Object.entries(state)
-    .filter(([key]) => !importantKeys.includes(key))
-    .slice(0, 6)
-    .map(([key, value]) => ({
-      label: fieldLabels[key] ?? key,
-      value: displayPayloadValue(value),
-    }));
-
-  const visibleRows = rows.length > 0 ? rows : fallbackRows;
+  const visibleRows = rows.length > 0
+    ? rows
+    : Object.entries(state).slice(0, 6).map(([key, value]) => ({ label: fieldLabels[key] ?? key, value: formatValue(value) }))
 
   return (
     <div className="space-y-3">
@@ -318,284 +251,197 @@ function StateSummary({ state }: { state: Record<string, unknown> }) {
         ))}
       </div>
       <details>
-        <summary className="cursor-pointer select-none text-xs text-muted-foreground">
-          Xem dữ liệu chi tiết
-        </summary>
-        <pre className="mt-2 max-h-80 overflow-auto rounded bg-muted p-3 text-xs">
-          {JSON.stringify(state, null, 2)}
-        </pre>
+        <summary className="cursor-pointer select-none text-xs text-muted-foreground">View full recorded state</summary>
+        <pre className="mt-2 max-h-80 overflow-auto rounded bg-muted p-3 text-xs">{JSON.stringify(state, null, 2)}</pre>
       </details>
     </div>
-  );
+  )
 }
 
-function StateAtView({
-  kind,
-  initialId,
-}: {
-  kind: StateKind;
-  initialId: string;
-}) {
-  const [id, setId] = useState(initialId);
-  const [timestamp, setTimestamp] = useState('');
-  const [state, setState] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(false);
+function StateAtView({ kind, initialId }: { kind: StateKind; initialId: string }) {
+  const [id, setId] = useState(initialId)
+  const [timestamp, setTimestamp] = useState('')
+  const [state, setState] = useState<Record<string, unknown> | null>(null)
+  const [loading, setLoading] = useState(false)
+  const title = kind === 'order' ? 'order' : 'payment'
 
-  useEffect(() => setId(initialId), [initialId]);
-
-  const title = kind === 'order' ? 'đơn hàng' : 'thanh toán';
+  useEffect(() => setId(initialId), [initialId])
 
   const query = async () => {
     if (!id.trim() || !timestamp.trim()) {
-      toast({ title: 'Thiếu thông tin', description: `Nhập mã ${title} và thời điểm cần xem.`, variant: 'destructive' });
-      return;
+      toast({ title: 'Missing information', description: `Enter a ${title} ID and the time you want to inspect.`, variant: 'destructive' })
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
-      const iso = new Date(timestamp).toISOString();
-      const result = kind === 'order'
-        ? await getOrderStateAt(id.trim(), iso)
-        : await getPaymentStateAt(id.trim(), iso);
-      setState(result);
+      const iso = new Date(timestamp).toISOString()
+      const result = kind === 'order' ? await getOrderStateAt(id.trim(), iso) : await getPaymentStateAt(id.trim(), iso)
+      setState(result)
     } catch (error) {
-      toast({ title: 'Không tải được dữ liệu', description: (error as Error).message, variant: 'destructive' });
-      setState(null);
+      toast({ title: 'Unable to load the recorded state', description: (error as Error).message, variant: 'destructive' })
+      setState(null)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="mt-4 space-y-4">
       <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
-        Chọn một thời điểm để xem lúc đó {title} đang ở trạng thái nào. Phần này hữu ích khi cần giải thích vì sao
-        một đơn đã chuyển từ “đang chờ” sang “đã xác nhận”, hoặc một thanh toán đã chuyển sang “đã hoàn tiền”.
+        Choose a time to see what the {title} looked like then. This helps explain changes such as pending to confirmed, paid to refunded, or cancelled.
       </div>
-
       <div className="flex flex-col gap-2 md:flex-row md:items-end">
         <div className="min-w-0 flex-1">
-          <Label className="mb-1 block text-xs">{kind === 'order' ? 'Mã đơn hàng' : 'Mã thanh toán'}</Label>
-          <Input placeholder="Dán mã UUID cần kiểm tra" value={id} onChange={(event) => setId(event.target.value)} />
+          <Label className="mb-1 block text-xs">{kind === 'order' ? 'Order ID' : 'Payment ID'}</Label>
+          <Input placeholder="Paste the UUID to inspect" value={id} onChange={(event) => setId(event.target.value)} />
         </div>
         <div className="min-w-[240px]">
-          <Label className="mb-1 block text-xs">Thời điểm cần xem</Label>
+          <Label className="mb-1 block text-xs">Time to inspect</Label>
           <Input type="datetime-local" value={timestamp} onChange={(event) => setTimestamp(event.target.value)} />
         </div>
         <Button onClick={query} disabled={loading} className="shrink-0">
           {loading ? <RefreshCw className="mr-1 h-4 w-4 animate-spin" /> : <Database className="mr-1 h-4 w-4" />}
-          Xem lại
+          Inspect
         </Button>
       </div>
-
       {state && (
         <div className="rounded-md border p-4">
           <div className="mb-3 text-sm font-medium">
-            Tình trạng tại {timestamp ? new Date(timestamp).toLocaleString('vi-VN') : 'thời điểm đã chọn'}
+            Recorded state at {timestamp ? new Date(timestamp).toLocaleString('en-US') : 'the selected time'}
           </div>
           <StateSummary state={state} />
         </div>
       )}
     </div>
-  );
+  )
 }
 
 export function AuditTrace() {
-  const [searchParams] = useSearchParams();
-  const preOrderId = searchParams.get('orderId') ?? '';
-  const prePaymentId = searchParams.get('paymentId') ?? '';
+  const [searchParams] = useSearchParams()
+  const preOrderId = searchParams.get('orderId') ?? ''
+  const prePaymentId = searchParams.get('paymentId') ?? ''
+  const [activeTab, setActiveTab] = useState<TraceTab>(prePaymentId ? 'payment' : 'order')
+  const [orderId, setOrderId] = useState(preOrderId)
+  const [orderTimeline, setOrderTimeline] = useState<AuditLogEntry[]>([])
+  const [orderLoading, setOrderLoading] = useState(false)
+  const [paymentId, setPaymentId] = useState(prePaymentId)
+  const [paymentTimeline, setPaymentTimeline] = useState<AuditLogEntry[]>([])
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [flowId, setFlowId] = useState('')
+  const [flowTimeline, setFlowTimeline] = useState<AuditLogEntry[]>([])
+  const [flowLoading, setFlowLoading] = useState(false)
 
-  const [activeTab, setActiveTab] = useState<TraceTab>(prePaymentId ? 'payment' : 'order');
-
-  const [orderId, setOrderId] = useState(preOrderId);
-  const [orderTimeline, setOrderTimeline] = useState<AuditLogEntry[]>([]);
-  const [orderLoading, setOrderLoading] = useState(false);
-
-  const [paymentId, setPaymentId] = useState(prePaymentId);
-  const [paymentTimeline, setPaymentTimeline] = useState<AuditLogEntry[]>([]);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-
-  const [flowId, setFlowId] = useState('');
-  const [flowTimeline, setFlowTimeline] = useState<AuditLogEntry[]>([]);
-  const [flowLoading, setFlowLoading] = useState(false);
-
-  const servicesInFlow = useMemo(
-    () => [...new Set(flowTimeline.map((entry) => entry.sourceService).filter(Boolean))],
-    [flowTimeline],
-  );
+  const servicesInFlow = useMemo(() => [...new Set(flowTimeline.map((entry) => entry.sourceService).filter(Boolean))], [flowTimeline])
 
   const loadOrderTimeline = async (id = orderId) => {
     if (!id.trim()) {
-      toast({ title: 'Nhập mã đơn hàng', variant: 'destructive' });
-      return;
+      toast({ title: 'Enter an order ID', variant: 'destructive' })
+      return
     }
-    setOrderLoading(true);
+    setOrderLoading(true)
     try {
-      const data = await getOrderTimeline(id.trim());
-      setOrderTimeline(data);
+      setOrderTimeline(await getOrderTimeline(id.trim()))
     } catch (error) {
-      toast({ title: 'Không tải được lịch sử đơn hàng', description: (error as Error).message, variant: 'destructive' });
-      setOrderTimeline([]);
+      toast({ title: 'Unable to load order history', description: (error as Error).message, variant: 'destructive' })
+      setOrderTimeline([])
     } finally {
-      setOrderLoading(false);
+      setOrderLoading(false)
     }
-  };
+  }
 
   const loadPaymentTimeline = async (id = paymentId) => {
     if (!id.trim()) {
-      toast({ title: 'Nhập mã thanh toán', variant: 'destructive' });
-      return;
+      toast({ title: 'Enter a payment ID', variant: 'destructive' })
+      return
     }
-    setPaymentLoading(true);
+    setPaymentLoading(true)
     try {
-      const data = await getPaymentTimeline(id.trim());
-      setPaymentTimeline(data);
+      setPaymentTimeline(await getPaymentTimeline(id.trim()))
     } catch (error) {
-      toast({ title: 'Không tải được lịch sử thanh toán', description: (error as Error).message, variant: 'destructive' });
-      setPaymentTimeline([]);
+      toast({ title: 'Unable to load payment history', description: (error as Error).message, variant: 'destructive' })
+      setPaymentTimeline([])
     } finally {
-      setPaymentLoading(false);
+      setPaymentLoading(false)
     }
-  };
+  }
 
   const loadFlow = async () => {
     if (!flowId.trim()) {
-      toast({ title: 'Nhập mã luồng xử lý', variant: 'destructive' });
-      return;
+      toast({ title: 'Enter a business flow ID', variant: 'destructive' })
+      return
     }
-    setFlowLoading(true);
+    setFlowLoading(true)
     try {
-      const data = await traceByCorrelationId(flowId.trim());
-      setFlowTimeline(data);
+      setFlowTimeline(await traceByCorrelationId(flowId.trim()))
     } catch (error) {
-      toast({ title: 'Không tải được luồng xử lý', description: (error as Error).message, variant: 'destructive' });
-      setFlowTimeline([]);
+      toast({ title: 'Unable to load the business flow', description: (error as Error).message, variant: 'destructive' })
+      setFlowTimeline([])
     } finally {
-      setFlowLoading(false);
+      setFlowLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    if (preOrderId) void loadOrderTimeline(preOrderId);
-    if (prePaymentId) void loadPaymentTimeline(prePaymentId);
-  }, []);
+    if (preOrderId) void loadOrderTimeline(preOrderId)
+    if (prePaymentId) void loadPaymentTimeline(prePaymentId)
+  }, [])
 
   return (
     <div className="space-y-4 p-4">
       <div>
         <h2 className="flex items-center gap-2 text-xl font-semibold">
           <Activity className="h-5 w-5" />
-          Tra cứu lịch sử xử lý
+          Trace Log
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Xem lại các bước đã xảy ra với đơn hàng, thanh toán và toàn bộ luồng mua hàng.
-        </p>
+        <p className="text-sm text-muted-foreground">Follow what happened to an order, a payment, or a full checkout flow across services.</p>
       </div>
-
       <Separator />
-
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Chọn nội dung cần kiểm tra</CardTitle>
+          <CardTitle className="text-base">Choose what to inspect</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TraceTab)}>
             <TabsList className="grid h-auto w-full grid-cols-1 gap-1 md:grid-cols-5">
-              <TabsTrigger value="order">
-                <PackageCheck className="mr-1 h-4 w-4" /> Đơn hàng
-              </TabsTrigger>
-              <TabsTrigger value="payment">
-                <CreditCard className="mr-1 h-4 w-4" /> Thanh toán
-              </TabsTrigger>
-              <TabsTrigger value="flow">
-                <GitBranch className="mr-1 h-4 w-4" /> Toàn bộ luồng
-              </TabsTrigger>
-              <TabsTrigger value="order-time">
-                <Clock className="mr-1 h-4 w-4" /> Đơn theo giờ
-              </TabsTrigger>
-              <TabsTrigger value="payment-time">
-                <Database className="mr-1 h-4 w-4" /> Thanh toán theo giờ
-              </TabsTrigger>
+              <TabsTrigger value="order"><PackageCheck className="mr-1 h-4 w-4" /> Order</TabsTrigger>
+              <TabsTrigger value="payment"><CreditCard className="mr-1 h-4 w-4" /> Payment</TabsTrigger>
+              <TabsTrigger value="flow"><GitBranch className="mr-1 h-4 w-4" /> Full flow</TabsTrigger>
+              <TabsTrigger value="order-time"><Clock className="mr-1 h-4 w-4" /> Order at time</TabsTrigger>
+              <TabsTrigger value="payment-time"><Database className="mr-1 h-4 w-4" /> Payment at time</TabsTrigger>
             </TabsList>
 
             <TabsContent value="order" className="mt-4 space-y-3">
-              <SearchBar
-                label="Mã đơn hàng"
-                placeholder="Dán mã đơn hàng cần xem"
-                value={orderId}
-                onChange={setOrderId}
-                onSearch={() => void loadOrderTimeline()}
-                loading={orderLoading}
-              />
-              {orderTimeline.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Có {orderTimeline.length} bước được ghi nhận. Bước mới nhất lúc {formatDateTime(orderTimeline.at(-1)!.createdAt)}.
-                </p>
-              )}
-              <TimelineView
-                entries={orderTimeline}
-                loading={orderLoading}
-                emptyMessage="Chưa có lịch sử đơn hàng để hiển thị"
-              />
+              <SearchBar label="Order ID" placeholder="Paste the order ID" value={orderId} onChange={setOrderId} onSearch={() => void loadOrderTimeline()} loading={orderLoading} />
+              {orderTimeline.length > 0 && <p className="text-xs text-muted-foreground">{orderTimeline.length} recorded events. Latest event at {formatDateTime(orderTimeline.at(-1)!.createdAt)}.</p>}
+              <TimelineView entries={orderTimeline} loading={orderLoading} emptyMessage="No order events to show yet" />
             </TabsContent>
 
             <TabsContent value="payment" className="mt-4 space-y-3">
-              <SearchBar
-                label="Mã thanh toán"
-                placeholder="Dán mã thanh toán cần xem"
-                value={paymentId}
-                onChange={setPaymentId}
-                onSearch={() => void loadPaymentTimeline()}
-                loading={paymentLoading}
-              />
-              {paymentTimeline.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Có {paymentTimeline.length} bước được ghi nhận. Bước mới nhất lúc {formatDateTime(paymentTimeline.at(-1)!.createdAt)}.
-                </p>
-              )}
-              <TimelineView
-                entries={paymentTimeline}
-                loading={paymentLoading}
-                emptyMessage="Chưa có lịch sử thanh toán để hiển thị"
-              />
+              <SearchBar label="Payment ID" placeholder="Paste the payment ID" value={paymentId} onChange={setPaymentId} onSearch={() => void loadPaymentTimeline()} loading={paymentLoading} />
+              {paymentTimeline.length > 0 && <p className="text-xs text-muted-foreground">{paymentTimeline.length} recorded events. Latest event at {formatDateTime(paymentTimeline.at(-1)!.createdAt)}.</p>}
+              <TimelineView entries={paymentTimeline} loading={paymentLoading} emptyMessage="No payment events to show yet" />
             </TabsContent>
 
             <TabsContent value="flow" className="mt-4 space-y-3">
               <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
-                Dùng mã luồng xử lý để xem các bước liên quan trên nhiều dịch vụ, ví dụ: tạo đơn, tạo thanh toán,
-                xác nhận thanh toán và cập nhật đơn hàng.
+                Use the business flow ID from an order or payment event to see the related steps across services.
               </div>
-              <SearchBar
-                label="Mã luồng xử lý"
-                placeholder="Dán mã luồng từ lịch sử đơn hoặc thanh toán"
-                value={flowId}
-                onChange={setFlowId}
-                onSearch={() => void loadFlow()}
-                loading={flowLoading}
-              />
+              <SearchBar label="Business flow ID" placeholder="Paste the flow ID from an order or payment event" value={flowId} onChange={setFlowId} onSearch={() => void loadFlow()} loading={flowLoading} />
               {flowTimeline.length > 0 && (
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span>{flowTimeline.length} bước được ghi nhận</span>
-                  {servicesInFlow.length > 0 && <span>Đi qua: {servicesInFlow.join(', ')}</span>}
+                  <span>{flowTimeline.length} recorded events</span>
+                  {servicesInFlow.length > 0 && <span>Services: {servicesInFlow.join(', ')}</span>}
                 </div>
               )}
-              <TimelineView
-                entries={flowTimeline}
-                loading={flowLoading}
-                emptyMessage="Chưa có luồng xử lý để hiển thị"
-              />
+              <TimelineView entries={flowTimeline} loading={flowLoading} emptyMessage="No flow events to show yet" />
             </TabsContent>
 
-            <TabsContent value="order-time">
-              <StateAtView kind="order" initialId={orderId} />
-            </TabsContent>
-
-            <TabsContent value="payment-time">
-              <StateAtView kind="payment" initialId={paymentId} />
-            </TabsContent>
+            <TabsContent value="order-time"><StateAtView kind="order" initialId={orderId} /></TabsContent>
+            <TabsContent value="payment-time"><StateAtView kind="payment" initialId={paymentId} /></TabsContent>
           </Tabs>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
