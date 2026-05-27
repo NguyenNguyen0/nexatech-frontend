@@ -161,7 +161,11 @@ const toAuditLogEntry = (record: AuditLogRecord): AuditLogEntry => {
       ? metadata.correlationId
       : typeof metadata.traceId === 'string'
         ? metadata.traceId
-        : undefined;
+        : typeof metadata.businessFlowId === 'string'
+          ? metadata.businessFlowId
+          : typeof metadata.flowId === 'string'
+            ? metadata.flowId
+            : undefined;
 
   return {
     id: record.id,
@@ -177,6 +181,56 @@ const toAuditLogEntry = (record: AuditLogRecord): AuditLogEntry => {
     correlationId,
     createdAt: record.createdAt ?? record.timestamp ?? new Date().toISOString(),
   };
+};
+
+const normalizeAuditLogEntry = (entry: AuditLogEntry): AuditLogEntry => {
+  const payload = entry.payload ?? {};
+  const correlationId =
+    entry.correlationId ??
+    (typeof payload.correlationId === 'string'
+      ? payload.correlationId
+      : typeof payload.traceId === 'string'
+        ? payload.traceId
+        : typeof payload.businessFlowId === 'string'
+          ? payload.businessFlowId
+          : typeof payload.flowId === 'string'
+            ? payload.flowId
+            : undefined);
+
+  return {
+    ...entry,
+    id: String(entry.id),
+    entityType: entry.entityType ?? 'Unknown',
+    entityId: entry.entityId ?? '',
+    payload,
+    correlationId,
+    createdAt: entry.createdAt ?? new Date().toISOString(),
+  };
+};
+
+const uniqueTimeline = (entries: AuditLogEntry[]): AuditLogEntry[] => {
+  const seen = new Set<string>();
+
+  return entries
+    .map(normalizeAuditLogEntry)
+    .filter((entry) => {
+      const key =
+        entry.id ||
+        `${entry.sourceService ?? 'unknown'}:${entry.entityType}:${entry.entityId}:${entry.action}:${entry.createdAt}`;
+
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+};
+
+const optionalList = async <T>(task: Promise<T[]>): Promise<T[]> => {
+  try {
+    return await task;
+  } catch {
+    return [];
+  }
 };
 
 const getEntityTimelineFromAuditService = async (entityId: string): Promise<AuditLogEntry[]> => {
@@ -227,13 +281,15 @@ const getFirstAvailable = async <T>(
 
 /** Full event timeline for a single order (sorted by createdAt ascending). */
 export async function getOrderTimeline(orderId: string): Promise<AuditLogEntry[]> {
-  return getFirstAvailable<AuditLogEntry[]>(
+  const entries = await getFirstAvailable<AuditLogEntry[]>(
     [
       `${AUDIT_ORDER_BASE}/${orderId}/timeline`,
       `${AUDIT_ORDER_TRACE_BASE}/${orderId}/timeline`,
     ],
     'Không tìm thấy lịch sử đơn hàng này',
   );
+
+  return uniqueTimeline(entries);
 }
 
 /**
@@ -257,15 +313,16 @@ export async function getOrderStateAt(
 /** Full event timeline for a single payment. */
 export async function getPaymentTimeline(paymentId: string): Promise<AuditLogEntry[]> {
   try {
-    return await getFirstAvailable<AuditLogEntry[]>(
+    const entries = await getFirstAvailable<AuditLogEntry[]>(
       [
         `${AUDIT_PAYMENT_BASE}/${paymentId}/timeline`,
         `${AUDIT_PAYMENT_TRACE_BASE}/${paymentId}/timeline`,
       ],
       'Không tìm thấy lịch sử giao dịch này',
     );
+    return uniqueTimeline(entries);
   } catch {
-    return getEntityTimelineFromAuditService(paymentId);
+    return uniqueTimeline(await getEntityTimelineFromAuditService(paymentId));
   }
 }
 
@@ -301,22 +358,72 @@ export async function getPaymentStateAt(
 }
 
 /**
- * All audit events sharing the same OpenTelemetry correlationId (traceId).
- * Shows the full business flow: ORDER_CREATED → PAYMENT_INITIATED → PAYMENT_COMPLETED, etc.
+ * Full business flow for a lookup value. The lookup can be a business flow ID,
+ * order ID, payment ID, order number, or any value recorded in audit metadata.
  */
-export async function traceByCorrelationId(correlationId: string): Promise<AuditLogEntry[]> {
-  const { data } = await axiosClient.get<ApiResponse<AuditLogRecord[]>>(
-    `${AUDIT_API_BASE}/trace/${correlationId}`,
+export async function traceByCorrelationId(lookupId: string): Promise<AuditLogEntry[]> {
+  const value = lookupId.trim();
+  if (!value) return [];
+
+  const encodedLookup = encodeURIComponent(value);
+
+  const getAuditServiceTrace = async (lookup: string): Promise<AuditLogEntry[]> => {
+    const { data } = await axiosClient.get<ApiResponse<AuditLogRecord[]>>(
+      `${AUDIT_API_BASE}/trace/${encodeURIComponent(lookup)}`,
+      { validateStatus: (code) => code < 500 },
+    );
+
+    if (data.code !== 1000 || !data.result) return [];
+    return data.result.map(toAuditLogEntry);
+  };
+
+  const getOrderTrace = async (lookup: string): Promise<AuditLogEntry[]> => {
+    const entries = await getFirstAvailable<AuditLogEntry[]>(
+      [
+        `${AUDIT_ORDER_BASE}/trace/${encodeURIComponent(lookup)}`,
+        `${AUDIT_ORDER_TRACE_BASE}/trace/${encodeURIComponent(lookup)}`,
+      ],
+      'No order events found for this business flow',
+    );
+
+    return uniqueTimeline(entries);
+  };
+
+  const getPaymentTrace = async (lookup: string): Promise<AuditLogEntry[]> => {
+    const entries = await getFirstAvailable<AuditLogEntry[]>(
+      [
+        `${AUDIT_PAYMENT_BASE}/trace/${encodeURIComponent(lookup)}`,
+        `${AUDIT_PAYMENT_TRACE_BASE}/trace/${encodeURIComponent(lookup)}`,
+      ],
+      'No payment events found for this business flow',
+    );
+
+    return uniqueTimeline(entries);
+  };
+
+  const seedGroups = await Promise.all([
+    optionalList(getAuditServiceTrace(value)),
+    optionalList(getEntityTimelineFromAuditService(value)),
+    optionalList(getOrderTimeline(encodedLookup)),
+    optionalList(getPaymentTimeline(encodedLookup)),
+    optionalList(getOrderTrace(value)),
+    optionalList(getPaymentTrace(value)),
+  ]);
+
+  const seedEntries = uniqueTimeline(seedGroups.flat());
+  const relatedFlowIds = [
+    ...new Set(seedEntries.map((entry) => entry.correlationId).filter((id): id is string => Boolean(id && id !== value))),
+  ];
+
+  const relatedGroups = await Promise.all(
+    relatedFlowIds.flatMap((flowId) => [
+      optionalList(getAuditServiceTrace(flowId)),
+      optionalList(getOrderTrace(flowId)),
+      optionalList(getPaymentTrace(flowId)),
+    ]),
   );
 
-  if (data.code !== 1000 || !data.result) {
-    throw new Error(data.message || 'Không tìm thấy dữ liệu cho mã này');
-  }
-
-  const traceEntries = data.result.map(toAuditLogEntry);
-  if (traceEntries.length === 0) {
-    throw new Error('Không tìm thấy dữ liệu cho mã này');
-  }
+  const traceEntries = uniqueTimeline([...seedEntries, ...relatedGroups.flat()]);
 
   return traceEntries.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 }
