@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconChevronDown } from '@tabler/icons-react'
 import { Button, buttonVariants } from './custom/button'
@@ -24,11 +24,12 @@ import {
 import { cn } from '@/lib/utils'
 import useCheckActiveNav from '@/hooks/use-check-active-nav'
 import { SideLink } from '@/data/sidelinks'
-import { fetchConversations } from '@/pages/admin/chats/chat-api'
+import { fetchConversations, isChatServiceUnavailable } from '@/pages/admin/chats/chat-api'
 
 const CHAT_ROUTE = '/admin/chats'
 const CHAT_UNREAD_CHANGED_EVENT = 'admin-chat-unread-changed'
 const CHAT_UNREAD_POLL_INTERVAL_MS = 15000
+const CHAT_UNREAD_FAILURE_PAUSE_MS = 5 * 60 * 1000
 
 type ChatUnreadChangedEvent = CustomEvent<{ hasUnread: boolean }>
 
@@ -266,12 +267,19 @@ function NavLinkIconDropdown({ title, icon, label, sub, hasUnreadBadge = false }
 
 function useChatUnreadBadge(): boolean {
   const [hasUnreadChat, setHasUnreadChat] = useState(false)
+  const retryAfterRef = useRef(0)
 
   const refresh = useCallback(async () => {
+    if (Date.now() < retryAfterRef.current) return
+
     try {
       const page = await fetchConversations(0, 100)
+      retryAfterRef.current = 0
       setHasUnreadChat(page.content.some((conversation) => (conversation.unreadCount ?? 0) > 0))
-    } catch {
+    } catch (error) {
+      if (isChatServiceUnavailable(error)) {
+        retryAfterRef.current = Date.now() + CHAT_UNREAD_FAILURE_PAUSE_MS
+      }
       // Keep the last known badge state if chat-service is temporarily unavailable.
     }
   }, [])

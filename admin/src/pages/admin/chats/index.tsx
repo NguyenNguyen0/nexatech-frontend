@@ -31,6 +31,7 @@ import {
     type Conversation,
     fetchConversations,
     fetchMessages,
+    isChatServiceUnavailable,
     markSeen,
     sendMessage,
 } from "./chat-api";
@@ -38,6 +39,7 @@ import {
 const CONVERSATION_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 30;
 const REALTIME_FALLBACK_INTERVAL_MS = 15000;
+const CHAT_SERVICE_FAILURE_PAUSE_MS = 60 * 1000;
 const CHAT_UNREAD_CHANGED_EVENT = "admin-chat-unread-changed";
 
 type ReadFilter = "all" | "unread" | "read";
@@ -162,6 +164,7 @@ export default function Chats() {
     const loadingConversationsRef = useRef(false);
     const loadingMessagesRef = useRef<Set<string>>(new Set());
     const locallyReadConversationIdsRef = useRef<Set<string>>(new Set());
+    const serviceRetryAfterRef = useRef(0);
     const messageEndRef = useRef<HTMLDivElement | null>(null);
     const adminUserId = useMemo(() => getUserIdFromAccessToken(getAccessToken()), []);
     const adminRole = useMemo(() => pickPrimaryRole(getRolesFromAccessToken(getAccessToken())) ?? "ADMIN", []);
@@ -273,12 +276,14 @@ export default function Chats() {
     }, []);
 
     const loadConversations = useCallback(async () => {
+        if (Date.now() < serviceRetryAfterRef.current) return;
         if (loadingConversationsRef.current) return;
         loadingConversationsRef.current = true;
         setIsLoading(true);
         setErrorMessage(null);
         try {
             const page = await fetchConversations(0, CONVERSATION_PAGE_SIZE);
+            serviceRetryAfterRef.current = 0;
             setConversations((current) => {
                 const byId = new Map(current.map((conversation) => [conversation.id, conversation]));
                 page.content.forEach((conversation) => {
@@ -288,6 +293,9 @@ export default function Chats() {
             });
             setSelectedConversationId((current) => current ?? page.content[0]?.id ?? null);
         } catch (error) {
+            if (isChatServiceUnavailable(error)) {
+                serviceRetryAfterRef.current = Date.now() + CHAT_SERVICE_FAILURE_PAUSE_MS;
+            }
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -300,10 +308,12 @@ export default function Chats() {
     }, [mergeConversationRecord]);
 
     const loadMessages = useCallback(async (conversationId: string) => {
+        if (Date.now() < serviceRetryAfterRef.current) return;
         if (loadingMessagesRef.current.has(conversationId)) return;
         loadingMessagesRef.current.add(conversationId);
         try {
             const page = await fetchMessages(conversationId, undefined, MESSAGE_PAGE_SIZE);
+            serviceRetryAfterRef.current = 0;
             const ordered = [...page.content].reverse();
             if (selectedConversationIdRef.current !== conversationId) return;
             setMessages(ordered);
@@ -313,6 +323,9 @@ export default function Chats() {
                 markSeen(conversationId, latestUnseenIncoming.id).catch(() => undefined);
             }
         } catch (error) {
+            if (isChatServiceUnavailable(error)) {
+                serviceRetryAfterRef.current = Date.now() + CHAT_SERVICE_FAILURE_PAUSE_MS;
+            }
             if (selectedConversationIdRef.current !== conversationId) return;
             setMessages([]);
             setErrorMessage(
