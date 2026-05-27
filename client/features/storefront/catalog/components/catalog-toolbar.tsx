@@ -34,14 +34,14 @@ export function CatalogToolbar({ totalItems, sort }: CatalogToolbarProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-center bg-surface p-4 rounded-xl border border-outline-variant shadow-sm mb-6 gap-4">
+    <div className="flex flex-col sm:flex-row justify-between items-center bg-surface p-4 rounded-md border border-outline-variant shadow-sm mb-6 gap-4">
       <div className="text-label-sm text-on-surface-variant font-medium">
         Hiển thị <span className="text-on-surface font-bold">{totalItems}</span> sản phẩm
       </div>
       <div className="flex items-center gap-2">
         <label className="text-label-sm text-on-surface-variant">Sắp xếp theo:</label>
         <select
-          className="h-10 px-3 rounded-lg border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest text-on-surface cursor-pointer"
+          className="h-10 px-3 rounded-sm border border-outline-variant focus:border-primary outline-none text-body-md bg-surface-container-lowest text-on-surface cursor-pointer"
           value={currentSort}
           onChange={handleSortChange}
         >

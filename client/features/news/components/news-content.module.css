@@ -1,0 +1,80 @@
+.newsContent {
+  color: #1f2933;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.newsContent :where(h1, h2, h3, h4, h5, h6) {
+  color: #111827;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.8rem 0 0.8rem;
+}
+
+.newsContent h1 {
+  font-size: 2.25rem;
+}
+
+.newsContent h2 {
+  font-size: 1.875rem;
+}
+
+.newsContent h3 {
+  font-size: 1.5rem;
+}
+
+.newsContent p {
+  margin: 1rem 0;
+}
+
+.newsContent ul,
+.newsContent ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.newsContent ul {
+  list-style: disc;
+}
+
+.newsContent ol {
+  list-style: decimal;
+}
+
+.newsContent blockquote {
+  border-left: 4px solid #004d75;
+  color: #52616b;
+  font-style: italic;
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+}
+
+.newsContent img {
+  border-radius: 10px;
+  display: block;
+  height: auto;
+  margin: 1.5rem auto;
+  max-width: 100%;
+}
+
+.newsContent a {
+  color: #004d75;
+  text-decoration: underline;
+}
+
+.newsContent table {
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  width: 100%;
+}
+
+.newsContent th,
+.newsContent td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.newsContent th {
+  background: #f3f6f8;
+}

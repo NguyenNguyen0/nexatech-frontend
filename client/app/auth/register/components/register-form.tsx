@@ -204,7 +204,7 @@ export function RegisterForm() {
 
   return (
     <>
-      <Card className="w-full max-w-[480px] shadow-2xl border-none overflow-hidden rounded-[20px] my-5">
+      <Card className="w-full max-w-[480px] shadow-2xl border border-border/60 overflow-hidden rounded-md my-5">
         <CardContent className="p-8 sm:p-10 space-y-6">
           {/* Header */}
           <div className="space-y-1">
@@ -232,8 +232,8 @@ export function RegisterForm() {
 
           {/* Step indicator */}
           <div className="flex gap-2">
-            <div className="h-1 flex-1 rounded-full bg-primary" />
-            <div className={`h-1 flex-1 rounded-full transition-colors ${step === 'profile' ? 'bg-primary' : 'bg-border'}`} />
+            <div className="h-1 flex-1 rounded-sm bg-primary" />
+            <div className={`h-1 flex-1 rounded-sm transition-colors ${step === 'profile' ? 'bg-primary' : 'bg-border'}`} />
           </div>
 
           {/* Step 1: Credentials */}
@@ -247,7 +247,7 @@ export function RegisterForm() {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl"
+                  className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-sm"
                   autoComplete="email"
                   required
                 />
@@ -260,7 +260,7 @@ export function RegisterForm() {
                   placeholder="Mật khẩu (ít nhất 8 ký tự)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl pr-10"
+                  className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-sm pr-10"
                   autoComplete="new-password"
                   required
                 />
@@ -280,7 +280,7 @@ export function RegisterForm() {
                   placeholder="Xác nhận mật khẩu"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-xl pr-10"
+                  className="h-12 border-border focus-visible:ring-primary/20 transition-all rounded-sm pr-10"
                   autoComplete="new-password"
                   required
                 />
@@ -294,7 +294,7 @@ export function RegisterForm() {
               </div>
               <Button
                 type="submit"
-                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl transition-all active:scale-[0.98]"
+                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-sm transition-all active:scale-[0.98]"
               >
                 Tiếp theo
               </Button>
@@ -309,7 +309,7 @@ export function RegisterForm() {
                 <Button
                   onClick={() => toast.info('Tính năng này chưa được triển khai')}
                   variant="outline"
-                  className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-xl"
+                  className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-sm"
                   aria-label="Đăng nhập với Google"
                   type="button"
                   disabled={otpOpen}
@@ -340,7 +340,7 @@ export function RegisterForm() {
                   placeholder="vidu_nexatech"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-11 rounded-xl"
+                  className="h-11 rounded-sm"
                   autoComplete="username"
                   required
                 />
@@ -359,7 +359,7 @@ export function RegisterForm() {
                     placeholder="Nguyễn"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="h-11 rounded-xl"
+                    className="h-11 rounded-sm"
                     required
                   />
                 </div>
@@ -372,7 +372,7 @@ export function RegisterForm() {
                     placeholder="Văn A"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="h-11 rounded-xl"
+                    className="h-11 rounded-sm"
                     required
                   />
                 </div>
@@ -388,7 +388,7 @@ export function RegisterForm() {
                   placeholder="0901234567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="h-11 rounded-xl"
+                  className="h-11 rounded-sm"
                   autoComplete="tel"
                 />
               </div>
@@ -403,7 +403,7 @@ export function RegisterForm() {
                     type="date"
                     value={dob}
                     onChange={(e) => setDob(e.target.value)}
-                    className="h-11 rounded-xl"
+                    className="h-11 rounded-sm"
                     max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
@@ -415,7 +415,7 @@ export function RegisterForm() {
                     id="reg-gender"
                     value={gender}
                     onChange={(e) => setGender(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-11 w-full rounded-sm border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
                     <option value="">-- Chọn --</option>
                     <option value="MALE">Nam</option>
@@ -425,7 +425,7 @@ export function RegisterForm() {
                 </div>
               </div>
 
-              <div className="rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground space-y-0.5">
+              <div className="rounded-md bg-muted/50 px-4 py-3 text-sm text-muted-foreground space-y-0.5">
                 <p>
                   <span className="font-medium text-foreground">Email:</span> {email}
                 </p>
@@ -434,7 +434,7 @@ export function RegisterForm() {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-xl transition-all active:scale-[0.98]"
+                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 rounded-sm transition-all active:scale-[0.98]"
               >
                 {submitting ? (
                   <>

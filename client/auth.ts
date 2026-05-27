@@ -81,6 +81,17 @@ type ApiEnvelope<T> = {
   result?: T;
 };
 
+async function readApiEnvelope<T>(res: Response): Promise<ApiEnvelope<T> | null> {
+  const raw = await res.text();
+  if (!raw.trim()) return null;
+
+  try {
+    return JSON.parse(raw) as ApiEnvelope<T>;
+  } catch {
+    return null;
+  }
+}
+
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const [, payload] = token.split('.');
@@ -123,12 +134,12 @@ async function exchangeGoogleEmailForTokens(
     }),
   });
 
-  const data = (await res.json()) as ApiEnvelope<TokenBundle>;
-  if (data.code === ACCOUNT_DISABLED_CODE) {
+  const data = await readApiEnvelope<TokenBundle>(res);
+  if (data?.code === ACCOUNT_DISABLED_CODE) {
     return { ok: false, reason: 'disabled' };
   }
-  const tokens = pickTokens(data.result);
-  if (!res.ok || data.code !== 1000 || !tokens) {
+  const tokens = pickTokens(data?.result);
+  if (!res.ok || data?.code !== 1000 || !tokens) {
     return { ok: false, reason: 'failed' };
   }
   const new_user = data.result?.new_user ?? data.result?.newUser;
@@ -147,12 +158,12 @@ async function refreshAccessToken(
     body: JSON.stringify({ refreshToken }),
   });
 
-  const data = (await res.json()) as ApiEnvelope<TokenBundle>;
-  if (data.code === ACCOUNT_DISABLED_CODE) {
+  const data = await readApiEnvelope<TokenBundle>(res);
+  if (data?.code === ACCOUNT_DISABLED_CODE) {
     return 'ACCOUNT_DISABLED';
   }
-  const tokens = pickTokens(data.result);
-  if (!res.ok || data.code !== 1000 || !tokens) {
+  const tokens = pickTokens(data?.result);
+  if (!res.ok || data?.code !== 1000 || !tokens) {
     return null;
   }
   return tokens;
@@ -190,12 +201,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           body: JSON.stringify({ username: identifier.trim(), password }),
         });
 
-        const data = (await res.json()) as ApiEnvelope<TokenBundle>;
-        if (data.code === ACCOUNT_DISABLED_CODE) {
+        const data = await readApiEnvelope<TokenBundle>(res);
+        if (data?.code === ACCOUNT_DISABLED_CODE) {
           throw new AccountDisabledError();
         }
-        const tokens = pickTokens(data.result);
-        if (!res.ok || data.code !== 1000 || !tokens) {
+        const tokens = pickTokens(data?.result);
+        if (!res.ok || data?.code !== 1000 || !tokens) {
           return null;
         }
 

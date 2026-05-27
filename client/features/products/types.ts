@@ -1,13 +1,15 @@
 export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | string;
 
-export interface ProductSummary {
+export interface ProductMinimal {
   id: string;
   name: string;
   slug: string;
+  sku?: string;
   thumbnail?: string;
   tags?: string[];
   price: number;
   compareAtPrice?: number;
+  originalPrice?: number;
   averageRating?: number;
   reviewCount?: number;
   stockQuantity?: number;
@@ -19,15 +21,18 @@ export interface ProductSummary {
   // All categories this product belongs to (new multi-category support)
   categoryIds?: string[];
   categorySlugs?: string[];
-  // Legacy single category fields (deprecated, kept for backward compatibility)
-  categoryId?: string;
-  categoryName?: string;
   brandId?: string;
   brandName?: string;
+  brandSlug?: string;
   featured?: boolean;
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface ProductDetail extends ProductSummary {
+export type ProductSummary = ProductMinimal;
+
+export interface ProductDetail extends ProductMinimal {
   description?: string;
   descriptionHtml?: string;
   images?: string[];
@@ -75,6 +80,33 @@ export interface ProductSuggestion {
   thumbnail?: string;
   price: number;
   compareAtPrice?: number;
+  categoryIds?: string[];
+  brandId?: string;
+}
+
+export interface RecommendationProductPayload {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  thumbnail?: string;
+  brandName?: string;
+  primaryCategoryName?: string;
+  averageRating?: number;
+  reviewCount?: number;
+}
+
+export interface RecommendationItem {
+  productId: string;
+  score: number;
+  product?: RecommendationProductPayload | null;
+}
+
+export interface RecommendationResponse {
+  userId?: string;
+  topK?: number;
+  source?: string;
+  recommendations: RecommendationItem[];
 }
 
 export interface ProductReview {

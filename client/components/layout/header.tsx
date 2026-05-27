@@ -1,17 +1,18 @@
 'use client';
 
-import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, Search, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
+import { ChevronDown, Heart, LogOut, Menu, ReceiptText, ShoppingCart, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { authStorage } from '@/features/auth/utils/auth-storage';
+import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import { CategoryDialog } from './category-dialog';
+import { ProductSearch } from './product-search';
 
 const navLinks = [
   { label: 'Laptop', href: '/product/collection/laptop' },
-  { label: 'Gaming PC', href: '/product/collection/gaming-pc' },
+  { label: 'Laptop Gaming', href: '/product/collection/gaming-laptop' },
   { label: 'Build PC', href: '/build-pc' },
   { label: 'Màn hình', href: '/product/collection/monitor' },
   { label: 'Bàn phím', href: '/product/collection/keyboard' },
@@ -20,7 +21,6 @@ const navLinks = [
 ];
 
 const STORAGE_KEY = 'nexatech_cart';
-const WISHLIST_KEY = 'nexatech_wishlist';
 
 function getCartCount(): number {
   if (typeof window === 'undefined') return 0;
@@ -34,28 +34,14 @@ function getCartCount(): number {
   }
 }
 
-function getWishlistCount(): number {
-  if (typeof window === 'undefined') return 0;
-  try {
-    const raw = localStorage.getItem(WISHLIST_KEY);
-    if (!raw) return 0;
-    const list = JSON.parse(raw);
-    return Array.isArray(list) ? list.length : 0;
-  } catch {
-    return 0;
-  }
-}
-
 export function Header() {
-  const router = useRouter();
   const { data: session, status } = useSession();
+  const { wishlistCount } = useWishlist();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
   const [logoutPending, setLogoutPending] = useState(false);
 
   // Close category menu when account or mobile menu opens
@@ -98,27 +84,17 @@ export function Header() {
 
   const refreshCounts = useCallback(() => {
     setCartCount(getCartCount());
-    setWishlistCount(getWishlistCount());
   }, []);
 
   useEffect(() => {
     refreshCounts();
     window.addEventListener('cart-updated', refreshCounts);
-    window.addEventListener('wishlist-updated', refreshCounts);
     window.addEventListener('storage', refreshCounts);
     return () => {
       window.removeEventListener('cart-updated', refreshCounts);
-      window.removeEventListener('wishlist-updated', refreshCounts);
       window.removeEventListener('storage', refreshCounts);
     };
   }, [refreshCounts]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-50 shadow-sm">
@@ -138,23 +114,12 @@ export function Header() {
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden flex-1 max-w-[480px] md:block">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm kiếm sản phẩm..."
-                className="h-[38px] w-full rounded-sm border border-[#004d75] bg-white px-3 pr-11 text-[13px] text-[#1b1c1c] placeholder:text-[#a0a0a0] focus:outline-none focus:ring-1 focus:ring-[#004d75]"
-              />
-              <button
-                type="submit"
-                className="absolute right-0 top-0 flex h-[38px] w-10 items-center justify-center bg-[#004d75] text-white transition hover:bg-[#003d5c]"
-              >
-                <Search className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+          <div className="hidden flex-1 max-w-[480px] md:block">
+            <ProductSearch
+              placeholder="Tìm kiếm sản phẩm..."
+              formClassName="h-[38px] rounded-sm border-[#004d75] shadow-none"
+            />
+          </div>
 
           {/* Right Actions */}
           <div className="flex items-center gap-1">
@@ -197,6 +162,16 @@ export function Header() {
                     >
                       <UserRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
                       Hồ sơ cá nhân
+                    </Link>
+
+                    <Link
+                      href="/user/orders"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <ReceiptText className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Lịch sử đơn hàng
                     </Link>
 
                     <Link
@@ -289,21 +264,10 @@ export function Header() {
 
         {/* Mobile Search */}
         <div className="border-t border-[#e0e0e0] px-4 py-2 md:hidden">
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm sản phẩm..."
-              className="h-9 w-full rounded-sm border border-[#004d75] bg-white px-3 pr-10 text-[13px] placeholder:text-[#a0a0a0] focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center bg-[#004d75] text-white"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </form>
+          <ProductSearch
+            placeholder="Tìm kiếm sản phẩm..."
+            formClassName="h-9 rounded-sm border-[#004d75] shadow-none"
+          />
         </div>
       </div>
 
@@ -315,17 +279,15 @@ export function Header() {
             type="button"
             onClick={handleCategoryMenuToggle}
             onMouseEnter={() => !categoryMenuOpen && setCategoryMenuOpen(true)}
-            className={`flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition ${
-              categoryMenuOpen ? 'bg-white/20' : 'hover:bg-white/10'
-            }`}
+            className={`flex items-center gap-2 border-r border-white/20 py-2.5 px-4 text-[13px] font-semibold transition ${categoryMenuOpen ? 'bg-white/20' : 'hover:bg-white/10'
+              }`}
             aria-expanded={categoryMenuOpen}
             aria-controls="category-menu"
           >
             <Menu className="h-4 w-4" />
             Danh mục
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${
-              categoryMenuOpen ? 'rotate-180' : ''
-            }`} />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${categoryMenuOpen ? 'rotate-180' : ''
+              }`} />
           </button>
 
           {/* Nav Links */}
@@ -348,6 +310,12 @@ export function Header() {
               className="px-3.5 py-2.5 text-[13px] font-medium text-white/85 transition hover:text-white"
             >
               Mã giảm giá
+            </Link>
+            <Link
+              href="/news"
+              className="px-3.5 py-2.5 text-[13px] font-medium text-white/85 transition hover:text-white"
+            >
+              News
             </Link>
           </div>
         </div>
@@ -381,6 +349,14 @@ export function Header() {
                   >
                     <UserRound className="h-4 w-4 text-[#004d75]" />
                     Hồ sơ cá nhân
+                  </Link>
+                  <Link
+                    href="/user/orders"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+                  >
+                    <ReceiptText className="h-4 w-4 text-[#004d75]" />
+                    Lịch sử đơn hàng
                   </Link>
                   <Link
                     href="/user/account"
@@ -431,7 +407,7 @@ export function Header() {
       )}
 
       {/* Category Dialog */}
-      <div id="category-menu" className="hidden lg:block relative">
+      <div id="category-menu" className="relative">
         <CategoryDialog
           open={categoryMenuOpen}
           onClose={() => setCategoryMenuOpen(false)}

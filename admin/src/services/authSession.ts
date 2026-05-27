@@ -1,4 +1,5 @@
 type JwtPayload = {
+    sub?: string;
     exp?: number; // seconds since epoch
     realm_access?: {
         roles?: string[];
@@ -31,21 +32,38 @@ export function getRefreshToken(): string | null {
 }
 
 const OTP_STEP_UP_PENDING = "nexatech_admin_otp_step_pending";
+const OTP_STEP_UP_SENT_AT = "nexatech_admin_otp_step_sent_at";
+const OTP_STEP_UP_TTL_MS = 5 * 60 * 1000;
 
 /** Sau login, chưa verify OTP — chặn vào dashboard (sessionStorage, F5 vẫn giữ). */
 export function setOtpStepUpPending(): void {
     if (typeof window === "undefined") return;
     sessionStorage.setItem(OTP_STEP_UP_PENDING, "1");
+    sessionStorage.setItem(OTP_STEP_UP_SENT_AT, String(Date.now()));
 }
 
 export function clearOtpStepUpPending(): void {
     if (typeof window === "undefined") return;
     sessionStorage.removeItem(OTP_STEP_UP_PENDING);
+    sessionStorage.removeItem(OTP_STEP_UP_SENT_AT);
 }
 
 export function isOtpStepUpPending(): boolean {
     if (typeof window === "undefined") return false;
-    return sessionStorage.getItem(OTP_STEP_UP_PENDING) === "1";
+    if (sessionStorage.getItem(OTP_STEP_UP_PENDING) !== "1") return false;
+
+    const sentAt = Number(sessionStorage.getItem(OTP_STEP_UP_SENT_AT));
+    if (!Number.isFinite(sentAt) || sentAt <= 0) {
+        clearOtpStepUpPending();
+        return false;
+    }
+
+    if (Date.now() - sentAt > OTP_STEP_UP_TTL_MS) {
+        clearOtpStepUpPending();
+        return false;
+    }
+
+    return true;
 }
 
 const PASSWORD_CHANGE_REQUIRED = "nexatech_admin_password_change_required";
@@ -81,6 +99,12 @@ export function getRolesFromAccessToken(token: string | null): string[] {
     const payload = decodeJwtPayload(token);
     const roles = payload?.realm_access?.roles ?? [];
     return roles.filter((r): r is string => typeof r === "string").map((r) => r.toUpperCase());
+}
+
+export function getUserIdFromAccessToken(token: string | null): string | null {
+    if (!token) return null;
+    const payload = decodeJwtPayload(token);
+    return typeof payload?.sub === "string" ? payload.sub : null;
 }
 
 export function isAccessTokenExpired(token: string | null): boolean {

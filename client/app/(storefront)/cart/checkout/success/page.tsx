@@ -6,6 +6,23 @@ import { useSearchParams } from 'next/navigation';
 import { getOrderById } from '@/features/order/services/order-api';
 import type { OrderStatus } from '@/types/order';
 
+const RECENT_GUEST_ORDERS_KEY = 'nexatech_recent_orders';
+
+function rememberRecentOrder(orderId: string, orderNumber: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(RECENT_GUEST_ORDERS_KEY);
+    const current = raw ? JSON.parse(raw) as Array<{ id: string; orderNumber: string; createdAt: string }> : [];
+    const next = [
+      { id: orderId, orderNumber, createdAt: new Date().toISOString() },
+      ...current.filter((item) => item.id !== orderId),
+    ].slice(0, 5);
+    window.localStorage.setItem(RECENT_GUEST_ORDERS_KEY, JSON.stringify(next));
+  } catch {
+    /* recent order history is best-effort */
+  }
+}
+
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   COD:           'Thanh toán khi nhận hàng (COD)',
   BANK_TRANSFER: 'Chuyển khoản ngân hàng (VietQR)',
@@ -33,6 +50,11 @@ function SuccessContent() {
   const [pollError, setPollError] = useState(false);
   const pollAttemptsRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!orderId || !orderNumber || orderNumber === '---') return;
+    rememberRecentOrder(orderId, orderNumber);
+  }, [orderId, orderNumber]);
 
   useEffect(() => {
     if (!isVnpay || !orderId) return;

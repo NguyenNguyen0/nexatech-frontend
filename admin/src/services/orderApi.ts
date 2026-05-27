@@ -6,7 +6,13 @@
  */
 
 import axiosClient from '@/lib/axiosClient';
-import type { ApiResponse } from '@/types/auth';
+
+// order-service uses { success, message, data } — different from identity-service { code, result }
+interface OrderApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
 
 const ORDER_ADMIN_BASE  = '/api/v1/admin/orders';
 const RETURN_ADMIN_BASE = '/api/v1/returns';
@@ -49,6 +55,9 @@ export interface OrderResponse {
   orderNumber: string;
   customerId: string;
   status: OrderStatus;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
   totalAmount: number;
   shippingFee: number;
   discount: number;
@@ -74,8 +83,28 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
+export interface OrderDailyRevenue {
+  date: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface OrderTopProduct {
+  productId: string;
+  productName: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
 export interface OrderStatsResponse {
-  [key: string]: unknown;
+  from: string;
+  to: string;
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  ordersByStatus: Record<string, number>;
+  revenueByDay: OrderDailyRevenue[];
+  topProducts: OrderTopProduct[];
 }
 
 export interface ReturnItemResponse {
@@ -117,12 +146,12 @@ export interface AdminOrderListParams {
 export async function adminGetAllOrders(
   params?: AdminOrderListParams,
 ): Promise<PageResponse<OrderResponse>> {
-  const { data } = await axiosClient.get<ApiResponse<PageResponse<OrderResponse>>>(
+  const { data } = await axiosClient.get<OrderApiResponse<PageResponse<OrderResponse>>>(
     ORDER_ADMIN_BASE,
     { params },
   );
-  if (!data.result) throw new Error(data.message ?? 'Không lấy được danh sách đơn hàng');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Không lấy được danh sách đơn hàng');
+  return data.data;
 }
 
 /** Cập nhật trạng thái đơn hàng. */
@@ -130,13 +159,13 @@ export async function adminUpdateOrderStatus(
   orderId: string,
   status: OrderStatus,
 ): Promise<OrderResponse> {
-  const { data } = await axiosClient.patch<ApiResponse<OrderResponse>>(
+  const { data } = await axiosClient.patch<OrderApiResponse<OrderResponse>>(
     `${ORDER_ADMIN_BASE}/${orderId}/status`,
     null,
     { params: { status } },
   );
-  if (!data.result) throw new Error(data.message ?? 'Cập nhật trạng thái thất bại');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Cập nhật trạng thái thất bại');
+  return data.data!
 }
 
 /** Cập nhật thông tin vận chuyển cho đơn hàng. */
@@ -144,12 +173,12 @@ export async function adminUpdateOrderShipping(
   orderId: string,
   request: UpdateShippingRequest,
 ): Promise<OrderResponse> {
-  const { data } = await axiosClient.patch<ApiResponse<OrderResponse>>(
+  const { data } = await axiosClient.patch<OrderApiResponse<OrderResponse>>(
     `${ORDER_ADMIN_BASE}/${orderId}/shipping`,
     request,
   );
-  if (!data.result) throw new Error(data.message ?? 'Cập nhật vận chuyển thất bại');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Cập nhật vận chuyển thất bại');
+  return data.data!
 }
 
 /** Lấy thống kê đơn hàng theo khoảng ngày (YYYY-MM-DD). */
@@ -157,12 +186,12 @@ export async function adminGetOrderStats(
   from: string,
   to: string,
 ): Promise<OrderStatsResponse> {
-  const { data } = await axiosClient.get<ApiResponse<OrderStatsResponse>>(
+  const { data } = await axiosClient.get<OrderApiResponse<OrderStatsResponse>>(
     `${ORDER_ADMIN_BASE}/stats`,
     { params: { from, to } },
   );
-  if (!data.result) throw new Error(data.message ?? 'Không lấy được thống kê');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Không lấy được thống kê');
+  return data.data ?? {};
 }
 
 // ── Admin Return API ──────────────────────────────────────────────────────────
@@ -177,30 +206,30 @@ export interface AdminReturnListParams {
 export async function adminGetAllReturns(
   params?: AdminReturnListParams,
 ): Promise<PageResponse<ReturnResponse>> {
-  const { data } = await axiosClient.get<ApiResponse<PageResponse<ReturnResponse>>>(
+  const { data } = await axiosClient.get<OrderApiResponse<PageResponse<ReturnResponse>>>(
     `${RETURN_ADMIN_BASE}`,
     { params },
   );
-  if (!data.result) throw new Error(data.message ?? 'Không lấy được danh sách trả hàng');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Không lấy được danh sách trả hàng');
+  return data.data!
 }
 
 /** Duyệt yêu cầu trả hàng. */
 export async function adminApproveReturn(returnId: string): Promise<ReturnResponse> {
-  const { data } = await axiosClient.patch<ApiResponse<ReturnResponse>>(
+  const { data } = await axiosClient.patch<OrderApiResponse<ReturnResponse>>(
     `${RETURN_ADMIN_BASE}/${returnId}/approve`,
   );
-  if (!data.result) throw new Error(data.message ?? 'Duyệt trả hàng thất bại');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Duyệt trả hàng thất bại');
+  return data.data!
 }
 
 /** Từ chối yêu cầu trả hàng. */
 export async function adminRejectReturn(returnId: string, note?: string): Promise<ReturnResponse> {
-  const { data } = await axiosClient.patch<ApiResponse<ReturnResponse>>(
+  const { data } = await axiosClient.patch<OrderApiResponse<ReturnResponse>>(
     `${RETURN_ADMIN_BASE}/${returnId}/reject`,
     null,
     { params: { note: note ?? '' } },
   );
-  if (!data.result) throw new Error(data.message ?? 'Từ chối trả hàng thất bại');
-  return data.result;
+  if (!data.data) throw new Error(data.message ?? 'Từ chối trả hàng thất bại');
+  return data.data!
 }

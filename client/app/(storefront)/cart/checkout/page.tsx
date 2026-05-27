@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { trackBehavior } from '@/features/behavior/services/behavior-api';
+import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart } from '@/features/cart/services/cart-api';
 import { checkout } from '@/features/checkout/services/checkout-api';
@@ -89,6 +91,22 @@ export default function CheckoutPage() {
           items: cartItems,
         },
         idempotencyKey.current,
+      );
+
+      await Promise.allSettled(
+        cart.items.map((item) =>
+          trackBehavior({
+            productId: item.productId,
+            eventType: 'PURCHASE',
+            price: item.price,
+          }),
+        ),
+      );
+
+      await Promise.allSettled(
+        cart.items
+          .filter((item) => item.flashSaleId)
+          .map((item) => notifyFlashSaleSold(item.productId, item.quantity)),
       );
 
       await clearCart();
