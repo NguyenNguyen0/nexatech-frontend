@@ -28,7 +28,7 @@ export async function TechNews() {
   return (
     <section className="mx-auto w-full max-w-[1200px] px-4 py-5">
       <div className="mb-4 flex items-end justify-between">
-        <h2 className="text-lg font-bold text-[#1b1c1c]">Tin tức công nghệ</h2>
+        <h2 className="text-lg font-bold text-[#1b1c1c]">News công nghệ</h2>
         <Link
           href="/news"
           className="inline-flex items-center gap-0.5 text-[13px] font-medium text-[#004d75] transition hover:underline"
@@ -51,7 +51,7 @@ export async function TechNews() {
                 className="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               />
               <span className="absolute left-2 top-2 rounded-sm bg-[#004d75] px-1.5 py-[1px] text-[9px] font-bold text-white">
-                Tin tức
+                News
               </span>
             </div>
             <div className="p-3">

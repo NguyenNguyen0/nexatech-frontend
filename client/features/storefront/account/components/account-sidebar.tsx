@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, Heart, KeyRound, Monitor, ShieldCheck, UserRound } from 'lucide-react';
+import { Bell, Heart, KeyRound, Monitor, ReceiptText, ShieldCheck, UserRound } from 'lucide-react';
 
 const links = [
   { key: 'profile', label: 'Hồ sơ', href: '/user', icon: UserRound, exact: true },
   { key: 'account', label: 'Tài khoản', href: '/user/account', icon: KeyRound, exact: false },
+  { key: 'orders', label: 'Lịch sử đơn hàng', href: '/user/orders', icon: ReceiptText, exact: false },
   { key: 'appearance', label: 'Giao diện', href: '/user/appearance', icon: Monitor, exact: false },
   { key: 'notifications', label: 'Thông báo', href: '/user/notifications', icon: Bell, exact: false },
   { key: 'wishlist', label: 'Yêu thích', href: '/user/wishlist', icon: Heart, exact: false },
@@ -23,7 +24,7 @@ export function AccountSidebar() {
 
   return (
     <aside className="rounded-md border border-border bg-bg-elevated p-4 shadow-sm">
-      <nav className="mt-4 space-y-1.5">
+      <nav className="space-y-1.5">
         {links.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href, item.exact);

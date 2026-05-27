@@ -168,6 +168,22 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Payment management */
+            {
+                path: 'payment',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/payment')).default,
+                }),
+            },
+
+            /** Shipping management */
+            {
+                path: 'shipping',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/shipping')).default,
+                }),
+            },
+
             /** Calendar (fullcalendar-based) */
             {
                 path: 'calendar',
@@ -233,6 +249,32 @@ export const admin: RouteObject[] = [
                 lazy: async () => ({
                     Component: (await import('@/pages/admin/permissions')).default,
                 }),
+            },
+
+            /** Audit logs (Kafka-consumed audit-service) */
+            {
+                path: 'audit',
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <Outlet />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true,
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/audit')).default,
+                        }),
+                    },
+                    {
+                        path: 'trace',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/audit/components/AuditTrace')).AuditTrace,
+                        }),
+                    },
+                ],
             },
 
             /** Settings with sub-sections (profile/account/appearance/...) */

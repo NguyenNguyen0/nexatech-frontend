@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import {
     IconArrowLeft,
     IconDotsVertical,
+    IconFilter,
     IconMessages,
     IconSearch,
     IconSend,
@@ -11,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import {
@@ -34,8 +35,12 @@ import {
     sendMessage,
 } from "./chat-api";
 
-const MESSAGE_PAGE_SIZE = 50;
-const REALTIME_FALLBACK_INTERVAL_MS = 1500;
+const CONVERSATION_PAGE_SIZE = 20;
+const MESSAGE_PAGE_SIZE = 30;
+const REALTIME_FALLBACK_INTERVAL_MS = 15000;
+const CHAT_UNREAD_CHANGED_EVENT = "admin-chat-unread-changed";
+
+type ReadFilter = "all" | "unread" | "read";
 
 function resolveWsUrl(): string {
     const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080";
@@ -72,6 +77,36 @@ function conversationSortTime(conversation: Conversation): string {
 
 function sortConversations(items: Conversation[]): Conversation[] {
     return [...items].sort((a, b) => conversationSortTime(b).localeCompare(conversationSortTime(a)));
+}
+
+function isNewerConversation(candidate: Conversation, existing?: Conversation): boolean {
+    if (!existing) return true;
+    return conversationSortTime(candidate).localeCompare(conversationSortTime(existing)) >= 0;
+}
+
+function isConversationUnread(conversation: Conversation): boolean {
+    return (conversation.unreadCount ?? 0) > 0;
+}
+
+function matchesDateFilter(conversation: Conversation, date: string): boolean {
+    if (!date) return true;
+    const value = conversation.lastMessage?.sentAt || conversation.updatedAt || conversation.createdAt;
+    if (!value) return false;
+    return dayjs(value).format("YYYY-MM-DD") === date;
+}
+
+function formatProductPrice(value?: number | null): string {
+    if (typeof value !== "number") return "";
+    return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(value);
+}
+
+function productHref(slug: string): string {
+    const base = import.meta.env.VITE_STOREFRONT_BASE_URL || "http://localhost:3000";
+    return `${String(base).replace(/\/$/, "")}/product/${slug}`;
 }
 
 function sameOptimisticMessage(message: ChatMessage, candidate: ChatMessage): boolean {
@@ -112,6 +147,8 @@ export default function Chats() {
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [message, setMessage] = useState("");
+    const [readFilter, setReadFilter] = useState<ReadFilter>("all");
+    const [dateFilter, setDateFilter] = useState("");
     const [mobileSelectedUser, setMobileSelectedUser] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [connected, setConnected] = useState(false);
@@ -122,23 +159,36 @@ export default function Chats() {
     const subscriptionsRef = useRef<Record<string, StompSubscription>>({});
     const selectedConversationIdRef = useRef<string | null>(null);
     const adminUserIdRef = useRef<string | null>(null);
+    const loadingConversationsRef = useRef(false);
+    const loadingMessagesRef = useRef<Set<string>>(new Set());
+    const locallyReadConversationIdsRef = useRef<Set<string>>(new Set());
+    const messageEndRef = useRef<HTMLDivElement | null>(null);
     const adminUserId = useMemo(() => getUserIdFromAccessToken(getAccessToken()), []);
     const adminRole = useMemo(() => pickPrimaryRole(getRolesFromAccessToken(getAccessToken())) ?? "ADMIN", []);
     const wsUrl = useMemo(resolveWsUrl, []);
 
     const selectedConversation = useMemo(
-        () => conversations.find((item) => item.id === selectedConversationId) ?? conversations[0] ?? null,
+        () => conversations.find((item) => item.id === selectedConversationId) ?? null,
         [conversations, selectedConversationId],
     );
 
     const filteredConversations = useMemo(() => {
         const keyword = search.trim().toLowerCase();
-        if (!keyword) return conversations;
         return conversations.filter((conversation) =>
-            displayName(conversation).toLowerCase().includes(keyword)
-            || conversationSubtitle(conversation).toLowerCase().includes(keyword),
+            (!keyword
+                || displayName(conversation).toLowerCase().includes(keyword)
+                || conversationSubtitle(conversation).toLowerCase().includes(keyword))
+            && (readFilter === "all"
+                || (readFilter === "unread" && isConversationUnread(conversation))
+                || (readFilter === "read" && !isConversationUnread(conversation)))
+            && matchesDateFilter(conversation, dateFilter),
         );
-    }, [conversations, search]);
+    }, [conversations, dateFilter, readFilter, search]);
+
+    const hasUnreadConversation = useMemo(
+        () => conversations.some(isConversationUnread),
+        [conversations],
+    );
 
     useEffect(() => {
         selectedConversationIdRef.current = selectedConversation?.id ?? null;
@@ -148,96 +198,197 @@ export default function Chats() {
         adminUserIdRef.current = adminUserId;
     }, [adminUserId]);
 
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent(CHAT_UNREAD_CHANGED_EVENT, {
+                detail: { hasUnread: hasUnreadConversation },
+            }),
+        );
+    }, [hasUnreadConversation]);
+
+    const normalizeConversationReadState = useCallback((conversation: Conversation): Conversation => {
+        const activeConversationId = selectedConversationIdRef.current;
+        const activeAdminUserId = adminUserIdRef.current;
+        const isActive = conversation.id === activeConversationId;
+        const isLocallyRead = locallyReadConversationIdsRef.current.has(conversation.id);
+        const lastMessageFromAdmin = Boolean(
+            conversation.lastMessage?.senderId
+            && activeAdminUserId
+            && conversation.lastMessage.senderId === activeAdminUserId,
+        );
+
+        if (isActive || isLocallyRead || lastMessageFromAdmin) {
+            return { ...conversation, unreadCount: 0 };
+        }
+
+        return conversation;
+    }, []);
+
+    const mergeConversationRecord = useCallback((existing: Conversation | undefined, incoming: Conversation): Conversation => {
+        const normalizedIncoming = normalizeConversationReadState(incoming);
+        if (!existing) return normalizedIncoming;
+
+        if (!isNewerConversation(normalizedIncoming, existing)) {
+            return normalizeConversationReadState({
+                ...normalizedIncoming,
+                ...existing,
+                participant: existing.participant ?? normalizedIncoming.participant,
+                otherUserOnline: normalizedIncoming.otherUserOnline ?? existing.otherUserOnline,
+            });
+        }
+
+        return normalizeConversationReadState({
+            ...existing,
+            ...normalizedIncoming,
+            participant: normalizedIncoming.participant ?? existing.participant,
+            unreadCount: Math.max(existing.unreadCount ?? 0, normalizedIncoming.unreadCount ?? 0),
+        });
+    }, [normalizeConversationReadState]);
+
     const upsertConversation = useCallback((conversation: Conversation) => {
         setConversations((current) => {
             const existingIndex = current.findIndex((item) => item.id === conversation.id);
-            const next = existingIndex >= 0 ? [...current] : [conversation, ...current];
+            const next = existingIndex >= 0 ? [...current] : [mergeConversationRecord(undefined, conversation), ...current];
             if (existingIndex >= 0) {
-                next[existingIndex] = { ...next[existingIndex], ...conversation };
+                next[existingIndex] = mergeConversationRecord(next[existingIndex], conversation);
             }
             return sortConversations(next);
         });
         setSelectedConversationId((current) => current ?? conversation.id);
-    }, []);
+    }, [mergeConversationRecord]);
 
     const upsertMessage = useCallback((incoming: ChatMessage) => {
         setMessages((current) => mergeMessage(current, incoming));
     }, []);
 
+    const markConversationReadLocally = useCallback((conversationId: string) => {
+        locallyReadConversationIdsRef.current.add(conversationId);
+        setConversations((current) =>
+            current.map((conversation) =>
+                conversation.id === conversationId
+                    ? { ...conversation, unreadCount: 0 }
+                    : conversation,
+            ),
+        );
+    }, []);
+
     const loadConversations = useCallback(async () => {
+        if (loadingConversationsRef.current) return;
+        loadingConversationsRef.current = true;
         setIsLoading(true);
         setErrorMessage(null);
         try {
-            const page = await fetchConversations(0, 50);
-            setConversations(sortConversations(page.content));
+            const page = await fetchConversations(0, CONVERSATION_PAGE_SIZE);
+            setConversations((current) => {
+                const byId = new Map(current.map((conversation) => [conversation.id, conversation]));
+                page.content.forEach((conversation) => {
+                    byId.set(conversation.id, mergeConversationRecord(byId.get(conversation.id), conversation));
+                });
+                return sortConversations(Array.from(byId.values()));
+            });
             setSelectedConversationId((current) => current ?? page.content[0]?.id ?? null);
         } catch (error) {
-            setConversations([]);
-            setSelectedConversationId(null);
             setErrorMessage(
                 error instanceof Error
                     ? error.message
                     : "Không thể tải danh sách hội thoại",
             );
         } finally {
+            loadingConversationsRef.current = false;
             setIsLoading(false);
         }
-    }, []);
+    }, [mergeConversationRecord]);
 
     const loadMessages = useCallback(async (conversationId: string) => {
+        if (loadingMessagesRef.current.has(conversationId)) return;
+        loadingMessagesRef.current.add(conversationId);
         try {
             const page = await fetchMessages(conversationId, undefined, MESSAGE_PAGE_SIZE);
             const ordered = [...page.content].reverse();
+            if (selectedConversationIdRef.current !== conversationId) return;
             setMessages(ordered);
-            const latestIncoming = [...ordered].reverse().find((item) => item.senderId !== adminUserId);
-            if (latestIncoming) {
-                markSeen(conversationId, latestIncoming.id).catch(() => undefined);
+            const latestUnseenIncoming = [...ordered].reverse().find((item) => item.senderId !== adminUserId && !item.seenAt);
+            if (latestUnseenIncoming) {
+                markConversationReadLocally(conversationId);
+                markSeen(conversationId, latestUnseenIncoming.id).catch(() => undefined);
             }
         } catch (error) {
+            if (selectedConversationIdRef.current !== conversationId) return;
             setMessages([]);
             setErrorMessage(
                 error instanceof Error
                     ? error.message
                     : "Không thể tải tin nhắn",
             );
+        } finally {
+            loadingMessagesRef.current.delete(conversationId);
         }
-    }, [adminUserId]);
+    }, [adminUserId, markConversationReadLocally]);
 
     const handleIncomingMessage = useCallback((incoming: ChatMessage) => {
         const activeConversationId = selectedConversationIdRef.current;
         const activeAdminUserId = adminUserIdRef.current;
+        const incomingFromAdmin = incoming.senderId === activeAdminUserId;
+
+        if (!incomingFromAdmin && incoming.conversationId !== activeConversationId) {
+            locallyReadConversationIdsRef.current.delete(incoming.conversationId);
+        }
 
         setConversations((current) =>
-            sortConversations(current.map((conversation) =>
-                conversation.id === incoming.conversationId
-                    ? {
+            {
+                const existing = current.find((conversation) => conversation.id === incoming.conversationId);
+                const incomingConversation: Conversation = {
+                    id: incoming.conversationId,
+                    customerId: incoming.senderId === activeAdminUserId ? incoming.recipientId : incoming.senderId,
+                    agentId: incoming.senderId === activeAdminUserId ? incoming.senderId : null,
+                    conversationType: "AUTHENTICATED",
+                    status: "OPEN",
+                    currentParticipantId: activeAdminUserId,
+                    otherUserId: incoming.senderId === activeAdminUserId ? incoming.recipientId : incoming.senderId,
+                    participant: existing?.participant ?? null,
+                    otherUserOnline: existing?.otherUserOnline,
+                    unreadCount: existing?.lastMessage?.id === incoming.id
+                        ? existing.unreadCount
+                        : incoming.senderId !== activeAdminUserId && incoming.conversationId !== activeConversationId
+                        ? (existing?.unreadCount ?? 0) + 1
+                        : 0,
+                    lastMessage: {
+                        id: incoming.id,
+                        senderId: incoming.senderId,
+                        preview: incoming.content,
+                        sentAt: incoming.createdAt,
+                    },
+                    createdAt: existing?.createdAt ?? incoming.createdAt,
+                    updatedAt: incoming.createdAt,
+                };
+
+                if (!existing) {
+                    return sortConversations([normalizeConversationReadState(incomingConversation), ...current]);
+                }
+
+                return sortConversations(current.map((conversation) =>
+                    conversation.id === incoming.conversationId
+                    ? mergeConversationRecord(conversation, {
                         ...conversation,
-                        lastMessage: {
-                            id: incoming.id,
-                            senderId: incoming.senderId,
-                            preview: incoming.content,
-                            sentAt: incoming.createdAt,
-                        },
-                    }
+                        ...incomingConversation,
+                    })
                     : conversation,
-            )),
+                ));
+            }
         );
 
         if (incoming.conversationId === activeConversationId) {
             upsertMessage(incoming);
             if (incoming.senderId !== activeAdminUserId) {
+                markConversationReadLocally(incoming.conversationId);
                 markSeen(incoming.conversationId, incoming.id).catch(() => undefined);
             }
         }
-    }, [upsertMessage]);
+    }, [markConversationReadLocally, mergeConversationRecord, normalizeConversationReadState, upsertMessage]);
 
     const handleGlobalMessage = useCallback((incoming: ChatMessage) => {
         handleIncomingMessage(incoming);
-        void loadConversations();
-        if (incoming.conversationId === selectedConversationIdRef.current) {
-            void loadMessages(incoming.conversationId);
-        }
-    }, [handleIncomingMessage, loadConversations, loadMessages]);
+    }, [handleIncomingMessage]);
 
     const handleDeletedMessage = useCallback((deleted: ChatMessageDeleted) => {
         setMessages((current) => current.filter((item) => item.id !== deleted.id));
@@ -263,10 +414,7 @@ export default function Chats() {
 
     const handleConversationUpdate = useCallback((conversation: Conversation) => {
         upsertConversation(conversation);
-        if (conversation.id === selectedConversationIdRef.current && conversation.lastMessage?.id) {
-            void loadMessages(conversation.id);
-        }
-    }, [loadMessages, upsertConversation]);
+    }, [upsertConversation]);
 
     const connectSocket = useCallback(async () => {
         if (clientRef.current || socketConnectingRef.current) return;
@@ -335,21 +483,7 @@ export default function Chats() {
     const ensureConversationSubscriptions = useCallback(() => {
         if (!clientRef.current || !connected) return;
         conversations.forEach((conversation) => {
-            const messageKey = `${conversation.id}:messages`;
             const deletedKey = `${conversation.id}:deleted`;
-
-            if (!subscriptionsRef.current[messageKey]) {
-                subscriptionsRef.current[messageKey] = clientRef.current!.subscribe(
-                `/topic/conversations/${conversation.id}/messages`,
-                (frame) => {
-                    try {
-                        handleIncomingMessage(JSON.parse(frame.body) as ChatMessage);
-                    } catch {
-                        // Ignore malformed websocket payloads.
-                    }
-                },
-                );
-            }
 
             if (!subscriptionsRef.current[deletedKey]) {
                 subscriptionsRef.current[deletedKey] = clientRef.current!.subscribe(
@@ -364,7 +498,7 @@ export default function Chats() {
                 );
             }
         });
-    }, [connected, conversations, handleDeletedMessage, handleIncomingMessage]);
+    }, [connected, conversations, handleDeletedMessage]);
 
     const handleSendMessage = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -442,6 +576,8 @@ export default function Chats() {
     }, [ensureConversationSubscriptions]);
 
     useEffect(() => {
+        if (connected) return;
+
         const intervalId = window.setInterval(() => {
             if (document.visibilityState !== "visible") return;
             void loadConversations();
@@ -452,12 +588,16 @@ export default function Chats() {
         }, REALTIME_FALLBACK_INTERVAL_MS);
 
         return () => window.clearInterval(intervalId);
-    }, [loadConversations, loadMessages]);
+    }, [connected, loadConversations, loadMessages]);
 
     useEffect(() => {
         if (!selectedConversation?.id) return;
         void loadMessages(selectedConversation.id);
     }, [loadMessages, selectedConversation?.id]);
+
+    useEffect(() => {
+        messageEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    }, [messages.length, selectedConversation?.id]);
 
     return (
         <Layout fixed>
@@ -486,6 +626,31 @@ export default function Chats() {
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
                             </label>
+
+                            <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+                                <label className="flex h-9 items-center rounded-md border border-input px-2 text-xs focus-within:outline-none focus-within:ring-1 focus-within:ring-ring">
+                                    <IconFilter size={14} className="mr-2 shrink-0 text-muted-foreground" />
+                                    <span className="sr-only">Loc trang thai doc</span>
+                                    <select
+                                        value={readFilter}
+                                        onChange={(event) => setReadFilter(event.target.value as ReadFilter)}
+                                        className="h-full min-w-0 flex-1 bg-background text-xs text-foreground outline-none"
+                                    >
+                                        <option className="bg-background text-foreground" value="all">Tất cả</option>
+                                        <option className="bg-background text-foreground" value="unread">Chưa đọc</option>
+                                        <option className="bg-background text-foreground" value="read">Đã đọc</option>
+                                    </select>
+                                </label>
+                                <label className="flex h-9 items-center rounded-md border border-input px-2 text-xs focus-within:outline-none focus-within:ring-1 focus-within:ring-ring">
+                                    <span className="sr-only">Loc theo ngay</span>
+                                    <input
+                                        type="date"
+                                        value={dateFilter}
+                                        onChange={(event) => setDateFilter(event.target.value)}
+                                        className="h-full w-32 bg-transparent text-xs outline-none"
+                                    />
+                                </label>
+                            </div>
                         </div>
 
                         <div className="-mx-3 min-h-0 flex-1 overflow-auto p-3">
@@ -497,7 +662,9 @@ export default function Chats() {
                                     {errorMessage}
                                 </div>
                             ) : null}
-                            {filteredConversations.map((conversation) => (
+                            {filteredConversations.map((conversation) => {
+                                const unread = isConversationUnread(conversation);
+                                return (
                                 <Fragment key={conversation.id}>
                                     <button
                                         type="button"
@@ -506,27 +673,44 @@ export default function Chats() {
                                             selectedConversation?.id === conversation.id && "sm:bg-muted",
                                         )}
                                         onClick={() => {
+                                            selectedConversationIdRef.current = conversation.id;
                                             setSelectedConversationId(conversation.id);
+                                            setMessages([]);
+                                            setErrorMessage(null);
                                             setMobileSelectedUser(true);
                                         }}
                                     >
-                                        <div className="flex min-w-0 gap-2">
+                                        <div className="flex min-w-0 flex-1 gap-2 pr-9">
                                             <Avatar>
                                                 {conversation.participant?.avatarUrl ? (
-                                                    <img
+                                                    <AvatarImage
                                                         src={conversation.participant.avatarUrl}
                                                         alt={displayName(conversation)}
-                                                        className="h-full w-full rounded-full object-cover"
                                                     />
-                                                ) : null}
-                                                <AvatarFallback>{initials(conversation)}</AvatarFallback>
+                                                ) : (
+                                                    <AvatarFallback>{initials(conversation)}</AvatarFallback>
+                                                )}
                                             </Avatar>
-                                            <div className="min-w-0">
-                                                <span className="block truncate font-medium">{displayName(conversation)}</span>
-                                                <span className="line-clamp-2 text-muted-foreground">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn("block min-w-0 flex-1 truncate", unread ? "font-bold" : "font-medium")}>
+                                                        {displayName(conversation)}
+                                                    </span>
+                                                    {conversation.lastMessage?.sentAt ? (
+                                                        <span className={cn("shrink-0 text-[11px]", unread ? "font-bold text-foreground" : "text-muted-foreground")}>
+                                                            {dayjs(conversation.lastMessage.sentAt).format("DD/MM")}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <span className={cn("line-clamp-2", unread ? "font-bold text-foreground" : "text-muted-foreground")}>
                                                     {conversationSubtitle(conversation)}
                                                 </span>
                                             </div>
+                                            {unread ? (
+                                                <span className="mt-1 grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                                                    {conversation.unreadCount && conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+                                                </span>
+                                            ) : null}
                                         </div>
                                     </button>
                                     <div className="-mt-11 mb-2 flex justify-end pr-1">
@@ -554,7 +738,8 @@ export default function Chats() {
                                     </div>
                                     <Separator className="my-1" />
                                 </Fragment>
-                            ))}
+                                );
+                            })}
                             {!isLoading && filteredConversations.length === 0 ? (
                                 <div className="px-2 py-4 text-sm text-muted-foreground">Chưa có hội thoại.</div>
                             ) : null}
@@ -574,7 +759,14 @@ export default function Chats() {
                                 </Button>
                                 <div className="flex items-center gap-2 lg:gap-4">
                                     <Avatar className="size-9 lg:size-11">
-                                        <AvatarFallback>{selectedConversation ? initials(selectedConversation) : "C"}</AvatarFallback>
+                                        {selectedConversation?.participant?.avatarUrl ? (
+                                            <AvatarImage
+                                                src={selectedConversation.participant.avatarUrl}
+                                                alt={displayName(selectedConversation)}
+                                            />
+                                        ) : (
+                                            <AvatarFallback>{selectedConversation ? initials(selectedConversation) : "C"}</AvatarFallback>
+                                        )}
                                     </Avatar>
                                     <div>
                                         <span className="block text-sm font-medium lg:text-base">
@@ -649,6 +841,39 @@ export default function Chats() {
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
+                                                    {item.productReference ? (
+                                                        <a
+                                                            href={productHref(item.productReference.slug)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className={cn(
+                                                                "mb-2 flex gap-2 rounded-md border bg-background/95 p-2 text-left text-foreground shadow-sm transition hover:border-primary/50",
+                                                                isMine && "bg-primary-foreground/95 text-foreground",
+                                                            )}
+                                                        >
+                                                            {item.productReference.thumbnail ? (
+                                                                <img
+                                                                    src={item.productReference.thumbnail}
+                                                                    alt={item.productReference.name}
+                                                                    className="h-12 w-12 shrink-0 rounded object-cover"
+                                                                />
+                                                            ) : (
+                                                                <div className="grid h-12 w-12 shrink-0 place-items-center rounded bg-muted text-xs font-semibold text-muted-foreground">
+                                                                    SP
+                                                                </div>
+                                                            )}
+                                                            <span className="min-w-0 flex-1">
+                                                                <span className="line-clamp-2 block text-xs font-semibold leading-4 text-primary">
+                                                                    {item.productReference.name}
+                                                                </span>
+                                                                {item.productReference.price ? (
+                                                                    <span className="mt-0.5 block text-xs font-bold">
+                                                                        {formatProductPrice(item.productReference.price)}
+                                                                    </span>
+                                                                ) : null}
+                                                            </span>
+                                                        </a>
+                                                    ) : null}
                                                     <p className="whitespace-pre-wrap">{item.content}</p>
                                                     <span className={cn("mt-1 block text-xs font-light italic text-muted-foreground", isMine && "text-right text-primary-foreground/75")}>
                                                         {dayjs(item.createdAt).format("HH:mm")}
@@ -656,6 +881,7 @@ export default function Chats() {
                                                 </div>
                                             );
                                         })}
+                                        <div ref={messageEndRef} />
                                     </div>
                                 </div>
                             </div>

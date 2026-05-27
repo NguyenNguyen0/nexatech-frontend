@@ -16,6 +16,10 @@ import {
     IconShieldLock,
     IconKey,
     IconNews,
+    IconHistory,
+    IconCreditCard,
+    IconTruck,
+    IconTimeline,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -125,6 +129,18 @@ export const sidelinks: SideLink[] = [
         icon: <IconShoppingCart size={18} />,
     },
     {
+        title: 'Payment',
+        label: '',
+        href: '/admin/payment',
+        icon: <IconCreditCard size={18} />,
+    },
+    {
+        title: 'Shipping',
+        label: '',
+        href: '/admin/shipping',
+        icon: <IconTruck size={18} />,
+    },
+    {
         title: 'Calendar',
         label: '',
         href: '/admin/calendar',
@@ -161,6 +177,26 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/supports',
         icon: <IconHelpHexagon size={18} />,
+    },
+    {
+        title: 'Audit Logs',
+        label: '',
+        href: '',
+        icon: <IconHistory size={18} />,
+        sub: [
+            {
+                title: 'Audit Log',
+                label: '',
+                href: '/admin/audit',
+                icon: <IconHistory size={18} />,
+            },
+            {
+                title: 'Trace Log',
+                label: '',
+                href: '/admin/audit/trace',
+                icon: <IconTimeline size={18} />,
+            },
+        ],
     },
     {
         title: 'Settings',

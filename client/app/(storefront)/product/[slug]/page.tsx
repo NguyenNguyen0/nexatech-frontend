@@ -56,6 +56,9 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
 
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
   const categoryName = product.primaryCategoryName;
+  const activeFlashSale = await fetchFlashSaleByProductSlug(product.slug, product.id);
+  const displayPrice = activeFlashSale?.salePrice ?? product.price;
+  const displayCompareAtPrice = activeFlashSale?.originalPrice ?? product.compareAtPrice;
 
   return (
     <section className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
@@ -72,8 +75,10 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             categoryIds={product.categoryIds}
             brandName={product.brandName}
             brandId={product.brandId}
-            price={product.price}
-            compareAtPrice={product.compareAtPrice}
+            price={displayPrice}
+            compareAtPrice={displayCompareAtPrice}
+            flashSaleId={activeFlashSale?.id}
+            flashSalePrice={activeFlashSale?.salePrice}
             averageRating={product.averageRating}
             reviewCount={reviewsPage.totalItems ?? product.reviewCount ?? 0}
             stockStatus={product.stockStatus}
@@ -93,7 +98,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
             productName={product.name}
             categoryIds={product.categoryIds}
             brandId={product.brandId}
-            price={product.price}
+            price={displayPrice}
             averageRating={product.averageRating}
             reviewCount={reviewsPage.totalItems ?? reviewsPage.items.length}
             initialReviews={reviewsPage.items}

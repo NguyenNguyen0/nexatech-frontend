@@ -35,7 +35,7 @@ export function NewsCard({ item }: NewsCardProps) {
           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
         />
         <span className="absolute left-3 top-3 rounded-sm bg-[#004d75] px-2 py-1 text-[11px] font-semibold text-white">
-          Tin tức
+          News
         </span>
       </div>
 

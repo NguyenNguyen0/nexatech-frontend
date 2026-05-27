@@ -73,7 +73,7 @@ export default function NewsPreview() {
             Không tìm thấy tin tức
           </h1>
           <p className="text-muted-foreground mb-8">
-            Tin tức bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.
+            News bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.
           </p>
           <Button onClick={() => navigate("/admin/news")}>
             <ArrowLeft className="w-4 h-4 mr-2" />

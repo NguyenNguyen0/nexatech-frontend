@@ -1,4 +1,10 @@
 import axiosClient from "@/lib/axiosClient";
+import {
+    getAccessToken,
+    getRolesFromAccessToken,
+    getUserIdFromAccessToken,
+    pickPrimaryRole,
+} from "@/services/authSession";
 
 export type ChatApiResponse<T> = {
     success: boolean;
@@ -39,6 +45,7 @@ export type Conversation = {
         avatarUrl?: string | null;
     } | null;
     otherUserOnline?: boolean;
+    unreadCount?: number;
     lastMessage?: LastMessagePreview | null;
     expiresAt?: string | null;
     createdAt?: string;
@@ -56,6 +63,13 @@ export type ChatMessage = {
     senderId: string;
     recipientId?: string | null;
     content: string;
+    productReference?: {
+        productId: string;
+        slug: string;
+        name: string;
+        thumbnail?: string | null;
+        price?: number | null;
+    } | null;
     status: "SENT" | "DELIVERED" | "SEEN";
     deliveredAt?: string | null;
     seenAt?: string | null;
@@ -76,6 +90,18 @@ export type CursorPageResponse<T> = {
 
 const CHAT_BASE = "/api/v1/conversations";
 
+function adminChatHeaders(): Record<string, string> {
+    const token = getAccessToken();
+    const userId = getUserIdFromAccessToken(token);
+    const role = pickPrimaryRole(getRolesFromAccessToken(token));
+    const headers: Record<string, string> = {};
+
+    if (userId) headers["X-User-Id"] = userId;
+    if (role) headers["X-User-Role"] = role;
+
+    return headers;
+}
+
 function unwrap<T>(response: ChatApiResponse<T>): T {
     if (!response?.success || response.data === undefined) {
         throw new Error(response?.message || "Chat API request failed");
@@ -86,6 +112,7 @@ function unwrap<T>(response: ChatApiResponse<T>): T {
 export async function fetchConversations(page = 0, size = 50): Promise<PageResponse<Conversation>> {
     const { data } = await axiosClient.get<ChatApiResponse<PageResponse<Conversation>>>(CHAT_BASE, {
         params: { page, size },
+        headers: adminChatHeaders(),
     });
     return unwrap(data);
 }
@@ -97,7 +124,10 @@ export async function fetchMessages(
 ): Promise<CursorPageResponse<ChatMessage>> {
     const { data } = await axiosClient.get<ChatApiResponse<CursorPageResponse<ChatMessage>>>(
         `${CHAT_BASE}/${conversationId}/messages`,
-        { params: { cursor, size } },
+        {
+            params: { cursor, size },
+            headers: adminChatHeaders(),
+        },
     );
     return unwrap(data);
 }
@@ -105,6 +135,7 @@ export async function fetchMessages(
 export async function deleteConversation(conversationId: string): Promise<ConversationDeleted> {
     const { data } = await axiosClient.delete<ChatApiResponse<ConversationDeleted>>(
         `${CHAT_BASE}/${conversationId}`,
+        { headers: adminChatHeaders() },
     );
     return unwrap(data);
 }
@@ -113,6 +144,7 @@ export async function sendMessage(conversationId: string, content: string): Prom
     const { data } = await axiosClient.post<ChatApiResponse<ChatMessage>>(
         `${CHAT_BASE}/${conversationId}/messages`,
         { content },
+        { headers: adminChatHeaders() },
     );
     return unwrap(data);
 }
@@ -120,6 +152,8 @@ export async function sendMessage(conversationId: string, content: string): Prom
 export async function markSeen(conversationId: string, messageId: string): Promise<ChatMessage> {
     const { data } = await axiosClient.put<ChatApiResponse<ChatMessage>>(
         `${CHAT_BASE}/${conversationId}/messages/${messageId}/seen`,
+        undefined,
+        { headers: adminChatHeaders() },
     );
     return unwrap(data);
 }
@@ -127,6 +161,7 @@ export async function markSeen(conversationId: string, messageId: string): Promi
 export async function deleteMessage(conversationId: string, messageId: string): Promise<ChatMessageDeleted> {
     const { data } = await axiosClient.delete<ChatApiResponse<ChatMessageDeleted>>(
         `${CHAT_BASE}/${conversationId}/messages/${messageId}`,
+        { headers: adminChatHeaders() },
     );
     return unwrap(data);
 }

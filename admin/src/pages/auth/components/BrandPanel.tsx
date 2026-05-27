@@ -6,7 +6,8 @@ export function BrandPanel({ isLogin }: { isLogin: boolean }) {
         <motion.div
             layout="position"
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden bg-zinc-950 p-10 text-white lg:flex"
+            className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden p-10 text-white lg:flex"
+            style={{ background: 'var(--gradient-hero)' }}
         >
             {/* Background Watermark */}
             <div
@@ -22,7 +23,7 @@ export function BrandPanel({ isLogin }: { isLogin: boolean }) {
             <div className="relative z-10 flex flex-col items-center justify-center space-y-12">
                 <div className="group relative">
                     <div
-                        className="absolute -inset-4 rounded-full bg-white/20 opacity-50 blur-3xl transition-opacity group-hover:opacity-75"
+                        className="absolute -inset-4 rounded-full bg-[#90cdff]/30 opacity-60 blur-3xl transition-opacity group-hover:opacity-90"
                         aria-hidden="true"
                     />
                     <img
@@ -42,7 +43,7 @@ export function BrandPanel({ isLogin }: { isLogin: boolean }) {
                             className="text-3xl font-bold tracking-tight drop-shadow-lg"
                         >
                             {isLogin ? "Internal Dashboard" : "Join our Internal Dashboard"}
-                            <p className="text-sm text-muted-foreground italic tracking-tight drop-shadow-lg">
+                            <p className="text-sm text-white/70 italic tracking-tight drop-shadow-lg">
                                 {isLogin ? "" : "Trang này không publish khi triển khai!!"}
                             </p>
                         </motion.h2>

@@ -4,7 +4,7 @@ import { NewsCard } from '@/features/news/components';
 import { fetchPublicNews } from '@/features/news/services/news-api';
 
 export const metadata: Metadata = {
-  title: 'Tin tức | NexaTech',
+  title: 'News | NexaTech',
   description: 'Cập nhật tin tức công nghệ và thông báo mới nhất từ NexaTech.',
 };
 
@@ -19,7 +19,7 @@ export default async function NewsPage() {
           NexaTech News
         </div>
         <h1 className="text-3xl font-bold text-[#1b1c1c] md:text-4xl">
-          Tin tức
+          News
         </h1>
       </div>
 
@@ -35,7 +35,7 @@ export default async function NewsPage() {
             Chưa có tin tức nào
           </h2>
           <p className="mt-2 text-sm text-[#666]">
-            Tin tức mới sẽ được hiển thị tại đây khi được xuất bản.
+            News mới sẽ được hiển thị tại đây khi được xuất bản.
           </p>
         </div>
       )}

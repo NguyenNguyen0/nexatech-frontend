@@ -15,7 +15,7 @@ export async function generateMetadata({
 
   if (!news) {
     return {
-      title: 'Tin tức | NexaTech',
+      title: 'News | NexaTech',
     };
   }
 
