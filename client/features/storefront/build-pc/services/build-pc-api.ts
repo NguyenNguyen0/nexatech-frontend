@@ -37,7 +37,7 @@ function resolveUrl(path: string): string {
     return `${MOCK_BASE}${path}`;
   }
   const base =
-    (process.env.NEXT_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? 'http://localhost:8080') +
+    ((process.env.NEXT_PUBLIC_BACKEND_BASE_URL || process.env.API_GATEWAY_URL)?.replace(/\/$/, '') ?? 'http://localhost:8080') +
     '/api/v1';
   return `${base}${path}`;
 }

@@ -1,5 +1,7 @@
 // Server-side only — uses process.env for absolute URLs (not client rewrites)
 
+import { resolvePromotionBaseUrl } from '@/lib/server-env';
+
 export interface FlashSaleStripItem {
   id: string;
   productId: string;
@@ -20,8 +22,7 @@ export interface FlashSaleStripData {
   endsAt: number; // Unix timestamp ms — 0 means no active sale
 }
 
-const PROMOTION_URL =
-  process.env.PROMOTION_SERVICE_URL?.replace(/\/$/, '') ?? 'http://localhost:8093';
+const PROMOTION_URL = resolvePromotionBaseUrl();
 
 interface RawFlashSale {
   id: string;
@@ -114,4 +115,3 @@ export async function fetchFlashSaleByProductSlug(
     soldPercent: match.soldPercent,
   };
 }
-
