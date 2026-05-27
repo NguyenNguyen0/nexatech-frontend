@@ -476,7 +476,7 @@ export async function fetchProductSuggestions(keyword: string, params?: { limit?
       categoryIds: product.categoryIds,
       brandId: product.brandId,
     })),
-    totalItems: result.totalItems,
+    totalItems: result.totalItems ?? result.items.length,
   };
 }
 

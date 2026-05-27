@@ -93,9 +93,12 @@ export async function fetchFlashSaleStripData(): Promise<FlashSaleStripData> {
 /** Find the active flash sale for a given product slug (for PDP price override). */
 export async function fetchFlashSaleByProductSlug(
   slug: string,
+  productId?: string,
 ): Promise<FlashSaleStripItem | null> {
   const flashSales = await fetchActiveFlashSales();
-  const match = flashSales.find((fs) => fs.productSlug === slug);
+  const match = flashSales.find(
+    (fs) => fs.remainingStock > 0 && (fs.productSlug === slug || (productId && fs.productId === productId)),
+  );
   if (!match) return null;
   return {
     id: match.id,
