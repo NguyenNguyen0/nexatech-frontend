@@ -51,7 +51,7 @@ interface FlashSaleApiResponse {
 async function fetchActiveFlashSales(): Promise<RawFlashSale[]> {
   try {
     const res = await fetch(`${PROMOTION_URL}/api/v1/flash-sales`, {
-      next: { revalidate: 30 },
+      cache: 'no-store',
     });
     if (!res.ok) return [];
     const body = (await res.json()) as FlashSaleApiResponse;

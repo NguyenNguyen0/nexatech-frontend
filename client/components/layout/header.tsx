@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Heart, LogOut, Menu, ShoppingCart, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
+import { ChevronDown, Heart, LogOut, Menu, ReceiptText, ShoppingCart, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -162,6 +162,16 @@ export function Header() {
                     >
                       <UserRound className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
                       Hồ sơ cá nhân
+                    </Link>
+
+                    <Link
+                      href="/user/orders"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2 text-[#333] transition hover:bg-[#f5f5f5]"
+                      onClick={() => setAccountMenuOpen(false)}
+                    >
+                      <ReceiptText className="h-3.5 w-3.5 shrink-0 text-[#004d75]" />
+                      Lịch sử đơn hàng
                     </Link>
 
                     <Link
@@ -339,6 +349,14 @@ export function Header() {
                   >
                     <UserRound className="h-4 w-4 text-[#004d75]" />
                     Hồ sơ cá nhân
+                  </Link>
+                  <Link
+                    href="/user/orders"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="border-b border-[#f0f0f0] px-3 py-2.5 text-[13px] font-medium text-[#333] flex items-center gap-2 hover:bg-[#f7f7f7]"
+                  >
+                    <ReceiptText className="h-4 w-4 text-[#004d75]" />
+                    Lịch sử đơn hàng
                   </Link>
                   <Link
                     href="/user/account"
