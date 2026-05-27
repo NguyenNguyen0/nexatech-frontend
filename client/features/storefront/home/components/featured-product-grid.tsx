@@ -1,120 +1,112 @@
+'use client';
+
 import Link from 'next/link';
-import { ChevronRight, Star } from 'lucide-react';
-import { fetchFeaturedProducts } from '@/features/products/services/products-api';
-import type { ProductSummary } from '@/features/products/types';
+import { useEffect, useMemo, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { ChevronRight } from 'lucide-react';
+import { getUserIdFromAccessToken } from '@/features/auth/utils/auth-session';
+import { authStorage } from '@/features/auth/utils/auth-storage';
+import {
+    fetchFeaturedProducts,
+    fetchPopularRecommendations,
+    fetchUserRecommendations,
+} from '@/features/products/services/products-api';
+import { ProductCard } from '@/features/products/components/product-card';
+import type { ProductMinimal } from '@/features/products/types';
 
-type ProductCardData = ProductSummary;
+const HOME_RECOMMEND_LIMIT = 8;
 
-function formatVND(value: number) {
-  return value.toLocaleString('vi-VN') + '₫';
-}
+export function FeaturedProductGrid() {
+    const { data: session, status } = useSession();
+    const [products, setProducts] = useState<ProductMinimal[]>([]);
+    const [loading, setLoading] = useState(true);
 
-function RatingStars({ rating, reviewCount }: { rating: number; reviewCount: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      <div className="flex items-center gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`h-2.5 w-2.5 ${
-              star <= Math.floor(rating)
-                ? 'fill-[#f5a623] text-[#f5a623]'
-                : star <= rating
-                  ? 'fill-[#f5a623]/50 text-[#f5a623]'
-                  : 'fill-[#ddd] text-[#ddd]'
-            }`}
-          />
-        ))}
-      </div>
-      {reviewCount > 0 && (
-        <span className="text-[10px] text-[#999]">({reviewCount})</span>
-      )}
-    </div>
-  );
-}
+    const sessionUserId = useMemo(() => {
+        if (typeof session?.user?.id === 'string' && session.user.id.trim()) {
+            return session.user.id;
+        }
 
-function BadgePill({ label, variant }: { label: string; variant: 'hot' | 'new' }) {
-  const colors =
-    variant === 'hot'
-      ? 'bg-[#e30019] text-white'
-      : 'bg-[#0a8a50] text-white';
+        return null;
+    }, [session?.user?.id]);
 
-  return (
-    <span className={`rounded-sm px-1.5 py-px text-[9px] font-bold uppercase ${colors}`}>
-      {label}
-    </span>
-  );
-}
+    useEffect(() => {
+        if (status === 'loading') return;
 
-function ProductCard({ product }: { product: ProductCardData }) {
-  const badges = product.tags?.length ? product.tags : ['hot', 'new'];
+        let active = true;
 
-  return (
-    <Link
-      href={`/product/${product.slug}`}
-      className="group block overflow-hidden rounded-md border border-[#e8e8e8] bg-white transition-all duration-150 hover:shadow-md"
-    >
-      {/* Image */}
-      <div className="relative bg-[#f7f7f7] p-2.5">
-        <div className="absolute left-1.5 top-1.5 z-10 flex gap-0.5">
-          {badges.map((badge) => (
-            <BadgePill
-              key={badge}
-              label={badge.charAt(0).toUpperCase() + badge.slice(1)}
-              variant={badge.toLowerCase() === 'hot' ? 'hot' : 'new'}
-            />
-          ))}
-        </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={product.thumbnail ?? ''}
-          alt={product.name}
-          className="mx-auto aspect-square w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
-        />
-      </div>
+        const loadRecommendations = async () => {
+            setLoading(true);
 
-      {/* Info */}
-      <div className="p-2.5">
-        <p className="text-[12px] font-medium leading-[1.4] text-[#333] line-clamp-2">
-          {product.name}
-        </p>
-        <div className="mt-1">
-          <RatingStars rating={product.averageRating ?? 0} reviewCount={product.reviewCount ?? 0} />
-        </div>
-        <p className="mt-1.5 text-[13px] font-bold text-[#e30019]">{formatVND(product.price)}</p>
-      </div>
-    </Link>
-  );
-}
+            const tokenUserId = getUserIdFromAccessToken(authStorage.getAccessToken());
+            const resolvedUserId = sessionUserId ?? tokenUserId;
 
-export async function FeaturedProductGrid() {
-  const featuredProducts = await fetchFeaturedProducts({ size: 8, page: 0, sort: 'createdAt,desc' }).catch(
-    () => ({ items: [] as ProductSummary[] }),
-  );
+            try {
+                let nextProducts: ProductMinimal[] = [];
 
-  return (
-    <section className="mx-auto w-full max-w-container-max px-4 py-5">
-      <div className="mb-4 flex items-end justify-between">
-        <h2 className="text-lg font-bold text-[#1b1c1c]">Sản phẩm nổi bật</h2>
-        <Link
-          href="/product?featured=true"
-          className="inline-flex items-center gap-0.5 text-[13px] font-medium text-storefront-primary transition hover:underline"
-        >
-          Xem tất cả <ChevronRight className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+                if (resolvedUserId) {
+                    nextProducts = await fetchUserRecommendations(resolvedUserId, HOME_RECOMMEND_LIMIT).catch(() => []);
+                }
 
-      {featuredProducts.items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
-          {featuredProducts.items.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-md border border-dashed border-[#e8e8e8] bg-white px-4 py-8 text-sm text-[#666]">
-          Chưa có sản phẩm nổi bật để hiển thị.
-        </div>
-      )}
-    </section>
-  );
+                if (nextProducts.length === 0) {
+                    nextProducts = await fetchPopularRecommendations(HOME_RECOMMEND_LIMIT).catch(() => []);
+                }
+
+                if (nextProducts.length === 0) {
+                    const featured = await fetchFeaturedProducts({
+                        size: HOME_RECOMMEND_LIMIT,
+                        page: 0,
+                        sort: 'createdAt,desc',
+                    }).catch(() => ({ items: [] as ProductMinimal[] }));
+                    nextProducts = featured.items;
+                }
+
+                if (!active) return;
+                setProducts(nextProducts.slice(0, HOME_RECOMMEND_LIMIT));
+            } finally {
+                if (!active) return;
+                setLoading(false);
+            }
+        };
+
+        void loadRecommendations();
+
+        return () => {
+            active = false;
+        };
+    }, [sessionUserId, status]);
+
+    return (
+        <section className="mx-auto w-full max-w-container-max px-4 py-5">
+            <div className="mb-4 flex items-end justify-between">
+                <h2 className="text-lg font-bold text-on-surface">Gợi ý cho bạn</h2>
+                <Link
+                    href="/product"
+                    className="inline-flex items-center gap-0.5 text-[13px] font-medium text-storefront-primary transition hover:underline"
+                >
+                    Xem tất cả <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+            </div>
+
+            {loading ? (
+                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
+                    {Array.from({ length: HOME_RECOMMEND_LIMIT }).map((_, index) => (
+                        <div
+                            key={index}
+                            className="aspect-[0.8] animate-pulse rounded-md border border-outline-variant bg-surface"
+                        />
+                    ))}
+                </div>
+            ) : products.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:grid-cols-4">
+                    {products.slice(0, HOME_RECOMMEND_LIMIT).map((product) => (
+                        <ProductCard key={product.id} product={product} />
+                    ))}
+                </div>
+            ) : (
+                <div className="rounded-md border border-dashed border-outline-variant bg-surface px-4 py-8 text-sm text-on-surface-variant">
+                    Chưa có gợi ý sản phẩm để hiển thị.
+                </div>
+            )}
+        </section>
+    );
 }

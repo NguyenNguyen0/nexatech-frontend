@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   },
   description:
     'Nền tảng thương mại điện tử hàng đầu Việt Nam với hàng ngàn ưu đãi hấp dẫn.',
+  icons: {
+    icon: '/brand/n-logo-transparent-bg.png',
+    shortcut: '/brand/n-logo-transparent-bg.png',
+    apple: '/brand/n-logo-transparent-bg.png',
+  },
 };
 
 import { Suspense } from 'react';
@@ -31,6 +36,15 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <head>
+        <link
+          rel="icon"
+          href="/brand/n-logo-transparent-bg.png"
+          type="image/png"
+        />
+        <link
+          rel="apple-touch-icon"
+          href="/brand/n-logo-transparent-bg.png"
+        />
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"

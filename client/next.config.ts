@@ -1,17 +1,33 @@
 import type { NextConfig } from 'next';
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
+const PROMOTION_SERVICE_URL = process.env.PROMOTION_SERVICE_URL?.replace(/\/$/, '') ?? 'http://localhost:8093';
 
 const nextConfig: NextConfig = {
   /* Proxy API calls to backend gateway */
   async rewrites() {
-    return [
-      // Temporarily disabled to use local mock API routes
-      // {
-      //   source: '/api/v1/:path*',
-      //   destination: `${API_GATEWAY_URL}/api/v1/:path*`,
-      // },
-    ];
+    return {
+      beforeFiles: [
+        // Promotion service routes trực tiếp (không qua Spring Gateway vì Node.js không dùng Eureka)
+        {
+          source: '/api/v1/promotions/:path*',
+          destination: `${PROMOTION_SERVICE_URL}/api/v1/promotions/:path*`,
+        },
+        {
+          source: '/api/v1/flash-sales/:path*',
+          destination: `${PROMOTION_SERVICE_URL}/api/v1/flash-sales/:path*`,
+        },
+        {
+          source: '/api/v1/internal/promotions/:path*',
+          destination: `${PROMOTION_SERVICE_URL}/api/v1/internal/promotions/:path*`,
+        },
+        // Catch-all: tất cả /api/v1/* còn lại → Spring Cloud Gateway → Eureka
+        {
+          source: '/api/v1/:path*',
+          destination: `${API_GATEWAY_URL}/api/v1/:path*`,
+        },
+      ],
+    };
   },
 };
 

@@ -74,9 +74,9 @@ export function CatalogFiltersForm({
   }, [selectedCategorySlug, categories]);
   return (
     <aside className="w-full lg:w-64 shrink-0">
-      <div className="sticky top-24 space-y-4">
+      <div className="sticky top-28 space-y-5">
         {/* ── Filter panel ──────────────────────────────────── */}
-        <div className="bg-surface rounded-md border border-outline-variant p-4 md:p-6 mb-6 lg:mb-0 shadow-sm">
+        <div className="bg-surface rounded-md border border-outline-variant p-4 md:p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-title-md font-title-md text-on-surface flex items-center gap-2">
               <SlidersHorizontal className="h-5 w-5 text-on-surface-variant" />
@@ -334,7 +334,7 @@ export function CatalogFiltersForm({
         </div>
 
         {/* ── Expert Advice card ─────────────────────────── */}
-        <div className="rounded-md border border-primary/20 bg-primary/5 p-5">
+        <div className="mt-1 rounded-md border border-primary/20 bg-primary/5 p-5">
           <div className="mb-2 flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
             <p className="text-label-lg font-label-lg text-primary">Tư vấn chuyên gia</p>

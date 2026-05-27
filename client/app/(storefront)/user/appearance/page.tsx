@@ -18,9 +18,9 @@ export default function AppearancePage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
+      <section className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
             <Monitor className="h-5 w-5 text-primary" />
           </div>
           <div>
@@ -41,7 +41,7 @@ export default function AppearancePage() {
             <select
               value={lang}
               onChange={(e) => setLang(e.target.value)}
-              className="mt-2 w-full max-w-xs rounded-xl border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+              className="mt-2 w-full max-w-xs rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
             >
               {LANG_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
@@ -52,7 +52,7 @@ export default function AppearancePage() {
           <div className="flex justify-end pt-2">
             <button
               onClick={handleSave}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition"
+              className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 transition"
             >
               Lưu tùy chọn
             </button>

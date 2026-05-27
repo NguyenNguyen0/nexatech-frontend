@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Mail, User, Calendar, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
+import { Mail, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
 import {
   getUserById,
   updateUserProfile,
@@ -42,7 +42,7 @@ function DisabledRow({ label, value }: { label: string; value?: string }) {
       <input
         value={value ?? ''}
         disabled
-        className="mt-1 w-full rounded-xl border border-border bg-bg-base/60 px-4 py-2.5 text-sm text-text-tertiary opacity-70 cursor-not-allowed"
+        className="mt-1 w-full rounded-sm border border-border bg-bg-base/60 px-4 py-2.5 text-sm text-text-tertiary opacity-70 cursor-not-allowed"
         readOnly
       />
     </div>
@@ -51,7 +51,7 @@ function DisabledRow({ label, value }: { label: string; value?: string }) {
 
 function InfoField({ label, value }: { label: string; value?: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-bg-base px-4 py-3">
+    <div className="rounded-md border border-border bg-bg-base px-4 py-3">
       <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">{label}</p>
       <p className="mt-1 text-sm font-medium text-text-primary">
         {value || <span className="italic text-text-tertiary">Chưa cập nhật</span>}
@@ -152,7 +152,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
+      <section className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -163,14 +163,14 @@ export default function UserProfilePage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1.5 text-xs font-semibold text-success">
+            <span className="inline-flex items-center gap-1.5 rounded-sm bg-success/10 px-3 py-1.5 text-xs font-semibold text-success">
               <ShieldCheck className="h-3.5 w-3.5" />
               Đã xác minh
             </span>
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-bg-base px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-primary hover:text-primary transition"
+                className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-bg-base px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-primary hover:text-primary transition"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Chỉnh sửa
@@ -178,7 +178,7 @@ export default function UserProfilePage() {
             ) : (
               <button
                 onClick={handleCancelEdit}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-bg-base px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-error hover:text-error transition"
+                className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-bg-base px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-error hover:text-error transition"
               >
                 <X className="h-3.5 w-3.5" />
                 Hủy
@@ -223,7 +223,7 @@ export default function UserProfilePage() {
               <DisabledRow label="Tên đăng nhập" value={profile?.username} />
               <DisabledRow label="Email" value={profile?.email} />
             </div>
-            <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
+            <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-4 py-2.5">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <p className="text-xs text-amber-700">Tên đăng nhập và email không thể thay đổi.</p>
             </div>
@@ -235,7 +235,7 @@ export default function UserProfilePage() {
                 <input
                   value={form.lastName}
                   onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
                   placeholder="Nguyễn"
                 />
               </div>
@@ -244,7 +244,7 @@ export default function UserProfilePage() {
                 <input
                   value={form.firstName}
                   onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
                   placeholder="Văn A"
                 />
               </div>
@@ -256,7 +256,7 @@ export default function UserProfilePage() {
                 <input
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
                   placeholder="09xx xxx xxx"
                 />
               </div>
@@ -265,7 +265,7 @@ export default function UserProfilePage() {
                 <select
                   value={form.gender}
                   onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
                 >
                   <option value="">-- Chọn --</option>
                   {GENDER_OPTIONS.map((o) => (
@@ -281,7 +281,7 @@ export default function UserProfilePage() {
                 type="date"
                 value={form.dob}
                 onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                className="mt-1 w-full rounded-xl border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+                className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
               />
             </div>
 
@@ -289,7 +289,7 @@ export default function UserProfilePage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 transition"
+                className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 transition"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Lưu thay đổi

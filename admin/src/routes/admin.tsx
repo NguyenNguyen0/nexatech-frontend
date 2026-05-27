@@ -1,9 +1,10 @@
 import type { RouteObject } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/custom/ProtectedRoute';
 import { LazyWrapper } from '@/components/custom/LazyWrapper';
 import AppShell from '@/components/app-shell';
 import GeneralError from '@/pages/errors/general-error';
+import ProductLayout from '@/pages/admin/product';
 
 /**
  * All admin-area routes.
@@ -49,6 +50,26 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Warehouse inventory dashboard */
+            {
+                path: 'warehouse',
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <Outlet />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true,
+                        lazy: async () => ({
+                            Component: (await import('@/pages/warehouse/WarehouseDashboard')).default,
+                        }),
+                    },
+                ],
+            },
+
             /** Kanban board */
             {
                 path: 'kanban',
@@ -60,14 +81,34 @@ export const admin: RouteObject[] = [
             /** Products: list + add form (nested) */
             {
                 path: 'product',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/product')).default,
-                }),
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <ProductLayout />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
                 children: [
                     {
                         index: true,
+                        element: <Navigate to="products" replace />,
+                    },
+                    {
+                        path: 'products',
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/product/list')).default,
+                        }),
+                    },
+                    {
+                        path: 'categories',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/categories')).default,
+                        }),
+                    },
+                    {
+                        path: 'brands',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/brands')).default,
                         }),
                     },
                     {
@@ -76,7 +117,39 @@ export const admin: RouteObject[] = [
                             Component: (await import('@/pages/admin/product/add')).default,
                         }),
                     },
+                    {
+                        path: 'edit/:id',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/product/add')).default,
+                        }),
+                    },
                 ],
+            },
+
+            /** News management */
+            {
+                path: 'news',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsList')).default,
+                }),
+            },
+            {
+                path: 'news/upsert',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsUpsert')).default,
+                }),
+            },
+            {
+                path: 'news/upsert/:slug',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsUpsert')).default,
+                }),
+            },
+            {
+                path: 'news/preview/:slug',
+                lazy: async () => ({
+                    Component: (await import('@/pages/news/NewsPreview')).default,
+                }),
             },
 
             /** Chats */
@@ -92,6 +165,22 @@ export const admin: RouteObject[] = [
                 path: 'order',
                 lazy: async () => ({
                     Component: (await import('@/pages/admin/order')).default,
+                }),
+            },
+
+            /** Payment management */
+            {
+                path: 'payment',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/payment')).default,
+                }),
+            },
+
+            /** Shipping management */
+            {
+                path: 'shipping',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/shipping')).default,
                 }),
             },
 
@@ -160,6 +249,32 @@ export const admin: RouteObject[] = [
                 lazy: async () => ({
                     Component: (await import('@/pages/admin/permissions')).default,
                 }),
+            },
+
+            /** Audit logs (Kafka-consumed audit-service) */
+            {
+                path: 'audit',
+                element: (
+                    <ProtectedRoute allowedRoles={['ADMIN']}>
+                        <LazyWrapper>
+                            <Outlet />
+                        </LazyWrapper>
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        index: true,
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/audit')).default,
+                        }),
+                    },
+                    {
+                        path: 'trace',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/admin/audit/components/AuditTrace')).AuditTrace,
+                        }),
+                    },
+                ],
             },
 
             /** Settings with sub-sections (profile/account/appearance/...) */

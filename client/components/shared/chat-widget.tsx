@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 'use client';
 
 import { Client, type StompSubscription } from '@stomp/stompjs';
@@ -21,13 +21,23 @@ import {
   markSeen,
   sendMessage,
 } from '@/features/chat/services/chat-api';
-import type { ChatMessage, Conversation } from '@/features/chat/types';
+import type {
+  ChatMessage,
+  ChatMessageDeleted,
+  Conversation,
+  ConversationDeleted,
+  ProductReference,
+} from '@/features/chat/types';
 import { getOrCreateGuestChatSessionId } from '@/features/chat/utils/guest-chat-session';
 
 const MESSAGE_PAGE_SIZE = 30;
 const AUTO_SCROLL_THRESHOLD = 80;
 
 type WidgetState = 'closed' | 'minimized' | 'open';
+
+export const PRODUCT_CONSULT_CHAT_EVENT = 'nexatech:chat-consult-product';
+
+type ProductConsultEvent = CustomEvent<ProductReference>;
 
 function resolveWsUrl(): string {
   const base =
@@ -49,6 +59,104 @@ function statusLabel(status: ChatMessage['status']): string {
   return 'Đã gửi';
 }
 
+function formatProductPrice(value?: number | null): string {
+  if (typeof value !== 'number') return '';
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function ProductReferenceCard({
+  product,
+  compact = false,
+  onClear,
+}: {
+  product: ProductReference;
+  compact?: boolean;
+  onClear?: () => void;
+}) {
+  const productUrl = `/product/${product.slug}`;
+
+  return (
+    <div className="mb-2 flex gap-2 rounded-xl border border-outline-variant bg-white/95 p-2 text-on-surface shadow-sm">
+      {product.thumbnail ? (
+        <img
+          src={product.thumbnail}
+          alt={product.name}
+          className="h-12 w-12 shrink-0 rounded-lg object-cover"
+        />
+      ) : (
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-surface-container-low text-xs font-bold text-primary">
+          SP
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <a
+          href={productUrl}
+          className="line-clamp-2 text-xs font-semibold leading-4 text-primary hover:underline"
+        >
+          {product.name}
+        </a>
+        {!compact && product.price ? (
+          <p className="mt-0.5 text-xs font-bold text-on-surface">
+            {formatProductPrice(product.price)}
+          </p>
+        ) : null}
+      </div>
+      {onClear ? (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Bo chon san pham tu van"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function sameOptimisticMessage(message: ChatMessage, candidate: ChatMessage): boolean {
+  return (
+    candidate.id.startsWith('temp-') &&
+    candidate.conversationId === message.conversationId &&
+    candidate.senderId === message.senderId &&
+    candidate.content === message.content
+  );
+}
+
+function mergeMessage(current: ChatMessage[], message: ChatMessage): ChatMessage[] {
+  const existingIndex = current.findIndex((item) => item.id === message.id);
+  if (existingIndex >= 0) {
+    const updated = [...current];
+    updated[existingIndex] = message;
+    return updated;
+  }
+
+  const optimisticIndex = current.findIndex((item) => sameOptimisticMessage(message, item));
+  if (optimisticIndex >= 0) {
+    const updated = [...current];
+    updated[optimisticIndex] = message;
+    return updated;
+  }
+
+  return [...current, message];
+}
+
+function replaceOptimisticMessage(
+  current: ChatMessage[],
+  optimisticId: string,
+  saved: ChatMessage,
+): ChatMessage[] {
+  const replaced = current.map((message) => (message.id === optimisticId ? saved : message));
+  return replaced.filter(
+    (message, index, list) => list.findIndex((item) => item.id === message.id) === index,
+  );
+}
+
 export function ChatWidget() {
   const [widgetState, setWidgetState] = useState<WidgetState>('closed');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -62,6 +170,7 @@ export function ChatWidget() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [guestSessionId, setGuestSessionId] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductReference | null>(null);
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<Client | null>(null);
@@ -177,14 +286,7 @@ export function ChatWidget() {
   );
 
   const upsertMessage = useCallback((message: ChatMessage) => {
-    setMessages((current) => {
-      const existingIndex = current.findIndex((item) => item.id === message.id);
-      if (existingIndex < 0) return [...current, message];
-
-      const updated = [...current];
-      updated[existingIndex] = message;
-      return updated;
-    });
+    setMessages((current) => mergeMessage(current, message));
   }, []);
 
   const updateConversationPreview = useCallback((message: ChatMessage) => {
@@ -255,18 +357,42 @@ export function ChatWidget() {
     if (!clientRef.current || !connected) return;
 
     conversations.forEach((conversation) => {
-      if (subscriptionsRef.current[conversation.id]) return;
+      const messageKey = `${conversation.id}:messages`;
+      const deletedKey = `${conversation.id}:deleted`;
 
-      subscriptionsRef.current[conversation.id] = clientRef.current!.subscribe(
-        `/topic/conversations/${conversation.id}/messages`,
-        (message) => {
-          try {
-            handleIncomingMessage(JSON.parse(message.body) as ChatMessage);
-          } catch {
-            // Ignore malformed websocket payloads.
-          }
-        },
-      );
+      if (!subscriptionsRef.current[messageKey]) {
+        subscriptionsRef.current[messageKey] = clientRef.current!.subscribe(
+          `/topic/conversations/${conversation.id}/messages`,
+          (message) => {
+            try {
+              handleIncomingMessage(JSON.parse(message.body) as ChatMessage);
+            } catch {
+              // Ignore malformed websocket payloads.
+            }
+          },
+        );
+      }
+
+      if (!subscriptionsRef.current[deletedKey]) {
+        subscriptionsRef.current[deletedKey] = clientRef.current!.subscribe(
+          `/topic/conversations/${conversation.id}/messages/deleted`,
+          (message) => {
+            try {
+              const deleted = JSON.parse(message.body) as ChatMessageDeleted;
+              setMessages((current) => current.filter((item) => item.id !== deleted.id));
+              setConversations((current) =>
+                current.map((item) =>
+                  item.id === deleted.conversationId && item.lastMessage?.id === deleted.id
+                    ? { ...item, lastMessage: null }
+                    : item,
+                ),
+              );
+            } catch {
+              // Ignore malformed websocket payloads.
+            }
+          },
+        );
+      }
     });
   }, [connected, conversations, handleIncomingMessage]);
 
@@ -282,7 +408,24 @@ export function ChatWidget() {
       webSocketFactory: () => new SockJS(wsUrl),
       connectHeaders,
       reconnectDelay: 5000,
-      onConnect: () => setConnected(true),
+      onConnect: () => {
+        setConnected(true);
+        subscriptionsRef.current['deleted-conversations'] = client.subscribe(
+          '/topic/conversations/deleted',
+          (message) => {
+            try {
+              const deleted = JSON.parse(message.body) as ConversationDeleted;
+              setConversations((current) =>
+                current.filter((conversation) => conversation.id !== deleted.id),
+              );
+              setMessages((current) => current.filter((item) => item.conversationId !== deleted.id));
+              setActiveConversationId((current) => (current === deleted.id ? null : current));
+            } catch {
+              // Ignore malformed websocket payloads.
+            }
+          },
+        );
+      },
       onDisconnect: () => setConnected(false),
     });
 
@@ -311,6 +454,7 @@ export function ChatWidget() {
       senderId: conversation.currentParticipantId,
       recipientId: conversation.otherUserId ?? null,
       content: trimmed,
+      productReference: selectedProduct,
       status: 'SENT',
       createdAt: new Date().toISOString(),
       deliveredAt: null,
@@ -320,13 +464,15 @@ export function ChatWidget() {
     setMessages((current) => [...current, optimisticMessage]);
     updateConversationPreview(optimisticMessage);
     setInputValue('');
+    setSelectedProduct(null);
     setTimeout(() => scrollToBottom('smooth'), 0);
 
     try {
-      const saved = await sendMessage(conversation.id, trimmed, { guestSessionId });
-      setMessages((current) =>
-        current.map((message) => (message.id === optimisticMessage.id ? saved : message)),
-      );
+      const saved = await sendMessage(conversation.id, trimmed, {
+        guestSessionId,
+        productReference: selectedProduct,
+      });
+      setMessages((current) => replaceOptimisticMessage(current, optimisticMessage.id, saved));
       updateConversationPreview(saved);
 
       if (conversation.status === 'WAITING') {
@@ -345,6 +491,7 @@ export function ChatWidget() {
     guestSessionId,
     inputValue,
     scrollToBottom,
+    selectedProduct,
     updateConversationPreview,
     upsertConversation,
   ]);
@@ -423,6 +570,21 @@ export function ChatWidget() {
       ),
     );
   }, [activeConversationId, isOpen]);
+
+  useEffect(() => {
+    const handleConsultProduct = (event: Event) => {
+      const product = (event as ProductConsultEvent).detail;
+      if (!product?.productId || !product.slug || !product.name) return;
+
+      setSelectedProduct(product);
+      setWidgetState('open');
+      setInputValue((current) => current || `Tư vấn về sản phẩm ${product.name}`);
+      setTimeout(() => scrollToBottom('smooth'), 0);
+    };
+
+    window.addEventListener(PRODUCT_CONSULT_CHAT_EVENT, handleConsultProduct);
+    return () => window.removeEventListener(PRODUCT_CONSULT_CHAT_EVENT, handleConsultProduct);
+  }, [scrollToBottom]);
 
   return (
     <div className="fixed bottom-5 right-5 z-50">
@@ -542,6 +704,9 @@ export function ChatWidget() {
                       isMine ? 'bg-primary text-white' : 'bg-surface text-on-surface'
                     }`}
                   >
+                    {message.productReference ? (
+                      <ProductReferenceCard product={message.productReference} compact={isMine} />
+                    ) : null}
                     <p className="whitespace-pre-wrap leading-5">{message.content}</p>
                     <div
                       className={`mt-1 flex items-center gap-2 text-[10px] ${
@@ -558,6 +723,12 @@ export function ChatWidget() {
           </div>
 
           <footer className="border-t border-outline-variant bg-surface p-3">
+            {selectedProduct ? (
+              <ProductReferenceCard
+                product={selectedProduct}
+                onClear={() => setSelectedProduct(null)}
+              />
+            ) : null}
             <div className="flex items-center gap-2">
               <input
                 value={inputValue}
@@ -587,4 +758,3 @@ export function ChatWidget() {
     </div>
   );
 }
-

@@ -44,12 +44,10 @@ function SessionCard({
   onSignOut: (id: string) => void;
   signingOut: boolean;
 }) {
-  const clientNames = Object.values(session.clients ?? {}).join(', ') || '—';
-
   return (
     <div
       className={[
-        'rounded-2xl border p-4 transition',
+        'rounded-md border p-4 transition',
         session.current
           ? 'border-primary/40 bg-primary/5'
           : 'border-border bg-bg-base hover:border-primary/30',
@@ -60,13 +58,13 @@ function SessionCard({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               {session.current && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold text-white">
+                <span className="inline-flex items-center gap-1 rounded-sm bg-primary px-2.5 py-0.5 text-[10px] font-bold text-white">
                   <ShieldCheck className="h-3 w-3" />
                   Phiên hiện tại
                 </span>
               )}
               <span className={[
-                'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold',
+                'inline-flex items-center rounded-sm px-2.5 py-0.5 text-[10px] font-semibold',
                 session.type === 'OFFLINE'
                   ? 'bg-amber-100 text-amber-700'
                   : 'bg-success/10 text-success',
@@ -81,7 +79,7 @@ function SessionCard({
           <button
             onClick={() => onSignOut(session.id)}
             disabled={signingOut}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-error/30 bg-error/5 px-3 py-1.5 text-xs font-semibold text-error hover:bg-error hover:text-white disabled:opacity-60 transition"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-error/30 bg-error/5 px-3 py-1.5 text-xs font-semibold text-error hover:bg-error hover:text-white disabled:opacity-60 transition"
           >
             {signingOut ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -175,10 +173,10 @@ export default function SessionsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-4xl border border-border bg-bg-elevated p-6 shadow-sm">
+      <section className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
               <ShieldCheck className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -194,7 +192,7 @@ export default function SessionsPage() {
             <button
               onClick={() => loadSessions(true)}
               disabled={refreshing || loading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-bg-base text-text-secondary hover:border-primary hover:text-primary disabled:opacity-60 transition"
+              className="flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-bg-base text-text-secondary hover:border-primary hover:text-primary disabled:opacity-60 transition"
               title="Làm mới"
             >
               <RefreshCw className={['h-4 w-4', refreshing ? 'animate-spin' : ''].join(' ')} />
@@ -203,7 +201,7 @@ export default function SessionsPage() {
               <button
                 onClick={handleSignOutAll}
                 disabled={signingOutAll}
-                className="inline-flex items-center gap-2 rounded-xl bg-error px-4 py-2 text-sm font-bold text-white hover:bg-error/90 disabled:opacity-60 transition"
+                className="inline-flex items-center gap-2 rounded-sm bg-error px-4 py-2 text-sm font-bold text-white hover:bg-error/90 disabled:opacity-60 transition"
               >
                 {signingOutAll ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -221,7 +219,7 @@ export default function SessionsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : sessions.length === 0 ? (
-          <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-12 text-center">
+          <div className="mt-6 flex flex-col items-center justify-center rounded-md border border-dashed border-border py-12 text-center">
             <Monitor className="h-10 w-10 text-text-tertiary" />
             <p className="mt-3 text-sm font-medium text-text-secondary">Không tìm thấy phiên đăng nhập</p>
             <p className="text-xs text-text-tertiary">Vui lòng thử làm mới trang.</p>

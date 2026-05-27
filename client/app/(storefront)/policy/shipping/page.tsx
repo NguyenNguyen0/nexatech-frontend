@@ -1,6 +1,6 @@
 'use client';
 
-import { Truck, Zap, ShieldCheck, MapPin } from 'lucide-react';
+import { Truck, Zap, ShieldCheck } from 'lucide-react';
 
 export default function ShippingPage() {
   return (
