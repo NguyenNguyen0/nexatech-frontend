@@ -83,8 +83,28 @@ export interface PageResponse<T> {
   last: boolean;
 }
 
+export interface OrderDailyRevenue {
+  date: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface OrderTopProduct {
+  productId: string;
+  productName: string;
+  totalQuantity: number;
+  totalRevenue: number;
+}
+
 export interface OrderStatsResponse {
-  [key: string]: unknown;
+  from: string;
+  to: string;
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  ordersByStatus: Record<string, number>;
+  revenueByDay: OrderDailyRevenue[];
+  topProducts: OrderTopProduct[];
 }
 
 export interface ReturnItemResponse {
