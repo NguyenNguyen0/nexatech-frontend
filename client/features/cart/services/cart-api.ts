@@ -68,7 +68,7 @@ export async function getCart(): Promise<Cart> {
 
 export async function updateCartItem(productId: string, body: UpdateCartItemBody): Promise<Cart> {
   const cart = readCart();
-  const { quantity, priceOverride } = body;
+  const { quantity, priceOverride, flashSaleId } = body;
 
   if (quantity <= 0) {
     return removeCartItem(productId);
@@ -85,6 +85,7 @@ export async function updateCartItem(productId: string, body: UpdateCartItemBody
       quantity,
       price,
       totalPrice: price * quantity,
+      flashSaleId: flashSaleId ?? existing.flashSaleId,
     };
   } else {
     // Fetch product metadata to enrich cart item (only if no priceOverride)
@@ -98,6 +99,7 @@ export async function updateCartItem(productId: string, body: UpdateCartItemBody
       quantity,
       price,
       totalPrice: price * quantity,
+      flashSaleId,
     };
     cart.items.push(newItem);
   }

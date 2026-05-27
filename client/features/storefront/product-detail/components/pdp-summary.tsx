@@ -117,6 +117,7 @@ export function PdpSummary({
       await updateCartItem(productId, {
         quantity: nextCartQuantity,
         priceOverride: flashSalePrice,
+        flashSaleId,
       });
 
       try {
@@ -160,6 +161,7 @@ export function PdpSummary({
       await updateCartItem(productId, {
         quantity: inCart + 1,
         priceOverride: flashSalePrice,
+        flashSaleId,
       });
 
       await trackBehavior({
