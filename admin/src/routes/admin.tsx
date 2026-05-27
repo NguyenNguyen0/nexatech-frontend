@@ -160,6 +160,14 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Promotions */
+            {
+                path: 'promotions/flash-sales',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/promotions/flash-sales')).default,
+                }),
+            },
+
             /** Orders */
             {
                 path: 'order',
