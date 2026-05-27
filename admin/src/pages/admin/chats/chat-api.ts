@@ -45,6 +45,7 @@ export type Conversation = {
         avatarUrl?: string | null;
     } | null;
     otherUserOnline?: boolean;
+    unreadCount?: number;
     lastMessage?: LastMessagePreview | null;
     expiresAt?: string | null;
     createdAt?: string;

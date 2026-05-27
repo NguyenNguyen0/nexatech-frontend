@@ -157,7 +157,10 @@ export function PdpSummary({
     try {
       const currentCart = await getCart().catch(() => null);
       const inCart = currentCart?.items.find((item) => item.productId === productId)?.quantity ?? 0;
-      await updateCartItem(productId, { quantity: inCart + 1 });
+      await updateCartItem(productId, {
+        quantity: inCart + 1,
+        priceOverride: flashSalePrice,
+      });
 
       await trackBehavior({
         productId,
