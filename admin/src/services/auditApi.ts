@@ -12,11 +12,6 @@ import type { ApiResponse } from '@/types/auth';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AUDIT_API_BASE = '/api/v1/admin/audit';
-const AUDIT_API_BASE_CANDIDATES = [
-  '/api/v1/admin/audit',
-  '/api/v1/admin/audit/',
-  '/audit',
-];
 
 export interface AuditLogRecord {
   id: string;
@@ -91,71 +86,32 @@ export const searchAuditLogs = async (
     sortDir: filters.sortDir ?? 'desc',
   });
 
-  let lastMessage = 'Failed to load audit logs';
-  for (const base of AUDIT_API_BASE_CANDIDATES) {
-    const { data, status } = await axiosClient.get<ApiResponse<AuditLogPageResult>>(base, {
-      params,
-      validateStatus: (code) => code < 500,
-    });
+  const { data } = await axiosClient.get<ApiResponse<AuditLogPageResult>>(AUDIT_API_BASE, {
+    params,
+  });
 
-    if (status === 404) {
-      lastMessage = data?.message || lastMessage;
-      continue;
-    }
-
-    if (data.code !== 1000 || !data.result) {
-      throw new Error(data.message || lastMessage);
-    }
-    return data.result;
+  if (data.code !== 1000 || !data.result) {
+    throw new Error(data.message || 'Failed to load audit logs');
   }
-
-  throw new Error(lastMessage);
+  return data.result;
 };
 
 export const getAuditLogById = async (id: string): Promise<AuditLogRecord> => {
-  let lastMessage = 'Failed to load audit log details';
-  for (const base of AUDIT_API_BASE_CANDIDATES) {
-    const normalizedBase = base.replace(/\/$/, '');
-    const { data, status } = await axiosClient.get<ApiResponse<AuditLogRecord>>(
-      `${normalizedBase}/${id}`,
-      { validateStatus: (code) => code < 500 },
-    );
+  const { data } = await axiosClient.get<ApiResponse<AuditLogRecord>>(`${AUDIT_API_BASE}/${id}`);
 
-    if (status === 404) {
-      lastMessage = data?.message || lastMessage;
-      continue;
-    }
-
-    if (data.code !== 1000 || !data.result) {
-      throw new Error(data.message || lastMessage);
-    }
-    return data.result;
+  if (data.code !== 1000 || !data.result) {
+    throw new Error(data.message || 'Failed to load audit log details');
   }
-
-  throw new Error(lastMessage);
+  return data.result;
 };
 
 export const getAuditFacets = async (): Promise<AuditFacets> => {
-  let lastMessage = 'Failed to load filter facets';
-  for (const base of AUDIT_API_BASE_CANDIDATES) {
-    const normalizedBase = base.replace(/\/$/, '');
-    const { data, status } = await axiosClient.get<ApiResponse<AuditFacets>>(
-      `${normalizedBase}/facets`,
-      { validateStatus: (code) => code < 500 },
-    );
+  const { data } = await axiosClient.get<ApiResponse<AuditFacets>>(`${AUDIT_API_BASE}/facets`);
 
-    if (status === 404) {
-      lastMessage = data?.message || lastMessage;
-      continue;
-    }
-
-    if (data.code !== 1000 || !data.result) {
-      throw new Error(data.message || lastMessage);
-    }
-    return data.result;
+  if (data.code !== 1000 || !data.result) {
+    throw new Error(data.message || 'Failed to load filter facets');
   }
-
-  throw new Error(lastMessage);
+  return data.result;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
