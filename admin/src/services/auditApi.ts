@@ -136,6 +136,8 @@ interface AuditApiResponse<T> {
 
 const AUDIT_ORDER_BASE = '/api/v1/admin/orders';
 const AUDIT_ORDER_TRACE_BASE = '/api/v1/admin/audit/orders';
+const AUDIT_PAYMENT_BASE = '/api/v1/admin/payments';
+const AUDIT_PAYMENT_TRACE_BASE = '/api/v1/admin/audit/payments';
 
 export interface AuditLogEntry {
   id: string;
@@ -254,7 +256,17 @@ export async function getOrderStateAt(
 
 /** Full event timeline for a single payment. */
 export async function getPaymentTimeline(paymentId: string): Promise<AuditLogEntry[]> {
-  return getEntityTimelineFromAuditService(paymentId);
+  try {
+    return await getFirstAvailable<AuditLogEntry[]>(
+      [
+        `${AUDIT_PAYMENT_BASE}/${paymentId}/timeline`,
+        `${AUDIT_PAYMENT_TRACE_BASE}/${paymentId}/timeline`,
+      ],
+      'Không tìm thấy lịch sử giao dịch này',
+    );
+  } catch {
+    return getEntityTimelineFromAuditService(paymentId);
+  }
 }
 
 /**
@@ -265,16 +277,27 @@ export async function getPaymentStateAt(
   paymentId: string,
   t: string,
 ): Promise<Record<string, unknown>> {
-  const entries = await getPaymentTimeline(paymentId);
-  const point = new Date(t).getTime();
-  return entries
-    .filter((entry) => new Date(entry.createdAt).getTime() <= point)
-    .reduce<Record<string, unknown>>((state, entry) => ({
-      ...state,
-      ...(entry.payload ?? {}),
-      action: entry.action,
-      updatedAt: entry.createdAt,
-    }), {});
+  try {
+    return await getFirstAvailable<Record<string, unknown>>(
+      [
+        `${AUDIT_PAYMENT_BASE}/${paymentId}/state-at`,
+        `${AUDIT_PAYMENT_TRACE_BASE}/${paymentId}/state-at`,
+      ],
+      'Không tìm thấy trạng thái giao dịch tại thời điểm đã chọn',
+      { params: { t } },
+    );
+  } catch {
+    const entries = await getPaymentTimeline(paymentId);
+    const point = new Date(t).getTime();
+    return entries
+      .filter((entry) => new Date(entry.createdAt).getTime() <= point)
+      .reduce<Record<string, unknown>>((state, entry) => ({
+        ...state,
+        ...(entry.payload ?? {}),
+        action: entry.action,
+        updatedAt: entry.createdAt,
+      }), {});
+  }
 }
 
 /**
