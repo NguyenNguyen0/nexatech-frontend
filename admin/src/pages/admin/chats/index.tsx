@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import {
     IconArrowLeft,
     IconDotsVertical,
+    IconFilter,
     IconMessages,
     IconSearch,
     IconSend,
@@ -11,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import {
@@ -37,6 +38,8 @@ import {
 const CONVERSATION_PAGE_SIZE = 20;
 const MESSAGE_PAGE_SIZE = 30;
 const REALTIME_FALLBACK_INTERVAL_MS = 15000;
+
+type ReadFilter = "all" | "unread" | "read";
 
 function resolveWsUrl(): string {
     const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080";
@@ -73,6 +76,22 @@ function conversationSortTime(conversation: Conversation): string {
 
 function sortConversations(items: Conversation[]): Conversation[] {
     return [...items].sort((a, b) => conversationSortTime(b).localeCompare(conversationSortTime(a)));
+}
+
+function isNewerConversation(candidate: Conversation, existing?: Conversation): boolean {
+    if (!existing) return true;
+    return conversationSortTime(candidate).localeCompare(conversationSortTime(existing)) >= 0;
+}
+
+function isConversationUnread(conversation: Conversation): boolean {
+    return (conversation.unreadCount ?? 0) > 0;
+}
+
+function matchesDateFilter(conversation: Conversation, date: string): boolean {
+    if (!date) return true;
+    const value = conversation.lastMessage?.sentAt || conversation.updatedAt || conversation.createdAt;
+    if (!value) return false;
+    return dayjs(value).format("YYYY-MM-DD") === date;
 }
 
 function formatProductPrice(value?: number | null): string {
@@ -127,6 +146,8 @@ export default function Chats() {
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [message, setMessage] = useState("");
+    const [readFilter, setReadFilter] = useState<ReadFilter>("all");
+    const [dateFilter, setDateFilter] = useState("");
     const [mobileSelectedUser, setMobileSelectedUser] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [connected, setConnected] = useState(false);
@@ -139,23 +160,29 @@ export default function Chats() {
     const adminUserIdRef = useRef<string | null>(null);
     const loadingConversationsRef = useRef(false);
     const loadingMessagesRef = useRef<Set<string>>(new Set());
+    const locallyReadConversationIdsRef = useRef<Set<string>>(new Set());
+    const messageEndRef = useRef<HTMLDivElement | null>(null);
     const adminUserId = useMemo(() => getUserIdFromAccessToken(getAccessToken()), []);
     const adminRole = useMemo(() => pickPrimaryRole(getRolesFromAccessToken(getAccessToken())) ?? "ADMIN", []);
     const wsUrl = useMemo(resolveWsUrl, []);
 
     const selectedConversation = useMemo(
-        () => conversations.find((item) => item.id === selectedConversationId) ?? conversations[0] ?? null,
+        () => conversations.find((item) => item.id === selectedConversationId) ?? null,
         [conversations, selectedConversationId],
     );
 
     const filteredConversations = useMemo(() => {
         const keyword = search.trim().toLowerCase();
-        if (!keyword) return conversations;
         return conversations.filter((conversation) =>
-            displayName(conversation).toLowerCase().includes(keyword)
-            || conversationSubtitle(conversation).toLowerCase().includes(keyword),
+            (!keyword
+                || displayName(conversation).toLowerCase().includes(keyword)
+                || conversationSubtitle(conversation).toLowerCase().includes(keyword))
+            && (readFilter === "all"
+                || (readFilter === "unread" && isConversationUnread(conversation))
+                || (readFilter === "read" && !isConversationUnread(conversation)))
+            && matchesDateFilter(conversation, dateFilter),
         );
-    }, [conversations, search]);
+    }, [conversations, dateFilter, readFilter, search]);
 
     useEffect(() => {
         selectedConversationIdRef.current = selectedConversation?.id ?? null;
@@ -165,20 +192,70 @@ export default function Chats() {
         adminUserIdRef.current = adminUserId;
     }, [adminUserId]);
 
+    const normalizeConversationReadState = useCallback((conversation: Conversation): Conversation => {
+        const activeConversationId = selectedConversationIdRef.current;
+        const activeAdminUserId = adminUserIdRef.current;
+        const isActive = conversation.id === activeConversationId;
+        const isLocallyRead = locallyReadConversationIdsRef.current.has(conversation.id);
+        const lastMessageFromAdmin = Boolean(
+            conversation.lastMessage?.senderId
+            && activeAdminUserId
+            && conversation.lastMessage.senderId === activeAdminUserId,
+        );
+
+        if (isActive || isLocallyRead || lastMessageFromAdmin) {
+            return { ...conversation, unreadCount: 0 };
+        }
+
+        return conversation;
+    }, []);
+
+    const mergeConversationRecord = useCallback((existing: Conversation | undefined, incoming: Conversation): Conversation => {
+        const normalizedIncoming = normalizeConversationReadState(incoming);
+        if (!existing) return normalizedIncoming;
+
+        if (!isNewerConversation(normalizedIncoming, existing)) {
+            return normalizeConversationReadState({
+                ...normalizedIncoming,
+                ...existing,
+                participant: existing.participant ?? normalizedIncoming.participant,
+                otherUserOnline: normalizedIncoming.otherUserOnline ?? existing.otherUserOnline,
+            });
+        }
+
+        return normalizeConversationReadState({
+            ...existing,
+            ...normalizedIncoming,
+            participant: normalizedIncoming.participant ?? existing.participant,
+            unreadCount: Math.max(existing.unreadCount ?? 0, normalizedIncoming.unreadCount ?? 0),
+        });
+    }, [normalizeConversationReadState]);
+
     const upsertConversation = useCallback((conversation: Conversation) => {
         setConversations((current) => {
             const existingIndex = current.findIndex((item) => item.id === conversation.id);
-            const next = existingIndex >= 0 ? [...current] : [conversation, ...current];
+            const next = existingIndex >= 0 ? [...current] : [mergeConversationRecord(undefined, conversation), ...current];
             if (existingIndex >= 0) {
-                next[existingIndex] = { ...next[existingIndex], ...conversation };
+                next[existingIndex] = mergeConversationRecord(next[existingIndex], conversation);
             }
             return sortConversations(next);
         });
         setSelectedConversationId((current) => current ?? conversation.id);
-    }, []);
+    }, [mergeConversationRecord]);
 
     const upsertMessage = useCallback((incoming: ChatMessage) => {
         setMessages((current) => mergeMessage(current, incoming));
+    }, []);
+
+    const markConversationReadLocally = useCallback((conversationId: string) => {
+        locallyReadConversationIdsRef.current.add(conversationId);
+        setConversations((current) =>
+            current.map((conversation) =>
+                conversation.id === conversationId
+                    ? { ...conversation, unreadCount: 0 }
+                    : conversation,
+            ),
+        );
     }, []);
 
     const loadConversations = useCallback(async () => {
@@ -188,11 +265,15 @@ export default function Chats() {
         setErrorMessage(null);
         try {
             const page = await fetchConversations(0, CONVERSATION_PAGE_SIZE);
-            setConversations(sortConversations(page.content));
+            setConversations((current) => {
+                const byId = new Map(current.map((conversation) => [conversation.id, conversation]));
+                page.content.forEach((conversation) => {
+                    byId.set(conversation.id, mergeConversationRecord(byId.get(conversation.id), conversation));
+                });
+                return sortConversations(Array.from(byId.values()));
+            });
             setSelectedConversationId((current) => current ?? page.content[0]?.id ?? null);
         } catch (error) {
-            setConversations([]);
-            setSelectedConversationId(null);
             setErrorMessage(
                 error instanceof Error
                     ? error.message
@@ -202,7 +283,7 @@ export default function Chats() {
             loadingConversationsRef.current = false;
             setIsLoading(false);
         }
-    }, []);
+    }, [mergeConversationRecord]);
 
     const loadMessages = useCallback(async (conversationId: string) => {
         if (loadingMessagesRef.current.has(conversationId)) return;
@@ -210,12 +291,15 @@ export default function Chats() {
         try {
             const page = await fetchMessages(conversationId, undefined, MESSAGE_PAGE_SIZE);
             const ordered = [...page.content].reverse();
+            if (selectedConversationIdRef.current !== conversationId) return;
             setMessages(ordered);
-            const latestIncoming = [...ordered].reverse().find((item) => item.senderId !== adminUserId);
-            if (latestIncoming) {
-                markSeen(conversationId, latestIncoming.id).catch(() => undefined);
+            const latestUnseenIncoming = [...ordered].reverse().find((item) => item.senderId !== adminUserId && !item.seenAt);
+            if (latestUnseenIncoming) {
+                markConversationReadLocally(conversationId);
+                markSeen(conversationId, latestUnseenIncoming.id).catch(() => undefined);
             }
         } catch (error) {
+            if (selectedConversationIdRef.current !== conversationId) return;
             setMessages([]);
             setErrorMessage(
                 error instanceof Error
@@ -225,42 +309,72 @@ export default function Chats() {
         } finally {
             loadingMessagesRef.current.delete(conversationId);
         }
-    }, [adminUserId]);
+    }, [adminUserId, markConversationReadLocally]);
 
     const handleIncomingMessage = useCallback((incoming: ChatMessage) => {
         const activeConversationId = selectedConversationIdRef.current;
         const activeAdminUserId = adminUserIdRef.current;
+        const incomingFromAdmin = incoming.senderId === activeAdminUserId;
+
+        if (!incomingFromAdmin && incoming.conversationId !== activeConversationId) {
+            locallyReadConversationIdsRef.current.delete(incoming.conversationId);
+        }
 
         setConversations((current) =>
-            sortConversations(current.map((conversation) =>
-                conversation.id === incoming.conversationId
-                    ? {
+            {
+                const existing = current.find((conversation) => conversation.id === incoming.conversationId);
+                const incomingConversation: Conversation = {
+                    id: incoming.conversationId,
+                    customerId: incoming.senderId === activeAdminUserId ? incoming.recipientId : incoming.senderId,
+                    agentId: incoming.senderId === activeAdminUserId ? incoming.senderId : null,
+                    conversationType: "AUTHENTICATED",
+                    status: "OPEN",
+                    currentParticipantId: activeAdminUserId,
+                    otherUserId: incoming.senderId === activeAdminUserId ? incoming.recipientId : incoming.senderId,
+                    participant: existing?.participant ?? null,
+                    otherUserOnline: existing?.otherUserOnline,
+                    unreadCount: existing?.lastMessage?.id === incoming.id
+                        ? existing.unreadCount
+                        : incoming.senderId !== activeAdminUserId && incoming.conversationId !== activeConversationId
+                        ? (existing?.unreadCount ?? 0) + 1
+                        : 0,
+                    lastMessage: {
+                        id: incoming.id,
+                        senderId: incoming.senderId,
+                        preview: incoming.content,
+                        sentAt: incoming.createdAt,
+                    },
+                    createdAt: existing?.createdAt ?? incoming.createdAt,
+                    updatedAt: incoming.createdAt,
+                };
+
+                if (!existing) {
+                    return sortConversations([normalizeConversationReadState(incomingConversation), ...current]);
+                }
+
+                return sortConversations(current.map((conversation) =>
+                    conversation.id === incoming.conversationId
+                    ? mergeConversationRecord(conversation, {
                         ...conversation,
-                        lastMessage: {
-                            id: incoming.id,
-                            senderId: incoming.senderId,
-                            preview: incoming.content,
-                            sentAt: incoming.createdAt,
-                        },
-                    }
+                        ...incomingConversation,
+                    })
                     : conversation,
-            )),
+                ));
+            }
         );
 
         if (incoming.conversationId === activeConversationId) {
             upsertMessage(incoming);
             if (incoming.senderId !== activeAdminUserId) {
+                markConversationReadLocally(incoming.conversationId);
                 markSeen(incoming.conversationId, incoming.id).catch(() => undefined);
             }
         }
-    }, [upsertMessage]);
+    }, [markConversationReadLocally, mergeConversationRecord, normalizeConversationReadState, upsertMessage]);
 
     const handleGlobalMessage = useCallback((incoming: ChatMessage) => {
         handleIncomingMessage(incoming);
-        if (incoming.conversationId === selectedConversationIdRef.current) {
-            void loadMessages(incoming.conversationId);
-        }
-    }, [handleIncomingMessage, loadMessages]);
+    }, [handleIncomingMessage]);
 
     const handleDeletedMessage = useCallback((deleted: ChatMessageDeleted) => {
         setMessages((current) => current.filter((item) => item.id !== deleted.id));
@@ -286,10 +400,7 @@ export default function Chats() {
 
     const handleConversationUpdate = useCallback((conversation: Conversation) => {
         upsertConversation(conversation);
-        if (conversation.id === selectedConversationIdRef.current && conversation.lastMessage?.id) {
-            void loadMessages(conversation.id);
-        }
-    }, [loadMessages, upsertConversation]);
+    }, [upsertConversation]);
 
     const connectSocket = useCallback(async () => {
         if (clientRef.current || socketConnectingRef.current) return;
@@ -358,21 +469,7 @@ export default function Chats() {
     const ensureConversationSubscriptions = useCallback(() => {
         if (!clientRef.current || !connected) return;
         conversations.forEach((conversation) => {
-            const messageKey = `${conversation.id}:messages`;
             const deletedKey = `${conversation.id}:deleted`;
-
-            if (!subscriptionsRef.current[messageKey]) {
-                subscriptionsRef.current[messageKey] = clientRef.current!.subscribe(
-                `/topic/conversations/${conversation.id}/messages`,
-                (frame) => {
-                    try {
-                        handleIncomingMessage(JSON.parse(frame.body) as ChatMessage);
-                    } catch {
-                        // Ignore malformed websocket payloads.
-                    }
-                },
-                );
-            }
 
             if (!subscriptionsRef.current[deletedKey]) {
                 subscriptionsRef.current[deletedKey] = clientRef.current!.subscribe(
@@ -387,7 +484,7 @@ export default function Chats() {
                 );
             }
         });
-    }, [connected, conversations, handleDeletedMessage, handleIncomingMessage]);
+    }, [connected, conversations, handleDeletedMessage]);
 
     const handleSendMessage = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -484,6 +581,10 @@ export default function Chats() {
         void loadMessages(selectedConversation.id);
     }, [loadMessages, selectedConversation?.id]);
 
+    useEffect(() => {
+        messageEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    }, [messages.length, selectedConversation?.id]);
+
     return (
         <Layout fixed>
             <Layout.Body className="overflow-hidden">
@@ -511,6 +612,31 @@ export default function Chats() {
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
                             </label>
+
+                            <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+                                <label className="flex h-9 items-center rounded-md border border-input px-2 text-xs focus-within:outline-none focus-within:ring-1 focus-within:ring-ring">
+                                    <IconFilter size={14} className="mr-2 shrink-0 text-muted-foreground" />
+                                    <span className="sr-only">Loc trang thai doc</span>
+                                    <select
+                                        value={readFilter}
+                                        onChange={(event) => setReadFilter(event.target.value as ReadFilter)}
+                                        className="h-full min-w-0 flex-1 bg-background text-xs text-foreground outline-none"
+                                    >
+                                        <option className="bg-background text-foreground" value="all">Tất cả</option>
+                                        <option className="bg-background text-foreground" value="unread">Chưa đọc</option>
+                                        <option className="bg-background text-foreground" value="read">Đã đọc</option>
+                                    </select>
+                                </label>
+                                <label className="flex h-9 items-center rounded-md border border-input px-2 text-xs focus-within:outline-none focus-within:ring-1 focus-within:ring-ring">
+                                    <span className="sr-only">Loc theo ngay</span>
+                                    <input
+                                        type="date"
+                                        value={dateFilter}
+                                        onChange={(event) => setDateFilter(event.target.value)}
+                                        className="h-full w-32 bg-transparent text-xs outline-none"
+                                    />
+                                </label>
+                            </div>
                         </div>
 
                         <div className="-mx-3 min-h-0 flex-1 overflow-auto p-3">
@@ -522,7 +648,9 @@ export default function Chats() {
                                     {errorMessage}
                                 </div>
                             ) : null}
-                            {filteredConversations.map((conversation) => (
+                            {filteredConversations.map((conversation) => {
+                                const unread = isConversationUnread(conversation);
+                                return (
                                 <Fragment key={conversation.id}>
                                     <button
                                         type="button"
@@ -531,27 +659,44 @@ export default function Chats() {
                                             selectedConversation?.id === conversation.id && "sm:bg-muted",
                                         )}
                                         onClick={() => {
+                                            selectedConversationIdRef.current = conversation.id;
                                             setSelectedConversationId(conversation.id);
+                                            setMessages([]);
+                                            setErrorMessage(null);
                                             setMobileSelectedUser(true);
                                         }}
                                     >
-                                        <div className="flex min-w-0 gap-2">
+                                        <div className="flex min-w-0 flex-1 gap-2 pr-9">
                                             <Avatar>
                                                 {conversation.participant?.avatarUrl ? (
-                                                    <img
+                                                    <AvatarImage
                                                         src={conversation.participant.avatarUrl}
                                                         alt={displayName(conversation)}
-                                                        className="h-full w-full rounded-full object-cover"
                                                     />
-                                                ) : null}
-                                                <AvatarFallback>{initials(conversation)}</AvatarFallback>
+                                                ) : (
+                                                    <AvatarFallback>{initials(conversation)}</AvatarFallback>
+                                                )}
                                             </Avatar>
-                                            <div className="min-w-0">
-                                                <span className="block truncate font-medium">{displayName(conversation)}</span>
-                                                <span className="line-clamp-2 text-muted-foreground">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn("block min-w-0 flex-1 truncate", unread ? "font-bold" : "font-medium")}>
+                                                        {displayName(conversation)}
+                                                    </span>
+                                                    {conversation.lastMessage?.sentAt ? (
+                                                        <span className={cn("shrink-0 text-[11px]", unread ? "font-bold text-foreground" : "text-muted-foreground")}>
+                                                            {dayjs(conversation.lastMessage.sentAt).format("DD/MM")}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <span className={cn("line-clamp-2", unread ? "font-bold text-foreground" : "text-muted-foreground")}>
                                                     {conversationSubtitle(conversation)}
                                                 </span>
                                             </div>
+                                            {unread ? (
+                                                <span className="mt-1 grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">
+                                                    {conversation.unreadCount && conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+                                                </span>
+                                            ) : null}
                                         </div>
                                     </button>
                                     <div className="-mt-11 mb-2 flex justify-end pr-1">
@@ -579,7 +724,8 @@ export default function Chats() {
                                     </div>
                                     <Separator className="my-1" />
                                 </Fragment>
-                            ))}
+                                );
+                            })}
                             {!isLoading && filteredConversations.length === 0 ? (
                                 <div className="px-2 py-4 text-sm text-muted-foreground">Chưa có hội thoại.</div>
                             ) : null}
@@ -599,7 +745,14 @@ export default function Chats() {
                                 </Button>
                                 <div className="flex items-center gap-2 lg:gap-4">
                                     <Avatar className="size-9 lg:size-11">
-                                        <AvatarFallback>{selectedConversation ? initials(selectedConversation) : "C"}</AvatarFallback>
+                                        {selectedConversation?.participant?.avatarUrl ? (
+                                            <AvatarImage
+                                                src={selectedConversation.participant.avatarUrl}
+                                                alt={displayName(selectedConversation)}
+                                            />
+                                        ) : (
+                                            <AvatarFallback>{selectedConversation ? initials(selectedConversation) : "C"}</AvatarFallback>
+                                        )}
                                     </Avatar>
                                     <div>
                                         <span className="block text-sm font-medium lg:text-base">
@@ -714,6 +867,7 @@ export default function Chats() {
                                                 </div>
                                             );
                                         })}
+                                        <div ref={messageEndRef} />
                                     </div>
                                 </div>
                             </div>
