@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, EyeOff, Lock, UserCheck } from 'lucide-react';
+import { EyeOff, Lock } from 'lucide-react';
 
 export default function PrivacyPage() {
   return (

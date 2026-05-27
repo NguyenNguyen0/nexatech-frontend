@@ -14,7 +14,6 @@ import {
   Phone,
   ChevronDown,
   HelpCircle,
-  Truck,
   ShieldCheck,
   Zap
 } from 'lucide-react';
