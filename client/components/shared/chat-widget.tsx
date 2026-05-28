@@ -61,9 +61,9 @@ function formatTimestamp(value?: string | null): string {
 }
 
 function statusLabel(status: ChatMessage['status']): string {
-  if (status === 'SEEN') return '鑶艰尗 xem';
-  if (status === 'DELIVERED') return '鑶艰尗 nh宀风挾';
-  return '鑶艰尗 g宄勭挶';
+  if (status === 'SEEN') return 'Đã xem';
+  if (status === 'DELIVERED') return 'Đã nhận';
+  return 'Đã gửi';
 }
 
 function formatProductPrice(value?: number | null): string {
@@ -116,7 +116,7 @@ function ProductReferenceCard({
         <button
           type="button"
           onClick={onClear}
-          aria-label="Bo chon san pham tu van"
+          aria-label="Bỏ chọn sản phẩm tư vấn"
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
         >
           <X className="h-3.5 w-3.5" />
@@ -589,14 +589,14 @@ export function ChatWidget() {
         (detail && 'productId' in detail ? detail : detail?.product) ?? {
           productId: '',
           slug: '',
-          name: initialMessage || 'c瀹€濂夋 h閻捕h PC',
+          name: initialMessage || 'cấu hình PC',
         };
 
       if (product?.productId && product.slug && product.name) {
         setSelectedProduct(product);
       }
       setWidgetState('open');
-      setInputValue((current) => current || initialMessage || `T閻?v瀹€濂夋珵 v瀹?s瀹€濂夋煄 ph瀹€鍑ょ ${product.name}`);
+      setInputValue((current) => current || initialMessage || `Tư vấn về sản phẩm ${product.name}`);
       setTimeout(() => scrollToBottom('smooth'), 0);
     };
 
@@ -610,7 +610,7 @@ export function ChatWidget() {
         <button
           type="button"
           onClick={() => setWidgetState('open')}
-          aria-label="Open chat"
+          aria-label="Mở chat hỗ trợ"
           className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_14px_32px_rgba(0,77,117,0.28)] transition hover:-translate-y-0.5 hover:bg-primary-dark"
         >
           <MessageCircle className="h-6 w-6" />
@@ -630,7 +630,7 @@ export function ChatWidget() {
             className="flex items-center gap-2 rounded-full px-2 py-1 text-[13px] font-medium text-on-surface"
           >
             <MessageCircle className="h-4 w-4 text-primary" />
-            Chat ho tro
+            Chat hỗ trợ
             {totalUnread > 0 ? (
               <span className="grid h-5 min-w-5 place-items-center rounded-full bg-secondary px-1 text-[10px] font-bold text-white">
                 {totalUnread > 9 ? '9+' : totalUnread}
@@ -640,7 +640,7 @@ export function ChatWidget() {
           <button
             type="button"
             onClick={() => setWidgetState('closed')}
-            aria-label="Dong chat"
+            aria-label="Đóng chat"
             className="rounded-full p-1.5 text-on-surface-variant transition hover:bg-surface-container-low"
           >
             <X className="h-4 w-4" />
@@ -653,13 +653,13 @@ export function ChatWidget() {
           <header className="flex items-center justify-between border-b border-outline-variant bg-primary px-4 py-3 text-white">
             <div>
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/70">NexaTech</p>
-              <h2 className="text-sm font-semibold">Chat ho tro</h2>
+              <h2 className="text-sm font-semibold">Chat hỗ trợ</h2>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setWidgetState('minimized')}
-                aria-label="Thu nho chat"
+                aria-label="Thu nhỏ chat"
                 className="rounded-full p-1.5 transition hover:bg-white/15"
               >
                 <Minus className="h-4 w-4" />
@@ -667,7 +667,7 @@ export function ChatWidget() {
               <button
                 type="button"
                 onClick={() => setWidgetState('closed')}
-                aria-label="Dong chat"
+                aria-label="Đóng chat"
                 className="rounded-full p-1.5 transition hover:bg-white/15"
               >
                 <X className="h-4 w-4" />
@@ -682,30 +682,30 @@ export function ChatWidget() {
           >
             {isLoadingMessages ? (
               <div className="rounded-xl border border-dashed border-outline-variant bg-surface p-3 text-center text-xs text-on-surface-variant">
-                Dang tai tin nhan...
+                Đang tải tin nhắn...
               </div>
             ) : null}
 
             {!isLoadingMessages && !activeConversationId ? (
               <div className="space-y-2 rounded-xl border border-dashed border-outline-variant bg-surface p-4 text-center">
                 <p className="text-sm font-semibold text-on-surface">
-                  Xin chao, NexaTech co the giup gi cho ban?
+                  Xin chào, NexaTech có thể giúp gì cho bạn?
                 </p>
                 <p className="text-xs leading-5 text-on-surface-variant">
-                  Gui cau hoi ve san pham, don hang hoac tu van cau hinh de bat dau tro chuyen.
+                  Gửi câu hỏi về sản phẩm, đơn hàng hoặc tư vấn cấu hình để bắt đầu trò chuyện.
                 </p>
               </div>
             ) : null}
 
             {!isLoadingMessages && activeConversationId && messages.length === 0 ? (
               <div className="rounded-xl border border-dashed border-outline-variant bg-surface p-4 text-center text-sm text-on-surface-variant">
-                Hay gui tin nhan dau tien cho doi ho tro
+                Hãy gửi tin nhắn đầu tiên cho đội hỗ trợ
               </div>
             ) : null}
 
             {activeConversation?.status === 'WAITING' ? (
               <div className="rounded-xl border border-dashed border-outline-variant bg-surface p-3 text-center text-xs text-on-surface-variant">
-                Dang cho nhan vien tu van nhan cuoc tro chuyen...
+                Đang chờ nhân viên tư vấn nhận cuộc trò chuyện...
               </div>
             ) : null}
 
@@ -757,14 +757,14 @@ export function ChatWidget() {
                     void handleSend();
                   }
                 }}
-                placeholder={activeConversationId ? 'Nhap tin nhan...' : 'Nhan cho NexaTech...'}
+                placeholder={activeConversationId ? 'Nhập tin nhắn...' : 'Nhắn cho NexaTech...'}
                 className="h-10 flex-1 rounded-xl border border-outline-variant bg-white px-3 text-sm text-on-surface outline-none transition focus:border-primary"
               />
               <button
                 type="button"
                 onClick={() => void handleSend()}
                 disabled={!inputValue.trim()}
-                aria-label="Gui tin nhan"
+                aria-label="Gửi tin nhắn"
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-outline"
               >
                 <Send className="h-4 w-4" />
