@@ -1,6 +1,6 @@
 // Server-side only — uses process.env for absolute URLs (not client rewrites)
 
-import { resolvePromotionBaseUrl } from '@/lib/server-env';
+import { resolveBackendBaseUrl } from '@/lib/server-env';
 
 export interface FlashSaleStripItem {
   id: string;
@@ -22,7 +22,7 @@ export interface FlashSaleStripData {
   endsAt: number; // Unix timestamp ms — 0 means no active sale
 }
 
-const PROMOTION_URL = resolvePromotionBaseUrl();
+const GATEWAY_URL = resolveBackendBaseUrl();
 
 interface RawFlashSale {
   id: string;
@@ -51,7 +51,7 @@ interface FlashSaleApiResponse {
 
 async function fetchActiveFlashSales(): Promise<RawFlashSale[]> {
   try {
-    const res = await fetch(`${PROMOTION_URL}/api/v1/flash-sales`, {
+    const res = await fetch(`${GATEWAY_URL}/api/v1/flash-sales`, {
       cache: 'no-store',
     });
     if (!res.ok) return [];
