@@ -111,6 +111,15 @@ export interface CheckoutResponse {
   paymentUrl?: string;
 }
 
+export interface ContinuePaymentResponse {
+  orderId: string;
+  orderNumber: string;
+  paymentId: string;
+  paymentMethod: OrderPaymentMethod;
+  paymentUrl: string;
+  expiresAt: string;
+}
+
 // ── Return ────────────────────────────────────────────────────────────────────
 
 export interface ReturnItemRequest {

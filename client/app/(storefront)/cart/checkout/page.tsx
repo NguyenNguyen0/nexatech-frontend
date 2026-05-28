@@ -8,7 +8,7 @@ import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart } from '@/features/cart/services/cart-api';
-import { checkout } from '@/features/checkout/services/checkout-api';
+import { CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
 import { getUserById } from '@/features/auth/services/auth-api';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { listMyAddresses } from '@/features/auth/services/address-api';
@@ -22,6 +22,12 @@ const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
   card:        'VNPAY',
   installment: 'CREDIT_CARD',
 };
+
+const CHECKOUT_MIN_LOADING_MS = 3000;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function decodeJwtSub(token: string): string | null {
   try {
@@ -136,6 +142,7 @@ export default function CheckoutPage() {
     }));
 
     setSubmitting(true);
+    const loadingStartedAt = Date.now();
     try {
       const result = await checkout(
         {
@@ -182,6 +189,15 @@ export default function CheckoutPage() {
         router.push(`/cart/checkout/success?${params.toString()}`);
       }
     } catch (err) {
+      const elapsed = Date.now() - loadingStartedAt;
+      if (elapsed < CHECKOUT_MIN_LOADING_MS) {
+        await wait(CHECKOUT_MIN_LOADING_MS - elapsed);
+      }
+
+      if (err instanceof CheckoutUnavailableError) {
+        toast.error('Thanh toán này không khả dụng, hãy đợi một chút rồi thử lại.');
+        return;
+      }
       const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
       toast.error(msg);
     } finally {
