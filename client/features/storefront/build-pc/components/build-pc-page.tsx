@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { PRODUCT_CONSULT_CHAT_EVENT } from '@/components/shared/chat-widget';
+import { getApiErrorMessage, getCart, updateCartItem } from '@/features/cart/services/cart-api';
+import { cn, formatCurrency } from '@/lib/utils';
 import { fetchBuildPcSuggestions, fetchPartsByKey } from '../services/build-pc-api';
 import type { BuildPart, BuildSelection, CatalogItem, PartKey, SuggestedBuild } from '../types';
 import { BuildPartRow } from './build-part-row';
@@ -11,6 +14,8 @@ import { BuildSummary } from './build-summary';
 import { ConfigPresetBar } from './config-preset-bar';
 import { PartPickerModal } from './part-picker-modal';
 import { SuggestedBuildGrid } from './suggested-build-grid';
+
+const ALL_SERIES_LABEL = 'Tất cả';
 
 const buildParts: BuildPart[] = [
   {
@@ -22,10 +27,10 @@ const buildParts: BuildPart[] = [
   },
   {
     key: 'pc-case',
-    label: 'Case máy tính',
-    shortLabel: 'PC Case',
+    label: 'Bo mạch chủ',
+    shortLabel: 'Mainboard',
     icon: 'developer_board',
-    description: 'Khung máy và không gian lắp ráp linh kiện',
+    description: 'Nền tảng kết nối các linh kiện chính',
   },
   {
     key: 'ram',
@@ -72,7 +77,6 @@ const suggestedBuildCategories = [
 ] as const;
 
 export function BuildPcPage() {
-  // — API data state —
   const [suggestedBuilds, setSuggestedBuilds] = useState<SuggestedBuild[]>([]);
   const [modalItems, setModalItems] = useState<CatalogItem[]>([]);
   const [isSuggestedBuildsLoading, setIsSuggestedBuildsLoading] = useState(false);
@@ -80,19 +84,19 @@ export function BuildPcPage() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [activeSuggestedCategory, setActiveSuggestedCategory] = useState<string>('gaming-pc');
 
-  // — Config / selection state —
   const [activeConfigIndex, setActiveConfigIndex] = useState(0);
   const [configs, setConfigs] = useState<BuildSelection[]>([{}, {}, {}]);
   const [selectedPartKey, setSelectedPartKey] = useState<PartKey | null>(null);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedSeries, setSelectedSeries] = useState('Tất cả');
+  const [selectedSeries, setSelectedSeries] = useState(ALL_SERIES_LABEL);
   const [selectedMinRating, setSelectedMinRating] = useState(0);
   const [modalPage, setModalPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
+  const [isAddingConfigToCart, setIsAddingConfigToCart] = useState(false);
 
-  // Load suggested builds on category change
   useEffect(() => {
     void (async () => {
       setIsSuggestedBuildsLoading(true);
@@ -134,8 +138,8 @@ export function BuildPcPage() {
 
   const activeConfig = configs[activeConfigIndex] ?? {};
   const selectedPart = buildParts.find((part) => part.key === selectedPartKey) ?? null;
-  const availableBrands = [...new Set(modalItems.map((item) => item.brand))];
-  const availableSeries = [...new Set(modalItems.map((item) => item.series))];
+  const availableBrands = [...new Set(modalItems.map((item) => item.brand).filter(Boolean))];
+  const availableSeries = [...new Set(modalItems.map((item) => item.series).filter(Boolean))];
   const availableRatings = [...new Set(modalItems.map((item) => Math.floor(item.averageRating)))].sort((a, b) => b - a);
 
   const filteredItems = useMemo(() => {
@@ -147,18 +151,12 @@ export function BuildPcPage() {
         item.name.toLowerCase().includes(normalizedSearch) ||
         item.brand.toLowerCase().includes(normalizedSearch);
       const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(item.brand);
-      const matchesSeries = selectedSeries === 'Tất cả' || item.series === selectedSeries;
+      const matchesSeries = selectedSeries === ALL_SERIES_LABEL || item.series === selectedSeries;
       const matchesRating = selectedMinRating <= 0 || item.averageRating >= selectedMinRating;
 
       return matchesSearch && matchesBrand && matchesSeries && matchesRating;
     });
-  }, [
-    modalItems,
-    searchTerm,
-    selectedBrands,
-    selectedMinRating,
-    selectedSeries,
-  ]);
+  }, [modalItems, searchTerm, selectedBrands, selectedMinRating, selectedSeries]);
 
   const total = Object.values(activeConfig).reduce((sum, item) => sum + (item?.price ?? 0), 0);
   const selectedCount = Object.keys(activeConfig).length;
@@ -169,7 +167,7 @@ export function BuildPcPage() {
     setPendingItemId(activeConfig[partKey]?.id ?? null);
     setSearchTerm('');
     setSelectedBrands([]);
-    setSelectedSeries('Tất cả');
+    setSelectedSeries(ALL_SERIES_LABEL);
     setSelectedMinRating(0);
     setModalPage(0);
     setTotalPages(1);
@@ -200,9 +198,7 @@ export function BuildPcPage() {
   };
 
   const clearActiveConfig = () => {
-    setConfigs((current) =>
-      current.map((config, index) => (index === activeConfigIndex ? {} : config)),
-    );
+    setConfigs((current) => current.map((config, index) => (index === activeConfigIndex ? {} : config)));
   };
 
   const toggleBrand = (brand: string) => {
@@ -214,7 +210,7 @@ export function BuildPcPage() {
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedBrands([]);
-    setSelectedSeries('Tất cả');
+    setSelectedSeries(ALL_SERIES_LABEL);
     setSelectedMinRating(0);
   };
 
@@ -226,6 +222,74 @@ export function BuildPcPage() {
         const updated = { ...config };
         delete updated[partKey];
         return updated;
+      }),
+    );
+  };
+
+  const addProductToCart = async (product: { id: string; price: number }) => {
+    const currentCart = await getCart().catch(() => null);
+    const inCart = currentCart?.items.find((item) => item.productId === product.id)?.quantity ?? 0;
+    await updateCartItem(product.id, {
+      quantity: inCart + 1,
+      priceOverride: product.price,
+    });
+  };
+
+  const handleAddSuggestedBuildToCart = async (build: SuggestedBuild) => {
+    if (addingProductId) return;
+
+    setAddingProductId(build.id);
+    try {
+      await addProductToCart({ id: build.id, price: build.price });
+      toast.success('Đã thêm sản phẩm vào giỏ hàng');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Không thể thêm sản phẩm vào giỏ hàng'));
+    } finally {
+      setAddingProductId(null);
+    }
+  };
+
+  const handleAddActiveConfigToCart = async () => {
+    const selectedItems = Object.values(activeConfig).filter((item): item is CatalogItem => Boolean(item));
+    if (selectedItems.length === 0 || isAddingConfigToCart) return;
+
+    setIsAddingConfigToCart(true);
+    try {
+      const currentCart = await getCart().catch(() => null);
+      const quantities = new Map(currentCart?.items.map((item) => [item.productId, item.quantity]) ?? []);
+
+      for (const item of selectedItems) {
+        const nextQuantity = (quantities.get(item.id) ?? 0) + 1;
+        await updateCartItem(item.id, {
+          quantity: nextQuantity,
+          priceOverride: item.price,
+        });
+        quantities.set(item.id, nextQuantity);
+      }
+
+      toast.success(`Đã thêm ${selectedItems.length} linh kiện vào giỏ hàng`);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Không thể thêm cấu hình vào giỏ hàng'));
+    } finally {
+      setIsAddingConfigToCart(false);
+    }
+  };
+
+  const handleConsultActiveConfig = () => {
+    const selectedItems = buildParts
+      .map((part) => {
+        const item = activeConfig[part.key];
+        return item ? `${part.shortLabel}: ${item.name} (${formatCurrency(item.price)})` : null;
+      })
+      .filter(Boolean);
+
+    if (selectedItems.length === 0) return;
+
+    window.dispatchEvent(
+      new CustomEvent(PRODUCT_CONSULT_CHAT_EVENT, {
+        detail: {
+          initialMessage: `Tư vấn giúp mình cấu hình PC này:\n${selectedItems.join('\n')}\nTổng: ${formatCurrency(total)}`,
+        },
       }),
     );
   };
@@ -264,6 +328,8 @@ export function BuildPcPage() {
           suggestedBuilds={suggestedBuilds}
           isLoading={isSuggestedBuildsLoading}
           dataError={dataError}
+          addingProductId={addingProductId}
+          onAddToCart={handleAddSuggestedBuildToCart}
         />
       </section>
 
@@ -294,6 +360,9 @@ export function BuildPcPage() {
           activeConfig={activeConfig}
           selectedCount={selectedCount}
           total={total}
+          isAddingToCart={isAddingConfigToCart}
+          onConsult={handleConsultActiveConfig}
+          onAddAllToCart={handleAddActiveConfigToCart}
         />
       </section>
 

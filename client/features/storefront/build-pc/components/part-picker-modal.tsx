@@ -81,9 +81,7 @@ export function PartPickerModal({
                     placeholder="Tên sản phẩm..."
                     className="w-full rounded border border-[#ddd] bg-white px-3 py-2 pr-10 text-[13px] focus:outline-none focus:ring-1 focus:ring-primary"
                   />
-                  <span className="material-symbols-outlined absolute right-2 top-2 text-outline">
-                    search
-                  </span>
+                  <span className="material-symbols-outlined absolute right-2 top-2 text-outline">search</span>
                 </div>
               </div>
 
@@ -175,9 +173,7 @@ export function PartPickerModal({
             ) : filteredItems.length === 0 ? (
               <div className="flex min-h-64 items-center justify-center rounded border border-dashed border-[#ddd] bg-white text-center">
                 <div>
-                  <span className="material-symbols-outlined mb-2 text-[40px] text-outline">
-                    search_off
-                  </span>
+                  <span className="material-symbols-outlined mb-2 text-[40px] text-outline">search_off</span>
                   <p className="text-body-md text-on-surface-variant">Không tìm thấy linh kiện phù hợp.</p>
                 </div>
               </div>
@@ -207,7 +203,7 @@ export function PartPickerModal({
                       <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                     </button>
                     <span className="text-[13px] text-on-surface-variant">
-                      Trang {currentPage} / {lastPageIndex}
+                      Trang {currentPage + 1} / {lastPageIndex + 1}
                     </span>
                     <button
                       type="button"
@@ -235,9 +231,7 @@ export function PartPickerModal({
             rel="noreferrer"
             aria-disabled={!selectedItem}
             onClick={(event) => {
-              if (!selectedItem) {
-                event.preventDefault();
-              }
+              if (!selectedItem) event.preventDefault();
             }}
             className="rounded-sm border border-outline-variant px-3 py-1.5 text-[12px] font-semibold text-on-surface transition hover:border-primary hover:text-primary aria-disabled:pointer-events-none aria-disabled:opacity-50"
           >
