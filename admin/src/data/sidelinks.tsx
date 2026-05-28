@@ -19,6 +19,7 @@ import {
     IconHistory,
     IconCreditCard,
     IconTruck,
+    IconRosetteDiscount,
     IconTimeline,
 } from '@tabler/icons-react';
 
@@ -121,6 +122,20 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/chats',
         icon: <IconMessages size={18} />,
+    },
+    {
+        title: 'Promotions',
+        label: '',
+        href: '',
+        icon: <IconRosetteDiscount size={18} />,
+        sub: [
+            {
+                title: 'Flash Sales',
+                label: '',
+                href: '/admin/promotions/flash-sales',
+                icon: <IconRosetteDiscount size={18} />,
+            },
+        ],
     },
     {
         title: 'Order',

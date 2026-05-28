@@ -45,7 +45,8 @@ function resolveWsUrl(): string {
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
     (typeof window !== 'undefined' ? window.location.origin : '');
   const trimmed = base?.replace(/\/$/, '') || 'http://localhost:8000';
-  return `${trimmed}/ws/chat`;
+  const sockJsBase = trimmed.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:');
+  return `${sockJsBase}/ws/chat`;
 }
 
 function formatTimestamp(value?: string | null): string {

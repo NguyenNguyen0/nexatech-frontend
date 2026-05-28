@@ -1,9 +1,9 @@
 import type { ApiResponse } from '@/types/auth';
 import type { NewsDetail, NewsListItem } from '../types';
+import { resolveBackendBaseUrl } from '@/lib/server-env';
 
 const NEWS_API_BASE = '/api/v1/news';
-const API_GATEWAY_URL =
-  process.env.API_GATEWAY_URL?.replace(/\/$/, '') ?? 'http://localhost:8080';
+const API_GATEWAY_URL = resolveBackendBaseUrl();
 
 function resolveApiPath(path: string): string {
   if (path.startsWith('/')) {
