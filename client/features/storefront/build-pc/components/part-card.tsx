@@ -1,9 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from 'next/link';
+import { Eye } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { BuildPart, CatalogItem } from '../types';
-import { Eye } from 'lucide-react';
 
 type PartCardProps = {
   item: CatalogItem;
@@ -14,9 +14,7 @@ type PartCardProps = {
 
 export function PartCard({ item, part, isSelected = false, onSelect }: PartCardProps) {
   const handleClick = () => {
-    if (onSelect) {
-      onSelect(item.id);
-    }
+    onSelect?.(item.id);
   };
 
   return (
@@ -26,21 +24,13 @@ export function PartCard({ item, part, isSelected = false, onSelect }: PartCardP
         isSelected ? 'border-primary ring-1 ring-primary/50' : 'border-[#e8e8e8]',
       )}
     >
-      {/* Image */}
-      <Link
-        href={`/product/${item.slug}`}
-        target="_blank"
-        rel="noreferrer"
-        className="block"
-      >
+      <Link href={`/product/${item.slug}`} target="_blank" rel="noreferrer" className="block">
         <div className="relative flex aspect-square items-center justify-center bg-white p-2.5">
           {item.image ? (
             <img src={item.image} alt={item.name} className="h-full w-full object-contain" />
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded bg-[#f5f5f5]">
-              <span className="material-symbols-outlined text-[52px] text-outline">
-                {part.icon}
-              </span>
+              <span className="material-symbols-outlined text-[52px] text-outline">{part.icon}</span>
             </div>
           )}
 
@@ -52,7 +42,6 @@ export function PartCard({ item, part, isSelected = false, onSelect }: PartCardP
         </div>
       </Link>
 
-      {/* Content */}
       <div className="flex flex-1 flex-col p-2.5">
         <Link
           href={`/product/${item.slug}`}
@@ -63,7 +52,7 @@ export function PartCard({ item, part, isSelected = false, onSelect }: PartCardP
           {item.name}
         </Link>
         <p className="mb-3 text-label-sm text-outline">
-          {item.brand} {item.series ? `· ${item.series}` : ''}
+          {item.brand} {item.series ? `• ${item.series}` : ''}
         </p>
         <div className="mt-auto">
           <div className="mb-3 flex flex-col">
@@ -77,13 +66,16 @@ export function PartCard({ item, part, isSelected = false, onSelect }: PartCardP
             ) : null}
           </div>
           <div className="flex items-center gap-1 text-[11px] text-on-surface-variant">
-            <span className="material-symbols-outlined text-[14px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>
+            <span
+              className="material-symbols-outlined text-[14px] text-secondary"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
               star
             </span>
             <span className="font-medium">{item.averageRating.toFixed(1)}</span>
           </div>
           <div className="mt-3 flex gap-2">
-			<button
+            <button
               type="button"
               onClick={handleClick}
               className="flex-1 rounded-sm bg-primary px-3 py-2 text-[12px] font-semibold text-white transition hover:bg-primary-container"
@@ -94,9 +86,10 @@ export function PartCard({ item, part, isSelected = false, onSelect }: PartCardP
               href={`/product/${item.slug}`}
               target="_blank"
               rel="noreferrer"
-              className="justify-center items-center flex rounded-sm border border-outline-variant px-3 py-2 text-center text-[12px] font-semibold text-on-surface transition hover:border-primary hover:text-primary"
+              aria-label={`Xem chi tiết ${item.name}`}
+              className="flex items-center justify-center rounded-sm border border-outline-variant px-3 py-2 text-center text-[12px] font-semibold text-on-surface transition hover:border-primary hover:text-primary"
             >
-              <Eye className="mr-1" size={16} />
+              <Eye size={16} />
             </Link>
           </div>
         </div>
