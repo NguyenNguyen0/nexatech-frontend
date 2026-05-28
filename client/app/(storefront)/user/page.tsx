@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import { toast } from 'sonner';
-import { Mail, Loader2, ShieldCheck, Pencil, X, Save } from 'lucide-react';
+import { Mail, Loader2, ShieldCheck, Pencil, X, Save, UserRound } from 'lucide-react';
 import {
   getUserById,
   updateUserProfile,
@@ -19,12 +19,6 @@ const GENDER_OPTIONS = [
   { value: 'OTHER', label: 'Khác' },
 ];
 
-const GENDER_LABELS: Record<string, string> = {
-  MALE: 'Nam',
-  FEMALE: 'Nữ',
-  OTHER: 'Khác',
-};
-
 function decodeJwtSub(token: string): string | null {
   try {
     const payload = token.split('.')[1];
@@ -35,27 +29,27 @@ function decodeJwtSub(token: string): string | null {
   }
 }
 
-function DisabledRow({ label, value }: { label: string; value?: string }) {
+function DisabledRow({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value?: string;
+  icon?: ComponentType<{ className?: string }>;
+}) {
   return (
     <div>
-      <label className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">{label}</label>
+      <label className="inline-flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface-variant">
+        {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+        {label}
+      </label>
       <input
         value={value ?? ''}
         disabled
-        className="mt-1 w-full rounded-sm border border-border bg-bg-base/60 px-4 py-2.5 text-sm text-text-tertiary opacity-70 cursor-not-allowed"
+        className="mt-1.5 w-full rounded-[8px] border border-outline-variant bg-surface-container-low px-4 py-2.5 text-body-md text-on-surface-variant opacity-80 cursor-not-allowed"
         readOnly
       />
-    </div>
-  );
-}
-
-function InfoField({ label, value }: { label: string; value?: string }) {
-  return (
-    <div className="rounded-md border border-border bg-bg-base px-4 py-3">
-      <p className="text-xs uppercase tracking-[0.18em] text-text-tertiary">{label}</p>
-      <p className="mt-1 text-sm font-medium text-text-primary">
-        {value || <span className="italic text-text-tertiary">Chưa cập nhật</span>}
-      </p>
     </div>
   );
 }
@@ -151,152 +145,163 @@ export default function UserProfilePage() {
     || 'Người dùng';
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Hồ sơ cá nhân</p>
-            <h2 className="mt-2 text-2xl font-bold text-text-primary">{fullName}</h2>
-            {profile?.role && (
-              <p className="mt-1 text-sm text-text-secondary">Vai trò: {profile.role}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-sm bg-success/10 px-3 py-1.5 text-xs font-semibold text-success">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Đã xác minh
-            </span>
-            {!editing ? (
-              <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-bg-base px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-primary hover:text-primary transition"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Chỉnh sửa
-              </button>
-            ) : (
-              <button
-                onClick={handleCancelEdit}
-                className="inline-flex items-center gap-1.5 rounded-sm border border-border bg-bg-base px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-error hover:text-error transition"
-              >
-                <X className="h-3.5 w-3.5" />
-                Hủy
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 border-t border-border/60 pt-6">
-          <AvatarUploadField
-            currentUrl={avatarPreviewUrl ?? profile?.avatarUrl}
-            displayName={fullName}
-            disabled={!editing}
-            onFileSelected={(file, preview) => {
-              setPendingAvatarFile(file);
-              setAvatarPreviewUrl(preview);
-            }}
-          />
-          {pendingAvatarFile && editing && (
-            <p className="mt-2 text-xs text-amber-700">
-              Đã chọn: {pendingAvatarFile.name} — sẽ tải lên khi storage-service sẵn sàng.
-            </p>
-          )}
-        </div>
-
-        {/* View mode */}
-        {!editing ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <InfoField label="Tên đăng nhập" value={profile?.username} />
-            <InfoField label="Email" value={profile?.email} />
-            <InfoField label="Họ" value={profile?.lastName} />
-            <InfoField label="Tên" value={profile?.firstName} />
-            <InfoField label="Số điện thoại" value={profile?.phone} />
-            <InfoField label="Giới tính" value={profile?.gender ? GENDER_LABELS[profile.gender] ?? profile.gender : undefined} />
-            <InfoField label="Ngày sinh" value={profile?.dob} />
-          </div>
-        ) : (
-          /* Edit mode */
-          <div className="mt-5 space-y-4">
-            {/* Disabled: username + email */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DisabledRow label="Tên đăng nhập" value={profile?.username} />
-              <DisabledRow label="Email" value={profile?.email} />
+    <div className="space-y-6 font-body-md">
+      <section className="rounded-[8px] border border-border bg-bg-elevated shadow-sm">
+        <div className="border-b border-border px-6 py-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-headline-md font-headline-md text-on-surface">Hồ sơ của tôi</h2>
+              <p className="mt-1 text-body-md text-on-surface-variant">
+                Quản lý thông tin hồ sơ để bảo mật tài khoản và cá nhân hóa trải nghiệm mua sắm.
+              </p>
             </div>
-            <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-4 py-2.5">
-              <Mail className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              <p className="text-xs text-amber-700">Tên đăng nhập và email không thể thay đổi.</p>
-            </div>
-
-            {/* Editable fields */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Họ</label>
-                <input
-                  value={form.lastName}
-                  onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
-                  placeholder="Nguyễn"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Tên</label>
-                <input
-                  value={form.firstName}
-                  onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
-                  placeholder="Văn A"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Số điện thoại</label>
-                <input
-                  value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
-                  placeholder="09xx xxx xxx"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Giới tính</label>
-                <select
-                  value={form.gender}
-                  onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
-                  className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-[8px] bg-success/10 px-3 py-1.5 text-label-sm font-label-sm text-success">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Đã xác minh
+              </span>
+              {!editing ? (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="inline-flex items-center gap-1.5 rounded-[8px] bg-primary px-4 py-2 text-label-sm font-label-sm text-white hover:bg-primary/90 transition"
                 >
-                  <option value="">-- Chọn --</option>
-                  {GENDER_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Chỉnh sửa hồ sơ
+                </button>
+              ) : (
+                <button
+                  onClick={handleCancelEdit}
+                  className="inline-flex items-center gap-1.5 rounded-[8px] border border-outline-variant bg-surface px-4 py-2 text-label-sm font-label-sm text-on-surface-variant hover:border-error hover:text-error transition"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Hủy
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-8 px-6 py-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="border-b border-border pb-6 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+            <div className="flex flex-col items-start">
+              <AvatarUploadField
+                currentUrl={avatarPreviewUrl ?? profile?.avatarUrl}
+                displayName={fullName}
+                disabled={!editing}
+                className="items-start text-left sm:flex-col sm:items-start"
+                onFileSelected={(file, preview) => {
+                  setPendingAvatarFile(file);
+                  setAvatarPreviewUrl(preview);
+                }}
+              />
+              <p className="mt-3 text-label-sm font-label-sm text-on-surface-variant">
+                Dung lượng tối đa 1MB
+                <br />
+                Định dạng: JPEG, PNG
+              </p>
+              {pendingAvatarFile && editing && (
+                <p className="mt-3 w-full rounded-[8px] border border-amber-200 bg-amber-50 px-3 py-2 text-label-sm font-label-sm text-amber-700">
+                  Đã chọn: {pendingAvatarFile.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <p className="text-body-md text-on-surface-variant">Tên đăng nhập</p>
+              <DisabledRow label="Tên đăng nhập" value={profile?.username} icon={UserRound} />
             </div>
 
-            <div className="max-w-xs">
-              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-text-tertiary">Ngày sinh</label>
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <p className="text-body-md text-on-surface-variant">Email</p>
+              <DisabledRow label="Email" value={profile?.email} icon={Mail} />
+            </div>
+
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <label className="text-body-md text-on-surface-variant">Họ</label>
               <input
-                type="date"
-                value={form.dob}
-                onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                className="mt-1 w-full rounded-sm border border-border bg-bg-base px-4 py-2.5 text-sm text-text-primary outline-none focus:border-primary transition"
+                value={form.lastName}
+                onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                className="w-full rounded-[8px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-md text-on-surface outline-none focus:border-primary transition disabled:cursor-not-allowed disabled:opacity-70"
+                placeholder="Nguyễn"
+                disabled={!editing}
               />
             </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary/90 disabled:opacity-60 transition"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Lưu thay đổi
-              </button>
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <label className="text-body-md text-on-surface-variant">Tên</label>
+              <input
+                value={form.firstName}
+                onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                className="w-full rounded-[8px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-md text-on-surface outline-none focus:border-primary transition disabled:cursor-not-allowed disabled:opacity-70"
+                placeholder="Văn A"
+                disabled={!editing}
+              />
             </div>
+
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <label className="text-body-md text-on-surface-variant">Số điện thoại</label>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                className="w-full rounded-[8px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-md text-on-surface outline-none focus:border-primary transition disabled:cursor-not-allowed disabled:opacity-70"
+                placeholder="09xx xxx xxx"
+                disabled={!editing}
+              />
+            </div>
+
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <label className="text-body-md text-on-surface-variant">Giới tính</label>
+              <select
+                value={form.gender}
+                onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value }))}
+                className="w-full rounded-[8px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-md text-on-surface outline-none focus:border-primary transition disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={!editing}
+              >
+                <option value="">-- Chọn --</option>
+                {GENDER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid items-center gap-3 md:grid-cols-[170px_minmax(0,1fr)]">
+              <label className="text-body-md text-on-surface-variant">Ngày sinh</label>
+              <div className="max-w-xs">
+                <input
+                  type="date"
+                  value={form.dob}
+                  onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                  className="w-full rounded-[8px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-md text-on-surface outline-none focus:border-primary transition disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={!editing}
+                />
+              </div>
+            </div>
+
+            {editing ? (
+              <>
+                <div className="flex items-start gap-2 rounded-[8px] border border-amber-200 bg-amber-50 px-4 py-2.5">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <p className="text-label-sm font-label-sm text-amber-700">Tên đăng nhập và email không thể thay đổi.</p>
+                </div>
+                <div className="flex justify-start">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded-[8px] bg-primary px-6 py-2.5 text-title-lg font-title-lg text-white hover:bg-primary/90 disabled:opacity-60 transition"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Lưu thay đổi
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="text-label-sm font-label-sm text-on-surface-variant">Vai trò tài khoản: {profile?.role || 'CUSTOMER'}</p>
+            )}
           </div>
-        )}
+
+        </div>
       </section>
 
       <AddressBookSection enabled={!!userId} />

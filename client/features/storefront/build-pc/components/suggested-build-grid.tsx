@@ -9,9 +9,17 @@ type SuggestedBuildGridProps = {
   suggestedBuilds: SuggestedBuild[];
   isLoading: boolean;
   dataError: string | null;
+  addingProductId?: string | null;
+  onAddToCart: (build: SuggestedBuild) => void;
 };
 
-export function SuggestedBuildGrid({ suggestedBuilds, isLoading, dataError }: SuggestedBuildGridProps) {
+export function SuggestedBuildGrid({
+  suggestedBuilds,
+  isLoading,
+  dataError,
+  addingProductId,
+  onAddToCart,
+}: SuggestedBuildGridProps) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     slidesToScroll: 1,
@@ -72,12 +80,11 @@ export function SuggestedBuildGrid({ suggestedBuilds, isLoading, dataError }: Su
     return (
       <div className="rounded-md border border-[#e8e8e8] bg-white px-4 py-8 text-center text-[13px] text-[#666]">
         <p className="font-semibold text-[#333]">Chưa có cấu hình gợi ý</p>
-        <p className="mt-1">Backend đã trả về danh sách rỗng cho nhóm sản phẩm này.</p>
+        <p className="mt-1">Backend đang trả về danh sách rỗng cho nhóm sản phẩm này.</p>
       </div>
     );
   }
 
-  // Show carousel only if more than 4 items (assumes ~4-5 visible items per row)
   const showCarousel = suggestedBuilds.length > 4;
 
   return (
@@ -89,7 +96,11 @@ export function SuggestedBuildGrid({ suggestedBuilds, isLoading, dataError }: Su
               key={build.id}
               className="min-w-0 shrink-0 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5"
             >
-              <SuggestedBuildCard build={build} />
+              <SuggestedBuildCard
+                build={build}
+                isAddingToCart={addingProductId === build.id}
+                onAddToCart={onAddToCart}
+              />
             </div>
           ))}
         </div>
@@ -106,9 +117,7 @@ export function SuggestedBuildGrid({ suggestedBuilds, isLoading, dataError }: Su
           >
             <span className="material-symbols-outlined text-[20px]">chevron_left</span>
           </button>
-          <span className="text-[13px] text-on-surface-variant">
-            Cuộn để xem thêm
-          </span>
+          <span className="text-[13px] text-on-surface-variant">Cuộn để xem thêm</span>
           <button
             ref={nextBtnRef}
             onClick={scrollNext}

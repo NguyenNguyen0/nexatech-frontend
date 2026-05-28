@@ -66,7 +66,7 @@ export default function ReturnsPage() {
             <div className="p-6 bg-warning/5 border border-warning/20 rounded-2xl flex gap-4">
               <HelpCircle className="h-6 w-6 text-warning shrink-0" />
               <p className="text-sm text-gray-700 italic">
-                Lưu ý: NexaTech không áp dụng đổi trả với trường hợp khách hàng thay đổi ý định mua hàng (&quot;Đổi ý&quot;) sau khi đã bóc tem niêm phong sản phẩm.
+                Lưu ý: NexaTech không áp dụng đổi trả với trường hợp khách hàng thay đổi ý định mua hàng (&ldquo;Đổi ý&rdquo;) sau khi đã bóc tem niêm phong sản phẩm.
               </p>
             </div>
           </div>

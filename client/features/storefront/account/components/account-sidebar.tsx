@@ -23,8 +23,8 @@ export function AccountSidebar() {
   }
 
   return (
-    <aside className="rounded-md border border-border bg-bg-elevated p-4 shadow-sm">
-      <nav className="space-y-1.5">
+    <aside className="rounded-[8px] border border-outline-variant bg-surface p-4 shadow-sm font-body-md">
+      <nav className="space-y-2">
         {links.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href, item.exact);
@@ -34,13 +34,22 @@ export function AccountSidebar() {
               key={item.key}
               href={item.href}
               className={[
-                'flex items-center gap-3 rounded-sm border px-3 py-2.5 text-sm transition',
+                'group flex items-center gap-3 rounded-[8px] border px-3 py-2.5 text-body-md transition',
                 active
-                  ? 'border-primary bg-primary/10 font-semibold text-primary'
-                  : 'border-border bg-bg-base text-text-secondary hover:border-primary hover:text-primary',
+                  ? 'border-primary/60 bg-primary/10 font-title-lg text-primary shadow-sm'
+                  : 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/60 hover:text-primary',
               ].join(' ')}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <span
+                className={[
+                  'inline-flex h-7 w-7 items-center justify-center rounded-[8px] border transition',
+                  active
+                    ? 'border-primary/30 bg-primary/15 text-primary'
+                    : 'border-outline-variant text-on-surface-variant group-hover:border-primary/30 group-hover:text-primary',
+                ].join(' ')}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+              </span>
               <span>{item.label}</span>
             </Link>
           );
