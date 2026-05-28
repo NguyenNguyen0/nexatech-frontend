@@ -1,13 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 
+import Link from 'next/link';
+import { Eye } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { SuggestedBuild } from '../types';
 
 type SuggestedBuildCardProps = {
   build: SuggestedBuild;
+  isAddingToCart?: boolean;
+  onAddToCart: (build: SuggestedBuild) => void;
 };
 
-export function SuggestedBuildCard({ build }: SuggestedBuildCardProps) {
+export function SuggestedBuildCard({
+  build,
+  isAddingToCart = false,
+  onAddToCart,
+}: SuggestedBuildCardProps) {
+  const productHref = `/product/${build.slug}`;
+
   return (
     <article className="group relative flex h-full flex-col rounded-md border border-[#e8e8e8] bg-white p-2.5 transition-all hover:shadow-md">
       {build.savingsLabel ? (
@@ -24,7 +34,7 @@ export function SuggestedBuildCard({ build }: SuggestedBuildCardProps) {
         <span className="material-symbols-outlined text-[20px]">favorite</span>
       </button>
 
-      <div className="relative mb-2 aspect-square overflow-hidden rounded bg-[#f7f7f7] p-2.5">
+      <Link href={productHref} className="relative mb-2 block aspect-square overflow-hidden rounded bg-[#f7f7f7] p-2.5">
         {build.image ? (
           <img
             src={build.image}
@@ -36,25 +46,41 @@ export function SuggestedBuildCard({ build }: SuggestedBuildCardProps) {
             <span className="material-symbols-outlined text-[52px] text-outline">desktop_windows</span>
           </div>
         )}
-      </div>
+      </Link>
 
-      <h2 className="mb-1.5 min-h-9 text-[12px] font-medium leading-[1.4] text-[#333] line-clamp-2">
+      <Link
+        href={productHref}
+        className="mb-1.5 min-h-9 text-[12px] font-medium leading-[1.4] text-[#333] line-clamp-2 transition hover:text-primary"
+      >
         {build.name}
-      </h2>
+      </Link>
 
       <div className="mt-auto">
         <div className="flex items-baseline gap-1.5">
           <span className="text-[13px] font-bold text-[#e30019]">{formatCurrency(build.price)}</span>
         </div>
-        <p className="text-[10px] text-[#999] line-through">{formatCurrency(build.originalPrice)}</p>
+        {build.originalPrice > build.price ? (
+          <p className="text-[10px] text-[#999] line-through">{formatCurrency(build.originalPrice)}</p>
+        ) : null}
       </div>
 
-      <button
-        type="button"
-        className="mt-2 w-full rounded-sm border border-[#004d75] py-1 text-[11px] font-semibold text-[#004d75] transition hover:bg-[#004d75] hover:text-white"
-      >
-        Thêm vào giỏ
-      </button>
+      <div className="mt-2 grid grid-cols-[1fr_34px] gap-2">
+        <button
+          type="button"
+          onClick={() => onAddToCart(build)}
+          disabled={isAddingToCart}
+          className="rounded-sm border border-[#004d75] py-1 text-[11px] font-semibold text-[#004d75] transition hover:bg-[#004d75] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isAddingToCart ? 'Đang thêm...' : 'Thêm vào giỏ'}
+        </button>
+        <Link
+          href={productHref}
+          aria-label={`Xem chi tiết ${build.name}`}
+          className="flex items-center justify-center rounded-sm border border-outline-variant text-on-surface transition hover:border-primary hover:text-primary"
+        >
+          <Eye size={15} />
+        </Link>
+      </div>
     </article>
   );
 }
