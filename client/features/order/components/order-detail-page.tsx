@@ -14,9 +14,10 @@ import {
   CheckCircle2,
   RotateCcw,
   AlertCircle,
+  CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getOrderById, cancelOrder } from '@/features/order/services/order-api';
+import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
 import { getShipmentByOrderId } from '@/features/shipping/services/shipping-api';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderResponse, OrderStatus } from '@/types/order';
@@ -87,6 +88,7 @@ export default function OrderDetailPage() {
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [continuingPayment, setContinuingPayment] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     setLoadingOrder(true);
@@ -130,6 +132,20 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleContinuePayment = async () => {
+    if (!order) return;
+    setContinuingPayment(true);
+    try {
+      const payment = await continuePayment(order.id);
+      window.location.href = payment.paymentUrl;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể tiếp tục thanh toán. Vui lòng thử lại.');
+      void fetchOrder();
+    } finally {
+      setContinuingPayment(false);
+    }
+  };
+
   if (loadingOrder) {
     return (
       <div className="flex-grow flex items-center justify-center py-24">
@@ -141,6 +157,7 @@ export default function OrderDetailPage() {
   if (!order) return null;
 
   const canCancel = order.status === 'PENDING' || order.status === 'CONFIRMED';
+  const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY';
   const statusClass = ORDER_STATUS_COLOR[order.status];
 
   return (
@@ -344,6 +361,26 @@ export default function OrderDetailPage() {
               <p className="text-sm text-on-surface">
                 {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
               </p>
+              {canContinuePayment && (
+                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <p className="text-xs leading-5 text-amber-800">
+                    Đơn hàng đang chờ thanh toán VNPay. Bạn có thể mở lại cổng thanh toán trước khi đơn tự huỷ.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleContinuePayment}
+                    disabled={continuingPayment}
+                    className="mt-3 h-10 w-full rounded-xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  >
+                    {continuingPayment ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="size-4" />
+                    )}
+                    Tiếp tục thanh toán
+                  </button>
+                </div>
+              )}
             </section>
 
             {/* Delivery info */}
