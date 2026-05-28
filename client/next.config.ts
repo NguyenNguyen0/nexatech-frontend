@@ -5,6 +5,10 @@ const API_GATEWAY_URL = (
   process.env.NEXT_PUBLIC_BACKEND_BASE_URL ||
   'http://localhost:8080'
 ).replace(/\/$/, '');
+const PROMOTION_SERVICE_URL = (
+  process.env.PROMOTION_SERVICE_URL ||
+  'http://localhost:8093'
+).replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
   /* Proxy API calls to backend gateway */

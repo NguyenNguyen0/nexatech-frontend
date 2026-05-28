@@ -4,12 +4,14 @@
  * ApiResponse format (order-service): { success: boolean, data: T, message?: string, timestamp?: string }
  */
 
+import { isAxiosError } from 'axios';
 import axiosClient from '@/lib/axios-client';
 import type {
   OrderApiResponse,
   OrderResponse,
   PageResponse,
   CreateReturnRequest,
+  ContinuePaymentResponse,
   ReturnResponse,
 } from '@/types/order';
 import { ORDER_API_BASE, RETURN_API_BASE } from '@/lib/constants';
@@ -50,6 +52,29 @@ export async function cancelOrder(orderId: string): Promise<OrderResponse> {
   );
   if (!data.success || !data.data) throw new Error(data.message ?? 'Huỷ đơn hàng thất bại');
   return data.data;
+}
+
+function readOrderApiError(error: unknown, fallback: string): string {
+  if (!isAxiosError(error)) {
+    return error instanceof Error ? error.message : fallback;
+  }
+  const data = error.response?.data as { message?: string; error?: string } | undefined;
+  return data?.message || data?.error || fallback;
+}
+
+/** Tạo lại link VNPay cho đơn hàng đang PENDING. */
+export async function continuePayment(orderId: string): Promise<ContinuePaymentResponse> {
+  try {
+    const { data } = await axiosClient.post<OrderApiResponse<ContinuePaymentResponse>>(
+      `${ORDER_API_BASE}/${orderId}/continue-payment`,
+    );
+    if (!data.success || !data.data) {
+      throw new Error(data.message ?? 'Không thể tiếp tục thanh toán');
+    }
+    return data.data;
+  } catch (error) {
+    throw new Error(readOrderApiError(error, 'Không thể tiếp tục thanh toán'));
+  }
 }
 
 /**

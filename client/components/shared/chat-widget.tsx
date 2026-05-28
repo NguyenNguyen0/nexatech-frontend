@@ -37,7 +37,13 @@ type WidgetState = 'closed' | 'minimized' | 'open';
 
 export const PRODUCT_CONSULT_CHAT_EVENT = 'nexatech:chat-consult-product';
 
-type ProductConsultEvent = CustomEvent<ProductReference>;
+type ConsultChatEventDetail =
+  | ProductReference
+  | {
+      product?: ProductReference | null;
+      initialMessage?: string;
+    };
+type ProductConsultEvent = CustomEvent<ConsultChatEventDetail>;
 
 function resolveWsUrl(): string {
   const base =
@@ -110,7 +116,7 @@ function ProductReferenceCard({
         <button
           type="button"
           onClick={onClear}
-          aria-label="Bo chon san pham tu van"
+          aria-label="Bỏ chọn sản phẩm tư vấn"
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-low hover:text-on-surface"
         >
           <X className="h-3.5 w-3.5" />
@@ -574,12 +580,23 @@ export function ChatWidget() {
 
   useEffect(() => {
     const handleConsultProduct = (event: Event) => {
-      const product = (event as ProductConsultEvent).detail;
-      if (!product?.productId || !product.slug || !product.name) return;
+      const detail = (event as ProductConsultEvent).detail;
+      const initialMessage =
+        detail && 'initialMessage' in detail && typeof detail.initialMessage === 'string'
+          ? detail.initialMessage
+          : undefined;
+      const product =
+        (detail && 'productId' in detail ? detail : detail?.product) ?? {
+          productId: '',
+          slug: '',
+          name: initialMessage || 'cấu hình PC',
+        };
 
-      setSelectedProduct(product);
+      if (product?.productId && product.slug && product.name) {
+        setSelectedProduct(product);
+      }
       setWidgetState('open');
-      setInputValue((current) => current || `Tư vấn về sản phẩm ${product.name}`);
+      setInputValue((current) => current || initialMessage || `Tư vấn về sản phẩm ${product.name}`);
       setTimeout(() => scrollToBottom('smooth'), 0);
     };
 
@@ -682,7 +699,7 @@ export function ChatWidget() {
 
             {!isLoadingMessages && activeConversationId && messages.length === 0 ? (
               <div className="rounded-xl border border-dashed border-outline-variant bg-surface p-4 text-center text-sm text-on-surface-variant">
-                Hãy gửi tin nhắn đầu tiên cho đội hỗ trợ.
+                Hãy gửi tin nhắn đầu tiên cho đội hỗ trợ
               </div>
             ) : null}
 

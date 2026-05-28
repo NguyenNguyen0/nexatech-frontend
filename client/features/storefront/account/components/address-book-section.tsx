@@ -34,6 +34,7 @@ const EMPTY_FORM: AddressPayload = {
   receiverName: '',
   phone: '',
   province: '',
+  district: '',
   ward: '',
   detail: '',
   addressType: 'HOME',
@@ -86,6 +87,7 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
       receiverName: addr.receiverName,
       phone: addr.phone,
       province: addr.province,
+      district: addr.district ?? '',
       ward: addr.ward ?? '',
       detail: addr.detail,
       addressType: addr.addressType,
@@ -109,6 +111,7 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
         receiverName: form.receiverName.trim(),
         phone: form.phone.trim(),
         province: form.province.trim(),
+        district: form.district?.trim() || undefined,
         ward: form.ward?.trim() || undefined,
         detail: form.detail.trim(),
         addressType: form.addressType,
@@ -162,11 +165,11 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
   }
 
   return (
-    <section id="addresses" className="rounded-md border border-border bg-bg-elevated p-6 shadow-sm">
+    <section id="addresses" className="rounded-[8px] border border-outline-variant bg-surface p-6 shadow-sm font-body-md">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Địa chỉ</p>
-          <h3 className="mt-1 text-lg font-bold text-text-primary">Sổ địa chỉ giao hàng</h3>
+          <p className="text-label-sm font-label-sm text-primary">Địa chỉ</p>
+          <h3 className="mt-1 text-headline-md font-headline-md text-on-surface">Sổ địa chỉ giao hàng</h3>
         </div>
         <Button type="button" onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -181,7 +184,7 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
       ) : addresses.length === 0 ? (
         <div className="mt-4 space-y-3">
           <StorefrontEmptyState
-            className="bg-bg-base"
+            className="bg-surface-container-lowest"
             title="Chưa có địa chỉ giao hàng"
             description="Thêm địa chỉ để rút ngắn thời gian thanh toán ở những đơn hàng tiếp theo."
           />
@@ -198,31 +201,31 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
             <article
               key={addr.id}
               className={cn(
-                'flex flex-col rounded-md border px-4 py-3 transition-all',
+                'flex flex-col rounded-[8px] border px-4 py-3 transition-all',
                 addr.isDefault
                   ? 'border-primary bg-primary/5 ring-2 ring-primary/25 shadow-sm'
-                  : 'border-border bg-bg-base hover:border-primary/30',
+                  : 'border-outline-variant bg-surface-container-lowest hover:border-primary/30',
               )}
             >
-              <p className="inline-flex flex-wrap items-center gap-2 text-sm font-semibold text-text-primary">
+              <p className="inline-flex flex-wrap items-center gap-2 text-body-md font-title-lg text-on-surface">
                 <MapPin
                   className={cn('h-4 w-4 shrink-0', addr.isDefault ? 'text-primary' : 'text-text-tertiary')}
                 />
                 {ADDRESS_TYPE_LABELS[addr.addressType]}
                 {addr.isDefault ? (
-                  <span className="inline-flex items-center gap-1 rounded-sm bg-primary px-2 py-0.5 text-[11px] font-semibold text-white">
+                  <span className="inline-flex items-center gap-1 rounded-[8px] bg-primary px-2 py-0.5 text-label-sm font-label-sm text-white">
                     <Check className="h-3 w-3" />
                     Mặc định
                   </span>
                 ) : null}
               </p>
-              <p className="mt-2 text-sm text-text-primary">
+              <p className="mt-2 text-body-md text-on-surface">
                 {addr.receiverName} · {addr.phone}
               </p>
-              <p className="mt-1 flex-1 text-sm text-text-secondary">{formatAddressLine(addr)}</p>
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-border/60 pt-3">
+              <p className="mt-1 flex-1 text-body-md text-on-surface-variant">{formatAddressLine(addr)}</p>
+              <div className="mt-3 flex flex-wrap gap-2 border-t border-outline-variant/60 pt-3">
                 {addr.isDefault ? (
-                  <span className="inline-flex items-center gap-1 rounded-sm bg-primary/15 px-2.5 py-1.5 text-xs font-semibold text-primary">
+                  <span className="inline-flex items-center gap-1 rounded-[8px] bg-primary/15 px-2.5 py-1.5 text-label-sm font-label-sm text-primary">
                     <Star className="h-3.5 w-3.5 fill-primary text-primary" />
                     Đang là địa chỉ mặc định
                   </span>
@@ -233,7 +236,7 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
                     size="sm"
                     disabled={defaultingId === addr.id}
                     onClick={() => void handleSetDefault(addr.id)}
-                    className="gap-1 text-xs border-primary/40 text-primary hover:bg-primary/10"
+                    className="gap-1 text-label-sm border-primary/40 text-primary hover:bg-primary/10"
                   >
                     {defaultingId === addr.id ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -243,7 +246,7 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
                     Đặt mặc định
                   </Button>
                 )}
-                <Button type="button" variant="outline" size="sm" onClick={() => openEdit(addr)} className="gap-1 text-xs">
+                <Button type="button" variant="outline" size="sm" onClick={() => openEdit(addr)} className="gap-1 text-label-sm">
                   <Pencil className="h-3 w-3" />
                   Sửa
                 </Button>
@@ -253,7 +256,7 @@ export function AddressBookSection({ enabled = true }: AddressBookSectionProps) 
                   size="sm"
                   disabled={deletingId === addr.id}
                   onClick={() => void handleDelete(addr.id)}
-                  className="gap-1 text-xs text-error hover:text-error"
+                  className="gap-1 text-label-sm text-error hover:text-error"
                 >
                   {deletingId === addr.id ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -359,7 +362,16 @@ function AddressFormDialog({
                 required
               />
             </div>
-            <div className="space-y-2 sm:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="addr-district">Quận / Huyện</Label>
+              <Input
+                id="addr-district"
+                value={form.district ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))}
+                placeholder="Quận 1"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="addr-ward">Phường / Xã</Label>
               <Input
                 id="addr-ward"

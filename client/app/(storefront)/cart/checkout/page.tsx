@@ -8,7 +8,10 @@ import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart } from '@/features/cart/services/cart-api';
-import { checkout } from '@/features/checkout/services/checkout-api';
+import { CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
+import { getUserById } from '@/features/auth/services/auth-api';
+import { authStorage } from '@/features/auth/utils/auth-storage';
+import { listMyAddresses } from '@/features/auth/services/address-api';
 import type { Cart } from '@/types/cart';
 import type { OrderPaymentMethod } from '@/types/order';
 
@@ -19,6 +22,22 @@ const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
   card:        'VNPAY',
   installment: 'CREDIT_CARD',
 };
+
+const CHECKOUT_MIN_LOADING_MS = 3000;
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function decodeJwtSub(token: string): string | null {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded.sub ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -43,9 +62,54 @@ export default function CheckoutPage() {
   const idempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
-    getCart()
-      .then(setCart)
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function bootstrapCheckout() {
+      try {
+        const [cartData] = await Promise.all([getCart()]);
+        if (cancelled) return;
+        setCart(cartData);
+
+        // Guest checkout: keep form empty.
+        const token = authStorage.getAccessToken();
+        if (!token) return;
+
+        const userId = decodeJwtSub(token);
+        if (!userId) return;
+
+        // Logged-in checkout: prefill buyer info + default address.
+        const [profile, addresses] = await Promise.all([
+          getUserById(userId).catch(() => null),
+          listMyAddresses().catch(() => []),
+        ]);
+        if (cancelled) return;
+
+        if (profile) {
+          const fullName = [profile.lastName, profile.firstName].filter(Boolean).join(' ').trim();
+          setBuyerName(fullName || profile.username || '');
+          setBuyerEmail(profile.email ?? '');
+          setBuyerPhone(profile.phone ?? '');
+        }
+
+        const defaultAddress = addresses.find((a) => a.isDefault) ?? addresses[0];
+        if (defaultAddress) {
+          setStreet(defaultAddress.detail ?? '');
+          setDistrict(defaultAddress.district ?? '');
+          setWard(defaultAddress.ward ?? '');
+          setCity(defaultAddress.province ?? '');
+          setBuyerPhone((prev) => prev || defaultAddress.phone || '');
+          setBuyerName((prev) => prev || defaultAddress.receiverName || '');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void bootstrapCheckout();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleOrder = async () => {
@@ -78,6 +142,7 @@ export default function CheckoutPage() {
     }));
 
     setSubmitting(true);
+    const loadingStartedAt = Date.now();
     try {
       const result = await checkout(
         {
@@ -124,6 +189,15 @@ export default function CheckoutPage() {
         router.push(`/cart/checkout/success?${params.toString()}`);
       }
     } catch (err) {
+      const elapsed = Date.now() - loadingStartedAt;
+      if (elapsed < CHECKOUT_MIN_LOADING_MS) {
+        await wait(CHECKOUT_MIN_LOADING_MS - elapsed);
+      }
+
+      if (err instanceof CheckoutUnavailableError) {
+        toast.error('Thanh toán này không khả dụng, hãy đợi một chút rồi thử lại.');
+        return;
+      }
       const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
       toast.error(msg);
     } finally {
