@@ -6,25 +6,34 @@ type BuildSummaryProps = {
   activeConfig: BuildSelection;
   selectedCount: number;
   total: number;
+  isAddingToCart?: boolean;
+  onConsult: () => void;
+  onAddAllToCart: () => void;
 };
 
-export function BuildSummary({ buildParts, activeConfig, selectedCount, total }: BuildSummaryProps) {
+export function BuildSummary({
+  buildParts,
+  activeConfig,
+  selectedCount,
+  total,
+  isAddingToCart = false,
+  onConsult,
+  onAddAllToCart,
+}: BuildSummaryProps) {
   return (
     <aside>
       <div className="sticky top-28 rounded-md border border-[#e8e8e8] bg-white p-4 shadow-sm">
         <h2 className="mb-4 border-b border-outline-variant pb-2 text-title-lg font-title-lg text-primary">
-          Build Summary
+          Tóm tắt cấu hình
         </h2>
 
         {selectedCount === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <div className="flex h-32 w-32 items-center justify-center rounded-md bg-[#f5f5f5] opacity-40">
-              <span className="material-symbols-outlined text-[64px] text-outline">
-                desktop_windows
-              </span>
+              <span className="material-symbols-outlined text-[64px] text-outline">desktop_windows</span>
             </div>
             <p className="max-w-52 text-label-sm text-outline">
-              Chưa có linh kiện nào trong danh sách cấu hình của bạn.
+              Chưa có linh kiện nào trong cấu hình của bạn.
             </p>
           </div>
         ) : (
@@ -61,7 +70,9 @@ export function BuildSummary({ buildParts, activeConfig, selectedCount, total }:
 
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-[13px] font-bold text-white transition hover:bg-primary-dark"
+            onClick={onConsult}
+            disabled={selectedCount === 0}
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2 text-[13px] font-bold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:bg-outline"
           >
             <span className="material-symbols-outlined text-[18px]">support_agent</span>
             Nhận tư vấn từ chuyên gia
@@ -69,10 +80,11 @@ export function BuildSummary({ buildParts, activeConfig, selectedCount, total }:
 
           <button
             type="button"
-            disabled={selectedCount === 0}
+            onClick={onAddAllToCart}
+            disabled={selectedCount === 0 || isAddingToCart}
             className="w-full rounded-md border border-primary py-2 text-[12px] font-bold text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:border-[#ddd] disabled:text-[#999]"
           >
-            Thêm tất cả vào giỏ
+            {isAddingToCart ? 'Đang thêm...' : 'Thêm tất cả vào giỏ'}
           </button>
 
           <p className="text-center text-[11px] text-outline">

@@ -25,6 +25,7 @@ export type CatalogItem = {
 
 export type SuggestedBuild = {
   id: string;
+  slug: string;
   name: string;
   specs: string[];
   price: number;

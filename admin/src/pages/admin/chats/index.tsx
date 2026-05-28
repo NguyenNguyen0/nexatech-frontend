@@ -350,16 +350,15 @@ export default function Chats() {
         setConversations((current) =>
             {
                 const existing = current.find((conversation) => conversation.id === incoming.conversationId);
+
+                if (!existing) {
+                    void loadConversations();
+                    return current;
+                }
+
                 const incomingConversation: Conversation = {
-                    id: incoming.conversationId,
-                    customerId: incoming.senderId === activeAdminUserId ? incoming.recipientId : incoming.senderId,
-                    agentId: incoming.senderId === activeAdminUserId ? incoming.senderId : null,
-                    conversationType: "AUTHENTICATED",
-                    status: "OPEN",
+                    ...existing,
                     currentParticipantId: activeAdminUserId,
-                    otherUserId: incoming.senderId === activeAdminUserId ? incoming.recipientId : incoming.senderId,
-                    participant: existing?.participant ?? null,
-                    otherUserOnline: existing?.otherUserOnline,
                     unreadCount: existing?.lastMessage?.id === incoming.id
                         ? existing.unreadCount
                         : incoming.senderId !== activeAdminUserId && incoming.conversationId !== activeConversationId
@@ -374,10 +373,6 @@ export default function Chats() {
                     createdAt: existing?.createdAt ?? incoming.createdAt,
                     updatedAt: incoming.createdAt,
                 };
-
-                if (!existing) {
-                    return sortConversations([normalizeConversationReadState(incomingConversation), ...current]);
-                }
 
                 return sortConversations(current.map((conversation) =>
                     conversation.id === incoming.conversationId
@@ -397,7 +392,7 @@ export default function Chats() {
                 markSeen(incoming.conversationId, incoming.id).catch(() => undefined);
             }
         }
-    }, [markConversationReadLocally, mergeConversationRecord, normalizeConversationReadState, upsertMessage]);
+    }, [loadConversations, markConversationReadLocally, mergeConversationRecord, upsertMessage]);
 
     const handleGlobalMessage = useCallback((incoming: ChatMessage) => {
         handleIncomingMessage(incoming);
