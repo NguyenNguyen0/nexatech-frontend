@@ -7,11 +7,12 @@ import { toast } from 'sonner';
 import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import { formatCurrency } from '@/lib/utils';
-import { getCart, clearCart } from '@/features/cart/services/cart-api';
+import { getCart, clearCart, updateCartItem } from '@/features/cart/services/cart-api';
 import { CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
 import { getUserById } from '@/features/auth/services/auth-api';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { listMyAddresses } from '@/features/auth/services/address-api';
+import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
 import type { Cart } from '@/types/cart';
 import type { OrderPaymentMethod } from '@/types/order';
 
@@ -24,6 +25,23 @@ const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
 };
 
 const CHECKOUT_MIN_LOADING_MS = 3000;
+
+const RECENT_GUEST_ORDERS_KEY = 'nexatech_recent_orders';
+
+function rememberRecentOrder(orderId: string, orderNumber: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(RECENT_GUEST_ORDERS_KEY);
+    const current = raw ? JSON.parse(raw) as Array<{ id: string; orderNumber: string; createdAt: string }> : [];
+    const next = [
+      { id: orderId, orderNumber, createdAt: new Date().toISOString() },
+      ...current.filter((item) => item.id !== orderId),
+    ].slice(0, 5);
+    window.localStorage.setItem(RECENT_GUEST_ORDERS_KEY, JSON.stringify(next));
+  } catch {
+    /* recent order history is best-effort */
+  }
+}
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -59,6 +77,17 @@ export default function CheckoutPage() {
   const [note, setNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
 
+  // Pending order states
+  const [pendingOrder, setPendingOrder] = useState<{
+    orderId: string;
+    orderNumber: string;
+    paymentUrl: string;
+    items?: any[];
+  } | null>(null);
+  const [checkingPendingOrder, setCheckingPendingOrder] = useState(false);
+  const [cancellingPending, setCancellingPending] = useState(false);
+  const [continuingPending, setContinuingPending] = useState(false);
+
   const idempotencyKey = useRef(crypto.randomUUID());
 
   useEffect(() => {
@@ -66,6 +95,35 @@ export default function CheckoutPage() {
 
     async function bootstrapCheckout() {
       try {
+        // Check for pending order in localStorage
+        const rawPending = localStorage.getItem('nexatech_pending_order');
+        if (rawPending) {
+          try {
+            const parsed = JSON.parse(rawPending);
+            if (parsed && parsed.orderId) {
+              const orderInfo = await getOrderById(parsed.orderId);
+              if (orderInfo.status === 'PENDING') {
+                setPendingOrder({
+                  orderId: parsed.orderId,
+                  orderNumber: orderInfo.orderNumber,
+                  paymentUrl: parsed.paymentUrl,
+                  items: orderInfo.items,
+                });
+              } else {
+                localStorage.removeItem('nexatech_pending_order');
+                sessionStorage.removeItem('nexatech_pending_order');
+                if (orderInfo.status === 'CONFIRMED' || orderInfo.status === 'COMPLETED') {
+                  void clearCart();
+                  router.push(`/cart/checkout/success?orderId=${orderInfo.id}&orderNumber=${orderInfo.orderNumber}&paymentMethod=${orderInfo.paymentMethod}`);
+                  return;
+                }
+              }
+            }
+          } catch (e) {
+            // ignore storage/JSON parsing errors
+          }
+        }
+
         const [cartData] = await Promise.all([getCart()]);
         if (cancelled) return;
         setCart(cartData);
@@ -174,7 +232,7 @@ export default function CheckoutPage() {
           .map((item) => notifyFlashSaleSold(item.productId, item.quantity)),
       );
 
-      await clearCart();
+      // Cart clearing moved below (conditional on payment method)
       toast.success('Đặt hàng thành công!');
 
       // Redirect to success page, carry orderId + orderNumber (+ paymentUrl for online payment)
@@ -182,7 +240,24 @@ export default function CheckoutPage() {
         orderId:     result.orderId,
         orderNumber: result.orderNumber,
       });
+
+      // Track order on this device immediately
+      rememberRecentOrder(result.orderId, result.orderNumber);
+
       if (result.paymentUrl) {
+        // Save pending order details to local & session storage for resilience
+        const pendingOrderObj = {
+          orderId: result.orderId,
+          orderNumber: result.orderNumber,
+          paymentUrl: result.paymentUrl,
+        };
+        try {
+          sessionStorage.setItem('nexatech_pending_order', JSON.stringify(pendingOrderObj));
+          localStorage.setItem('nexatech_pending_order', JSON.stringify(pendingOrderObj));
+        } catch (e) {
+          // ignore storage errors
+        }
+
         // For online payment, redirect to payment gateway
         window.location.href = result.paymentUrl;
       } else {
@@ -205,6 +280,54 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleContinuePendingPayment = async () => {
+    if (!pendingOrder) return;
+    setContinuingPending(true);
+    try {
+      const paymentInfo = await continuePayment(pendingOrder.orderId);
+      window.location.href = paymentInfo.paymentUrl;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Không thể tiếp tục thanh toán');
+    } finally {
+      setContinuingPending(false);
+    }
+  };
+
+  const handleCancelPendingOrder = async () => {
+    if (!pendingOrder) return;
+    if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng đang chờ thanh toán này để đặt đơn mới?')) return;
+    setCancellingPending(true);
+    try {
+      await cancelOrder(pendingOrder.orderId);
+      toast.success('Đã hủy đơn hàng cũ thành công');
+      localStorage.removeItem('nexatech_pending_order');
+      sessionStorage.removeItem('nexatech_pending_order');
+
+      if (pendingOrder.items && pendingOrder.items.length > 0) {
+        for (const item of pendingOrder.items) {
+          try {
+            await updateCartItem(item.productId, { quantity: item.quantity });
+          } catch (e) {
+            // ignore restore errors
+          }
+        }
+      }
+
+      setPendingOrder(null);
+
+      try {
+        const freshCart = await getCart();
+        setCart(freshCart);
+      } catch (e) {
+        // ignore refresh errors
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Không thể hủy đơn hàng cũ');
+    } finally {
+      setCancellingPending(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-grow flex items-center justify-center py-24 text-on-surface-variant">
@@ -215,12 +338,44 @@ export default function CheckoutPage() {
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="flex-grow flex flex-col items-center justify-center gap-4 py-24 text-on-surface-variant">
-        <span className="material-symbols-outlined text-[64px]">shopping_cart</span>
-        <p className="text-body-lg">Giỏ hàng của bạn đang trống.</p>
-        <Link href="/product" className="mt-2 h-11 px-6 bg-primary text-on-primary rounded-xl font-bold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors">
-          Mua sắm ngay
-        </Link>
+      <div className="flex-grow bg-surface-container-low py-12 flex items-center justify-center">
+        <div className="w-full max-w-[600px] px-gutter">
+          {pendingOrder ? (
+            <div className="bg-surface rounded-2xl border border-outline-variant p-8 shadow-sm text-center">
+              <span className="material-symbols-outlined text-amber-600 text-[64px] mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+              <h2 className="text-headline-sm font-headline-sm text-on-surface mb-2">Bạn có một đơn hàng chưa thanh toán</h2>
+              <p className="text-body-md text-on-surface-variant mb-6 leading-relaxed">
+                Đơn hàng <strong>#{pendingOrder.orderNumber}</strong> đang chờ thanh toán VNPay. Bạn có muốn tiếp tục thanh toán đơn hàng này để tránh đặt trùng lặp không?
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  onClick={handleCancelPendingOrder}
+                  disabled={cancellingPending}
+                  className="w-full sm:w-auto h-12 px-6 text-sm font-semibold text-error hover:bg-error/5 rounded-xl transition-colors border border-outline-variant hover:border-error disabled:opacity-50 inline-flex items-center justify-center"
+                >
+                  {cancellingPending ? 'Đang hủy...' : 'Hủy đơn cũ & mua lại'}
+                </button>
+                <button
+                  onClick={handleContinuePendingPayment}
+                  disabled={continuingPending}
+                  className="w-full sm:w-auto h-12 px-6 bg-primary text-on-primary text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors inline-flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-50"
+                >
+                  {continuingPending ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán'}
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-4 py-12 text-on-surface-variant text-center">
+              <span className="material-symbols-outlined text-[64px]">shopping_cart</span>
+              <p className="text-body-lg">Giỏ hàng của bạn đang trống.</p>
+              <Link href="/product" className="mt-2 h-11 px-6 bg-primary text-on-primary rounded-xl font-bold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors">
+                Mua sắm ngay
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -239,6 +394,37 @@ export default function CheckoutPage() {
         </nav>
 
         <h1 className="text-headline-md font-headline-md text-on-surface mb-8">Tiến hành thanh toán</h1>
+
+        {pendingOrder && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-amber-600 text-[28px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
+              <div>
+                <h3 className="text-on-surface font-semibold text-title-md">Bạn có một đơn hàng chưa hoàn tất thanh toán</h3>
+                <p className="text-body-sm text-on-surface-variant mt-1">
+                  Đơn hàng <strong>#{pendingOrder.orderNumber}</strong> đang chờ thanh toán VNPay. Bạn có muốn tiếp tục thanh toán đơn hàng này để tránh đặt trùng lặp không?
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
+              <button
+                onClick={handleCancelPendingOrder}
+                disabled={cancellingPending}
+                className="h-10 px-4 text-sm font-medium text-error hover:bg-error/10 rounded-lg transition-colors border border-outline-variant hover:border-error disabled:opacity-50"
+              >
+                {cancellingPending ? 'Đang hủy...' : 'Hủy đơn cũ'}
+              </button>
+              <button
+                onClick={handleContinuePendingPayment}
+                disabled={continuingPending}
+                className="h-10 px-4 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+              >
+                {continuingPending ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán'}
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* ── Left: Forms ─────────────────────────────── */}
@@ -460,7 +646,7 @@ export default function CheckoutPage() {
               {/* CTA */}
               <button
                 onClick={handleOrder}
-                disabled={submitting}
+                disabled={submitting || !!pendingOrder}
                 className="w-full h-14 bg-primary hover:bg-primary/90 text-on-primary text-title-md font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? (
@@ -475,6 +661,12 @@ export default function CheckoutPage() {
                   </>
                 )}
               </button>
+
+              {pendingOrder && (
+                <p className="text-xs text-error font-semibold text-center mt-3 leading-relaxed">
+                  * Bạn có đơn hàng chưa thanh toán. Vui lòng thanh toán hoặc hủy đơn hàng cũ ở trên trước khi đặt đơn mới.
+                </p>
+              )}
 
               <p className="text-[11px] text-center text-on-surface-variant mt-4">
                 Bằng việc đặt hàng, bạn đồng ý với{' '}
