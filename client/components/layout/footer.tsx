@@ -8,7 +8,7 @@ import { MessageCircle } from 'lucide-react';
 const supportLinks = [
   { label: 'Trung tâm trợ giúp', href: '/help' },
   { label: 'Hướng dẫn mua hàng', href: '/help/guide' },
-  { label: 'Tra cứu đơn hàng', href: '/user/orders' },
+  { label: 'Tra cứu đơn hàng', href: '/order' },
   { label: 'Liên hệ', href: '/help/contact' },
   { label: 'Câu hỏi thường gặp', href: '/help/faq' },
 ];
