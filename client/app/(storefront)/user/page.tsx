@@ -12,6 +12,7 @@ import {
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { AddressBookSection } from '@/features/storefront/account/components/address-book-section';
 import { AvatarUploadField } from '@/components/custom/avatar-upload-field';
+import { uploadUserAvatar } from '@/features/auth/services/avatar-api';
 
 const GENDER_OPTIONS = [
   { value: 'MALE', label: 'Nam' },
@@ -103,8 +104,18 @@ export default function UserProfilePage() {
     if (!userId) return;
     setSaving(true);
     try {
-      await updateUserProfile(userId, form);
-      setProfile((prev) => prev ? { ...prev, ...form } : prev);
+      let avatarUrl = profile?.avatarUrl;
+      if (pendingAvatarFile) {
+        avatarUrl = await uploadUserAvatar(userId, pendingAvatarFile);
+      }
+
+      await updateUserProfile(userId, { ...form, avatarUrl });
+      setProfile((prev) => (prev ? { ...prev, ...form, avatarUrl } : prev));
+      setPendingAvatarFile(null);
+      if (avatarPreviewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+      setAvatarPreviewUrl(avatarUrl ?? null);
       toast.success('Cập nhật hồ sơ thành công');
       setEditing(false);
     } catch (err) {

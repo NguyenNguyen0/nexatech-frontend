@@ -184,6 +184,7 @@ export async function updateUserProfile(
     phone?: string;
     gender?: string;
     dob?: string;
+    avatarUrl?: string;
   },
 ): Promise<void> {
   const { data } = await axiosClient.put<ApiResponse<void>>(
