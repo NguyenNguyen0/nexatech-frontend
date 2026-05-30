@@ -5,6 +5,7 @@ import {
   HeroBanner,
   TechNews,
   TrustStrip,
+  ReviewCorner,
 } from '@/features/storefront/home/components';
 import { fetchFlashSaleStripData } from '@/features/flash-sale/services/flash-sale-strip-loader';
 
@@ -17,6 +18,7 @@ export async function HomeShowcase() {
       <FlashSaleStrip items={flashSaleData.items} endsAt={flashSaleData.endsAt} />
       <CategoryGrid />
       <FeaturedProductGrid />
+      <ReviewCorner />
       <TechNews />
       <TrustStrip />
     </div>
