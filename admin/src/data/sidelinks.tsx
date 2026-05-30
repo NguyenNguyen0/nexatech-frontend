@@ -21,6 +21,7 @@ import {
     IconTruck,
     IconRosetteDiscount,
     IconTimeline,
+    IconSparkles,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -122,6 +123,12 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/chats',
         icon: <IconMessages size={18} />,
+    },
+    {
+        title: 'Agent',
+        label: '',
+        href: '/admin/agent',
+        icon: <IconSparkles size={18} />,
     },
     {
         title: 'Promotions',

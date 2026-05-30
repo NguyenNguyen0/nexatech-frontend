@@ -159,6 +159,12 @@ export const admin: RouteObject[] = [
                     Component: (await import('@/pages/admin/chats')).default,
                 }),
             },
+            {
+                path: 'agent',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/agent')).default,
+                }),
+            },
 
             /** Promotions */
             {
