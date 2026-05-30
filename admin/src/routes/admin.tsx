@@ -112,6 +112,12 @@ export const admin: RouteObject[] = [
                         }),
                     },
                     {
+                        path: 'stock',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/warehouse/WarehouseDashboard')).default,
+                        }),
+                    },
+                    {
                         path: 'add-product',
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/product/add')).default,

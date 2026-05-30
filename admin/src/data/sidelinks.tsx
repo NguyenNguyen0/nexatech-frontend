@@ -98,6 +98,12 @@ export const sidelinks: SideLink[] = [
                 icon: <IconChecklist size={18} />,
             },
             {
+                title: 'Stock Management',
+                label: '',
+                href: '/admin/product/stock',
+                icon: <IconShoppingCart size={18} />,
+            },
+            {
                 title: 'Add Product',
                 label: '',
                 href: '/admin/product/add-product',
