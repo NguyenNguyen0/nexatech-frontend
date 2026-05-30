@@ -3,7 +3,6 @@ import {
   FeaturedProductGrid,
   FlashSaleStrip,
   HeroBanner,
-  PromoBanner,
   TechNews,
   TrustStrip,
 } from '@/features/storefront/home/components';
@@ -18,7 +17,6 @@ export async function HomeShowcase() {
       <FlashSaleStrip items={flashSaleData.items} endsAt={flashSaleData.endsAt} />
       <CategoryGrid />
       <FeaturedProductGrid />
-      <PromoBanner />
       <TechNews />
       <TrustStrip />
     </div>
