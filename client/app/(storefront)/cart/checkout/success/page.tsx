@@ -146,9 +146,13 @@ function SuccessContent() {
           {/* Tiêu đề & mô tả */}
           {isCompensation ? (
             <>
-              <h1 className="text-display-lg font-display-lg text-on-surface mb-2">Đơn hàng cần xử lý hoàn tiền</h1>
+              <h1 className="text-display-lg font-display-lg text-on-surface mb-2">
+                {paymentMethodRaw === 'COD' ? 'Đơn hàng bị huỷ tự động' : 'Đơn hàng cần xử lý hoàn tiền'}
+              </h1>
               <p className="text-body-md text-on-surface-variant mb-8">
-                {compensationCopy}
+                {paymentMethodRaw === 'COD'
+                  ? 'Đơn hàng đã được huỷ tự động do sản phẩm tạm thời hết hàng. Rất xin lỗi quý khách vì sự bất tiện này.'
+                  : compensationCopy}
               </p>
             </>
           ) : isAwaitingVnpay && !isPollTimeout ? (

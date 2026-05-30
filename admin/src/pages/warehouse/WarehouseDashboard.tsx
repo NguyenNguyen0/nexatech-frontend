@@ -148,7 +148,7 @@ export default function WarehouseDashboard() {
                 }
             }
         } catch (error) {
-            toast.error(getApiErrorMessage(error, 'Load inventory failed'))
+            toast.error(getApiErrorMessage(error, 'Load inventory failed'), { id: 'warehouse-load-inventory' })
             setItems([])
             setTotalElements(0)
             setTotalPages(0)
@@ -182,7 +182,7 @@ export default function WarehouseDashboard() {
                 setMovements(response.content)
             } catch (error) {
                 if (!mounted) return
-                toast.error(getApiErrorMessage(error, 'Load stock movement failed'))
+                toast.error(getApiErrorMessage(error, 'Load stock movement failed'), { id: 'warehouse-load-movements' })
                 setMovements([])
             } finally {
                 if (mounted) setMovementLoading(false)
@@ -214,7 +214,7 @@ export default function WarehouseDashboard() {
                     setProductResults(response.content)
                 } catch (error) {
                     if (!mounted) return
-                    toast.error(getApiErrorMessage(error, 'Load products failed'))
+                    toast.error(getApiErrorMessage(error, 'Load products failed'), { id: 'warehouse-load-products' })
                     setProductResults([])
                 } finally {
                     if (mounted) setProductSearchLoading(false)

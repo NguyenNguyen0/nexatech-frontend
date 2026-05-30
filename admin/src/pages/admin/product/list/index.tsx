@@ -217,7 +217,7 @@ export default function ProductListPage() {
       const result = await listProducts(productQuery)
       setProductsPage(result)
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Load products failed'))
+      toast.error(getApiErrorMessage(error, 'Load products failed'), { id: 'product-list-load-products' })
       setProductsPage(null)
     } finally {
       setLoading(false)
@@ -243,7 +243,7 @@ export default function ProductListPage() {
         setBrands(brandsResult)
       } catch (error) {
         if (!mounted) return
-        toast.error(getApiErrorMessage(error, 'Load categories/brands failed'))
+        toast.error(getApiErrorMessage(error, 'Load categories/brands failed'), { id: 'product-list-load-taxonomy' })
       }
     })()
 

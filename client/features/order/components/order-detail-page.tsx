@@ -227,7 +227,11 @@ export default function OrderDetailPage() {
   const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY';
   const statusClass = ORDER_STATUS_COLOR[order.status];
   const compensationMessage = COMPENSATION_COPY[order.status]
-    ?? (order.compensationReason ? 'Đơn hàng đang được xử lý bồi hoàn.' : null);
+    ?? (order.compensationReason
+      ? (order.paymentMethod === 'COD'
+        ? 'Đơn hàng đã được huỷ tự động do hết hàng hoặc sự cố hệ thống.'
+        : 'Đơn hàng đang được xử lý bồi hoàn.')
+      : null);
   const showRefundBankForm = needsRefundBankInfo(order);
 
   return (
@@ -282,7 +286,9 @@ export default function OrderDetailPage() {
             <div className="flex gap-3">
               <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-700" />
               <div>
-                <h2 className="text-sm font-semibold text-amber-900">Đơn hàng cần xử lý hoàn tiền</h2>
+                <h2 className="text-sm font-semibold text-amber-900">
+                  {order.paymentMethod === 'COD' ? 'Thông tin huỷ đơn hàng' : 'Đơn hàng cần xử lý hoàn tiền'}
+                </h2>
                 <p className="mt-1 text-sm leading-6 text-amber-800">{compensationMessage}</p>
                 {order.compensationReason && (
                   <p className="mt-2 text-xs leading-5 text-amber-700">Lý do: {order.compensationReason}</p>
