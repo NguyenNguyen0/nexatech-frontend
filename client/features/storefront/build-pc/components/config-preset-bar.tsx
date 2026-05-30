@@ -42,14 +42,6 @@ export function ConfigPresetBar({
           <span className="material-symbols-outlined text-[16px]">refresh</span>
           Tạo lại
         </button>
-
-        <button
-          type="button"
-          className="inline-flex items-center gap-1 rounded-sm border border-primary px-3 py-1 text-[12px] font-bold text-primary transition hover:bg-primary/5"
-        >
-          Tải cấu hình
-          <span className="material-symbols-outlined text-[16px]">expand_more</span>
-        </button>
       </div>
     </div>
   );

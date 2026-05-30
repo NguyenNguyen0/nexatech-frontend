@@ -16,6 +16,27 @@ import { PartPickerModal } from './part-picker-modal';
 import { SuggestedBuildGrid } from './suggested-build-grid';
 
 const ALL_SERIES_LABEL = 'Tất cả';
+const ALL_PRICE_RANGE = 'all';
+
+type PriceRangeOption = {
+  value: string;
+  label: string;
+  min?: number;
+  max?: number;
+};
+
+const PRICE_RANGE_PRESETS: PriceRangeOption[] = [
+  { value: 'under-1m', label: 'Dưới 1 triệu', max: 1_000_000 },
+  { value: '1m-3m', label: '1 - 3 triệu', min: 1_000_000, max: 3_000_000 },
+  { value: '3m-5m', label: '3 - 5 triệu', min: 3_000_000, max: 5_000_000 },
+  { value: '5m-10m', label: '5 - 10 triệu', min: 5_000_000, max: 10_000_000 },
+  { value: '10m-20m', label: '10 - 20 triệu', min: 10_000_000, max: 20_000_000 },
+  { value: 'over-20m', label: 'Trên 20 triệu', min: 20_000_000 },
+];
+
+function sameStringArray(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((item, index) => item === b[index]);
+}
 
 const buildParts: BuildPart[] = [
   {
@@ -26,11 +47,18 @@ const buildParts: BuildPart[] = [
     description: 'Bộ não của toàn bộ hệ thống',
   },
   {
-    key: 'pc-case',
+    key: 'mainboard',
     label: 'Bo mạch chủ',
     shortLabel: 'Mainboard',
     icon: 'developer_board',
     description: 'Nền tảng kết nối các linh kiện chính',
+  },
+  {
+    key: 'vga',
+    label: 'VGA',
+    shortLabel: 'VGA',
+    icon: 'view_in_ar',
+    description: 'Card đồ họa cho game và tác vụ sáng tạo',
   },
   {
     key: 'ram',
@@ -54,6 +82,13 @@ const buildParts: BuildPart[] = [
     description: 'Tăng tốc khởi động và tải ứng dụng',
   },
   {
+    key: 'pc-case',
+    label: 'Case',
+    shortLabel: 'Case',
+    icon: 'deployed_code',
+    description: 'Vỏ máy tính và khung lắp đặt linh kiện',
+  },
+  {
     key: 'monitor',
     label: 'Màn hình',
     shortLabel: 'Monitor',
@@ -66,6 +101,34 @@ const buildParts: BuildPart[] = [
     shortLabel: 'PSU',
     icon: 'power',
     description: 'Cấp điện ổn định cho toàn bộ máy',
+  },
+  {
+    key: 'mouse',
+    label: 'Chuột',
+    shortLabel: 'Mouse',
+    icon: 'mouse',
+    description: 'Chuột chơi game hoặc làm việc cho bộ PC',
+  },
+  {
+    key: 'keyboard',
+    label: 'Bàn phím',
+    shortLabel: 'Keyboard',
+    icon: 'keyboard',
+    description: 'Bàn phím cơ, không dây hoặc văn phòng',
+  },
+  {
+    key: 'chair',
+    label: 'Ghế',
+    shortLabel: 'Chair',
+    icon: 'chair',
+    description: 'Ghế gaming hoặc công thái học',
+  },
+  {
+    key: 'headphones',
+    label: 'Tai nghe',
+    shortLabel: 'Headset',
+    icon: 'headphones',
+    description: 'Tai nghe gaming, không dây hoặc chống ồn',
   },
 ];
 
@@ -92,6 +155,7 @@ export function BuildPcPage() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSeries, setSelectedSeries] = useState(ALL_SERIES_LABEL);
   const [selectedMinRating, setSelectedMinRating] = useState(0);
+  const [selectedPriceRange, setSelectedPriceRange] = useState(ALL_PRICE_RANGE);
   const [modalPage, setModalPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
@@ -138,25 +202,85 @@ export function BuildPcPage() {
 
   const activeConfig = configs[activeConfigIndex] ?? {};
   const selectedPart = buildParts.find((part) => part.key === selectedPartKey) ?? null;
-  const availableBrands = [...new Set(modalItems.map((item) => item.brand).filter(Boolean))];
-  const availableSeries = [...new Set(modalItems.map((item) => item.series).filter(Boolean))];
-  const availableRatings = [...new Set(modalItems.map((item) => Math.floor(item.averageRating)))].sort((a, b) => b - a);
+  const activePriceRange = PRICE_RANGE_PRESETS.find((range) => range.value === selectedPriceRange);
 
-  const filteredItems = useMemo(() => {
+  const applyFilters = (
+    items: CatalogItem[],
+    options: {
+      includeBrands?: boolean;
+      includeSeries?: boolean;
+      includeRating?: boolean;
+      includePrice?: boolean;
+      includeSearch?: boolean;
+    } = {},
+  ) => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
-    return modalItems.filter((item) => {
+    return items.filter((item) => {
       const matchesSearch =
+        options.includeSearch === false ||
         normalizedSearch.length === 0 ||
         item.name.toLowerCase().includes(normalizedSearch) ||
         item.brand.toLowerCase().includes(normalizedSearch);
-      const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(item.brand);
-      const matchesSeries = selectedSeries === ALL_SERIES_LABEL || item.series === selectedSeries;
-      const matchesRating = selectedMinRating <= 0 || item.averageRating >= selectedMinRating;
+      const matchesBrand =
+        options.includeBrands === false || selectedBrands.length === 0 || selectedBrands.includes(item.brand);
+      const matchesSeries =
+        options.includeSeries === false || selectedSeries === ALL_SERIES_LABEL || item.series === selectedSeries;
+      const matchesRating =
+        options.includeRating === false || selectedMinRating <= 0 || item.averageRating >= selectedMinRating;
+      const matchesMinPrice =
+        options.includePrice === false || activePriceRange?.min === undefined || item.price >= activePriceRange.min;
+      const matchesMaxPrice =
+        options.includePrice === false || activePriceRange?.max === undefined || item.price < activePriceRange.max;
 
-      return matchesSearch && matchesBrand && matchesSeries && matchesRating;
+      return matchesSearch && matchesBrand && matchesSeries && matchesRating && matchesMinPrice && matchesMaxPrice;
     });
-  }, [modalItems, searchTerm, selectedBrands, selectedMinRating, selectedSeries]);
+  };
+
+  const availableBrands = [
+    ...new Set(
+      applyFilters(modalItems, { includeBrands: false }).map((item) => item.brand).filter(Boolean),
+    ),
+  ];
+  const availableSeries = [
+    ...new Set(
+      applyFilters(modalItems, { includeSeries: false }).map((item) => item.series).filter(Boolean),
+    ),
+  ];
+  const availableRatings = [
+    ...new Set(
+      applyFilters(modalItems, { includeRating: false })
+        .map((item) => Math.floor(item.averageRating))
+        .filter((rating) => rating > 0),
+    ),
+  ].sort((a, b) => b - a);
+  const availablePriceRanges = PRICE_RANGE_PRESETS.filter((range) =>
+    applyFilters(modalItems, { includePrice: false }).some((item) => {
+      const overMin = range.min === undefined || item.price >= range.min;
+      const underMax = range.max === undefined || item.price < range.max;
+      return overMin && underMax;
+    }),
+  );
+
+  const filteredItems = useMemo(() => {
+    return applyFilters(modalItems);
+  }, [activePriceRange?.max, activePriceRange?.min, modalItems, searchTerm, selectedBrands, selectedMinRating, selectedSeries]);
+
+  useEffect(() => {
+    setSelectedBrands((current) => {
+      const next = current.filter((brand) => availableBrands.includes(brand));
+      return sameStringArray(current, next) ? current : next;
+    });
+    if (selectedSeries !== ALL_SERIES_LABEL && !availableSeries.includes(selectedSeries)) {
+      setSelectedSeries(ALL_SERIES_LABEL);
+    }
+    if (selectedMinRating > 0 && !availableRatings.includes(selectedMinRating)) {
+      setSelectedMinRating(0);
+    }
+    if (selectedPriceRange !== ALL_PRICE_RANGE && !availablePriceRanges.some((range) => range.value === selectedPriceRange)) {
+      setSelectedPriceRange(ALL_PRICE_RANGE);
+    }
+  }, [availableBrands, availablePriceRanges, availableRatings, availableSeries, selectedMinRating, selectedPriceRange, selectedSeries]);
 
   const total = Object.values(activeConfig).reduce((sum, item) => sum + (item?.price ?? 0), 0);
   const selectedCount = Object.keys(activeConfig).length;
@@ -169,6 +293,7 @@ export function BuildPcPage() {
     setSelectedBrands([]);
     setSelectedSeries(ALL_SERIES_LABEL);
     setSelectedMinRating(0);
+    setSelectedPriceRange(ALL_PRICE_RANGE);
     setModalPage(0);
     setTotalPages(1);
   };
@@ -212,6 +337,7 @@ export function BuildPcPage() {
     setSelectedBrands([]);
     setSelectedSeries(ALL_SERIES_LABEL);
     setSelectedMinRating(0);
+    setSelectedPriceRange(ALL_PRICE_RANGE);
   };
 
   const deletePartFromConfig = (partKey: PartKey) => {
@@ -376,9 +502,11 @@ export function BuildPcPage() {
           selectedBrands={selectedBrands}
           selectedSeries={selectedSeries}
           selectedMinRating={selectedMinRating}
+          selectedPriceRange={selectedPriceRange}
           availableBrands={availableBrands}
           availableSeries={availableSeries}
           availableRatings={availableRatings}
+          availablePriceRanges={availablePriceRanges}
           currentPage={modalPage}
           totalPages={totalPages}
           isLoading={isCatalogLoading}
@@ -388,6 +516,7 @@ export function BuildPcPage() {
           onToggleBrand={toggleBrand}
           onSeriesChange={setSelectedSeries}
           onMinRatingChange={setSelectedMinRating}
+          onPriceRangeChange={setSelectedPriceRange}
           onResetFilters={resetFilters}
           onPageChange={setModalPage}
         />
