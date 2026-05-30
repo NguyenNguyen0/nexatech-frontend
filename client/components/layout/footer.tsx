@@ -21,15 +21,14 @@ const policyLinks = [
 ];
 
 const paymentMethods = [
-  { name: 'VISA', bg: 'bg-[#1a1f71]' },
-  { name: 'mastercard', display: '●●', bg: 'bg-[#eb001b]' },
-  { name: 'MoMo', bg: 'bg-[#a50064]' },
+  { name: 'COD', bg: 'bg-green-500' },
+  { name: 'VNPay', bg: 'bg-blue-500' },
 ];
 
 const socialLinks = [
-  { name: 'Facebook', icon: 'f', color: 'bg-[#1877f2]' },
-  { name: 'Instagram', icon: '📷', color: 'bg-gradient-to-br from-[#f09433] via-[#e6683c] to-[#bc1888]' },
-  { name: 'Youtube', icon: '▶', color: 'bg-[#ff0000]' },
+  { name: 'Facebook', image: '/footer/facebook.png', href: 'https://www.facebook.com/nextech.official' },
+  { name: 'Instagram', image: '/footer/instagram.png', href: 'https://www.instagram.com/nextech.official' },
+  { name: 'Youtube', image: '/footer/youtube.png', href: 'https://www.youtube.com/@nextech.official' },
 ];
 
 export function Footer() {
@@ -97,14 +96,17 @@ export function Footer() {
                 {socialLinks.map((social) => (
                   <a
                     key={social.name}
-                    href="#"
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center gap-2.5 text-[13px] text-[#bfe0ff] transition hover:text-white"
                   >
-                    <div
-                      className={`flex h-6 w-6 items-center justify-center rounded-full ${social.color} text-[10px] font-bold text-white`}
-                    >
-                      {social.icon}
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={social.image}
+                      alt={social.name}
+                      className="h-6 w-6 object-contain"
+                    />
                     {social.name}
                   </a>
                 ))}
