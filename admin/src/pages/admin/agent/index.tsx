@@ -390,11 +390,130 @@ export default function AgentPage() {
     }
   }
 
+  async function streamAgentResponse(prompt: string, conversationId: string, assistantMessageId: string) {
+    let streamConversationId = conversationId;
+    setIsStreaming(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    runTrackingRef.current = {};
+
+    try {
+      await startAgentRunStream(
+        {
+          message: prompt,
+          threadId: conversationId.startsWith("local-") ? undefined : conversationId,
+        },
+        {
+          onEvent: (event) => {
+            if (event.runId) {
+              runTrackingRef.current.runId = event.runId;
+            }
+
+            if (event.threadId) {
+              runTrackingRef.current.threadId = event.threadId;
+              if (streamConversationId !== event.threadId) {
+                migrateConversationId(streamConversationId, event.threadId);
+                streamConversationId = event.threadId;
+              }
+            }
+
+            if (event.name === "message.chunk") {
+              const delta = typeof event.data.content === "string" ? event.data.content : "";
+              if (!delta) return;
+
+              updateMessage(streamConversationId, assistantMessageId, (message) => ({
+                ...message,
+                content: `${message.content}${delta}`,
+              }));
+              return;
+            }
+
+            if (event.name === "tool.started" || event.name === "tool.completed" || event.name === "tool.error") {
+              const toolCall: AgentToolCall = {
+                id: (event.data.callId as string) || (event.data.id as string) || `tool-${Date.now()}`,
+                name:
+                  (event.data.toolName as string)
+                  || (event.data.name as string)
+                  || (event.data.tool as string)
+                  || "unknown_tool",
+                args: (event.data.args as Record<string, unknown>) || {},
+                state: event.name === "tool.started" ? "pending" : event.name === "tool.completed" ? "completed" : "error",
+                startedAt: event.timestamp,
+                finishedAt: event.name === "tool.started" ? undefined : event.timestamp,
+                errorMessage:
+                  typeof event.data.errorMessage === "string"
+                    ? event.data.errorMessage
+                    : typeof event.data.message === "string"
+                      ? event.data.message
+                      : undefined,
+                statusCode: typeof event.data.statusCode === "number" ? event.data.statusCode : undefined,
+              };
+
+              upsertToolCallInAssistant(streamConversationId, assistantMessageId, toolCall);
+              return;
+            }
+
+            if (event.name === "hitl.interrupt") {
+              const card: AgentUICard = {
+                id: `hitl-${Date.now()}`,
+                type: "hitl",
+                title: "Human Approval Required",
+                description: "Agent dang cho phe duyet thao tac HITL.",
+                payload: event.data,
+              };
+
+              appendUICard(streamConversationId, assistantMessageId, card);
+              return;
+            }
+
+            if (event.name === "run.error") {
+              const errorText = typeof event.data.message === "string"
+                ? event.data.message
+                : "Co loi xay ra trong qua trinh xu ly.";
+
+              updateMessage(streamConversationId, assistantMessageId, (message) => ({
+                ...message,
+                errorMessage: errorText,
+                retryPrompt: prompt,
+              }));
+            }
+          },
+        },
+        controller.signal,
+      );
+      finalizeAssistantMessage(streamConversationId, assistantMessageId);
+      void loadConversationSummaries();
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        updateMessage(streamConversationId, assistantMessageId, (message) => ({
+          ...message,
+          isStreaming: false,
+          content: message.content.trim()
+            ? `${message.content}\n\n_Stream cancelled by user._`
+            : "_Stream cancelled by user._",
+        }));
+      } else {
+        const errorMessage = getAgentStreamErrorMessage(error);
+        updateMessage(streamConversationId, assistantMessageId, (message) => ({
+          ...message,
+          isStreaming: false,
+          errorMessage,
+          retryPrompt: prompt,
+        }));
+        toast.error(errorMessage);
+      }
+    } finally {
+      abortRef.current = null;
+      runTrackingRef.current = {};
+      setIsStreaming(false);
+    }
+  }
+
   async function sendAgentMessage(prompt: string, options: { clearDraft?: boolean } = {}) {
     if (!prompt) return;
 
     const conversation = ensureActiveConversation(prompt);
-    let streamConversationId = conversation.id;
     setMobileHistoryOpen(false);
 
     const userMessage: AgentChatMessage = {
@@ -427,122 +546,8 @@ export default function AgentPage() {
     if (options.clearDraft !== false) {
       setDraft("");
     }
-    setIsStreaming(true);
 
-    const controller = new AbortController();
-    abortRef.current = controller;
-    runTrackingRef.current = {};
-
-    try {
-      await startAgentRunStream(
-        {
-          message: prompt,
-          threadId: conversation.id.startsWith("local-") ? undefined : conversation.id,
-        },
-        {
-          onEvent: (event) => {
-            if (event.runId) {
-              runTrackingRef.current.runId = event.runId;
-            }
-
-            if (event.threadId) {
-              runTrackingRef.current.threadId = event.threadId;
-              if (streamConversationId !== event.threadId) {
-                migrateConversationId(streamConversationId, event.threadId);
-                streamConversationId = event.threadId;
-              }
-            }
-
-            if (event.name === "message.chunk") {
-              const delta = typeof event.data.content === "string" ? event.data.content : "";
-              if (!delta) return;
-
-              updateMessage(streamConversationId, assistantMessage.id, (message) => ({
-                ...message,
-                content: `${message.content}${delta}`,
-              }));
-              return;
-            }
-
-            if (event.name === "tool.started" || event.name === "tool.completed" || event.name === "tool.error") {
-              const toolCall: AgentToolCall = {
-                id: (event.data.callId as string) || (event.data.id as string) || `tool-${Date.now()}`,
-                name:
-                  (event.data.toolName as string)
-                  || (event.data.name as string)
-                  || (event.data.tool as string)
-                  || "unknown_tool",
-                args: (event.data.args as Record<string, unknown>) || {},
-                state: event.name === "tool.started" ? "pending" : event.name === "tool.completed" ? "completed" : "error",
-                startedAt: event.timestamp,
-                finishedAt: event.name === "tool.started" ? undefined : event.timestamp,
-                errorMessage:
-                  typeof event.data.errorMessage === "string"
-                    ? event.data.errorMessage
-                    : typeof event.data.message === "string"
-                      ? event.data.message
-                      : undefined,
-                statusCode: typeof event.data.statusCode === "number" ? event.data.statusCode : undefined,
-              };
-
-              upsertToolCallInAssistant(streamConversationId, assistantMessage.id, toolCall);
-              return;
-            }
-
-            if (event.name === "hitl.interrupt") {
-              const card: AgentUICard = {
-                id: `hitl-${Date.now()}`,
-                type: "hitl",
-                title: "Human Approval Required",
-                description: "Agent dang cho phe duyet thao tac HITL.",
-                payload: event.data,
-              };
-
-              appendUICard(streamConversationId, assistantMessage.id, card);
-              return;
-            }
-
-            if (event.name === "run.error") {
-              const errorText = typeof event.data.message === "string"
-                ? event.data.message
-                : "Co loi xay ra trong qua trinh xu ly.";
-
-              updateMessage(streamConversationId, assistantMessage.id, (message) => ({
-                ...message,
-                errorMessage: errorText,
-                retryPrompt: prompt,
-              }));
-            }
-          },
-        },
-        controller.signal,
-      );
-      finalizeAssistantMessage(streamConversationId, assistantMessage.id);
-      void loadConversationSummaries();
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        updateMessage(streamConversationId, assistantMessage.id, (message) => ({
-          ...message,
-          isStreaming: false,
-          content: message.content.trim()
-            ? `${message.content}\n\n_Stream cancelled by user._`
-            : "_Stream cancelled by user._",
-        }));
-      } else {
-        const errorMessage = getAgentStreamErrorMessage(error);
-        updateMessage(streamConversationId, assistantMessage.id, (message) => ({
-          ...message,
-          isStreaming: false,
-          errorMessage,
-          retryPrompt: prompt,
-        }));
-        toast.error(errorMessage);
-      }
-    } finally {
-      abortRef.current = null;
-      runTrackingRef.current = {};
-      setIsStreaming(false);
-    }
+    await streamAgentResponse(prompt, conversation.id, assistantMessage.id);
   }
 
   async function handleSubmitOrCancel() {
@@ -561,7 +566,28 @@ export default function AgentPage() {
 
   async function handleRetryMessage(message: AgentChatMessage) {
     if (isStreaming || !message.retryPrompt?.trim()) return;
-    await sendAgentMessage(message.retryPrompt.trim(), { clearDraft: false });
+
+    const conversation = conversations.find((item) =>
+      item.messages.some((conversationMessage) => conversationMessage.id === message.id),
+    );
+    if (!conversation) {
+      toast.error("Khong tim thay hoi thoai de retry message nay.");
+      return;
+    }
+
+    setMobileHistoryOpen(false);
+    setActiveConversationId(conversation.id);
+    updateMessage(conversation.id, message.id, (currentMessage) => ({
+      ...currentMessage,
+      content: "",
+      errorMessage: undefined,
+      isStreaming: true,
+      retryPrompt: message.retryPrompt,
+      toolCalls: [],
+      uiCards: [],
+    }));
+
+    await streamAgentResponse(message.retryPrompt.trim(), conversation.id, message.id);
   }
 
   function renderEmptyState() {
