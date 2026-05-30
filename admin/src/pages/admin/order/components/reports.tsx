@@ -78,6 +78,9 @@ const ORDER_STATUS_COLORS: Record<OrderStatus, string> = {
   DELIVERED: 'bg-green-100 text-green-800 border-green-200',
   COMPLETED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   CANCELLED: 'bg-red-100 text-red-800 border-red-200',
+  OUT_OF_STOCK: 'bg-amber-100 text-amber-800 border-amber-200',
+  SHIPPING_FAILED: 'bg-red-100 text-red-800 border-red-200',
+  REFUND_PENDING: 'bg-purple-100 text-purple-800 border-purple-200',
   RETURNED: 'bg-orange-100 text-orange-800 border-orange-200',
   REFUNDED: 'bg-gray-100 text-gray-700 border-gray-200',
 }
@@ -108,6 +111,9 @@ const ALL_ORDER_STATUSES: OrderStatus[] = [
   'DELIVERED',
   'COMPLETED',
   'CANCELLED',
+  'OUT_OF_STOCK',
+  'SHIPPING_FAILED',
+  'REFUND_PENDING',
   'RETURNED',
   'REFUNDED',
 ]
@@ -119,7 +125,10 @@ const NEXT_ORDER_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   SHIPPED: ['DELIVERED'],
   DELIVERED: ['COMPLETED', 'RETURNED'],
   COMPLETED: [],
-  CANCELLED: [],
+  CANCELLED: ['REFUND_PENDING', 'REFUNDED'],
+  OUT_OF_STOCK: ['REFUND_PENDING', 'REFUNDED'],
+  SHIPPING_FAILED: ['REFUND_PENDING', 'REFUNDED'],
+  REFUND_PENDING: ['REFUNDED'],
   RETURNED: ['REFUNDED'],
   REFUNDED: [],
 }

@@ -11,6 +11,9 @@ export type OrderStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
+  | 'OUT_OF_STOCK'
+  | 'SHIPPING_FAILED'
+  | 'REFUND_PENDING'
   | 'RETURNED'
   | 'REFUNDED';
 
@@ -59,6 +62,11 @@ export interface OrderResponse {
   estimatedDelivery?: string;
   shippedAt?: string;
   deliveredAt?: string;
+  compensationReason?: string;
+  refundBankName?: string;
+  refundAccountNumber?: string;
+  refundAccountHolder?: string;
+  refundInfoSubmittedAt?: string;
 }
 
 // ── Order-service ApiResponse wrapper ────────────────────────────────────────
@@ -118,6 +126,12 @@ export interface ContinuePaymentResponse {
   paymentMethod: OrderPaymentMethod;
   paymentUrl: string;
   expiresAt: string;
+}
+
+export interface RefundBankInfoRequest {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
 }
 
 // ── Return ────────────────────────────────────────────────────────────────────
