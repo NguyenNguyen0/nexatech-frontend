@@ -50,7 +50,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import {
   adminGetAllPayments,
   adminRefundPayment,
@@ -103,17 +103,14 @@ function PaymentDetailDialog({
     setRefunding(true)
     try {
       await onRefund(payment.id)
-      toast({
-        title: 'Refund completed',
+      toast.success('Refund completed', {
         description: `Payment ${payment.id.slice(0, 8)}... has been refunded.`,
       })
       setConfirmRefund(false)
       onClose()
     } catch (error: unknown) {
-      toast({
-        title: 'Refund failed',
+      toast.error('Refund failed', {
         description: (error as Error).message,
-        variant: 'destructive',
       })
     } finally {
       setRefunding(false)
@@ -242,10 +239,8 @@ export function PaymentManagement() {
       setTotalPages(paymentPage.totalPages)
       setRows(paymentPage.content.map((payment) => ({ payment })))
     } catch (error: unknown) {
-      toast({
-        title: 'Unable to load payments',
+      toast.error('Unable to load payments', {
         description: (error as Error).message,
-        variant: 'destructive',
       })
     } finally {
       setLoading(false)

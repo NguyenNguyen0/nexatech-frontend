@@ -5,7 +5,7 @@ import { Button } from '@/components/custom/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getUser, updateUser } from '@/services/userApi';
 import { getAccessToken, getRolesFromAccessToken, pickPrimaryRole } from '@/services/authSession';
@@ -75,9 +75,7 @@ export default function ProfileForm() {
                     });
                     if (user.avatarUrl) setAvatarPreview(user.avatarUrl);
                 } catch (err) {
-                    toast({
-                        variant: 'destructive',
-                        title: 'Error',
+                    toast.error('Error', {
                         description: getApiErrorMessage(err, 'Failed to load profile'),
                     });
                 } finally {
@@ -101,14 +99,11 @@ export default function ProfileForm() {
                 dob: data.dob,
                 gender: data.gender,
             });
-            toast({
-                title: 'Success',
+            toast.success('Success', {
                 description: 'Profile updated successfully',
             });
         } catch (err) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
+            toast.error('Error', {
                 description: getApiErrorMessage(err, 'Update failed'),
             });
         }

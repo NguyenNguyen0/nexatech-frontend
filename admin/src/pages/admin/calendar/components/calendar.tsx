@@ -23,7 +23,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CalendarEvent } from '../data/schema'
@@ -91,9 +91,7 @@ export default function CalendarPage() {
 
     setIsEventModalOpen(false)
     setCurrentEvent(null)
-    toast({
-      title: "Event saved successfully!",
-    })
+    toast.success('Event saved successfully!')
   }
 
   const handleDeleteEvent = () => {
@@ -104,9 +102,7 @@ export default function CalendarPage() {
       });
       setIsEventModalOpen(false)
       setCurrentEvent(null)
-      toast({
-        title: "Event deleted successfully!",
-      })
+      toast.success('Event deleted successfully!')
     }
   }
 
@@ -199,14 +195,10 @@ export default function CalendarPage() {
       });
       setIsImportModalOpen(false);
       setImportData('');
-      toast({
-        title: "Events imported successfully!",
-      });
+      toast.success('Events imported successfully!');
     } catch (error) {
-      toast({
-        title: "Error importing events",
-        description: "Please check the format of your import data",
-        variant: "destructive",
+      toast.error('Error importing events', {
+        description: 'Please check the format of your import data',
       });
     }
   }

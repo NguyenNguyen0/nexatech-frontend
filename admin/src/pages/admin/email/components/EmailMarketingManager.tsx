@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from 'sonner'
 import axios from 'axios'
 import ReactDOMServer from 'react-dom/server'
 import AppleReceiptEmail from './AppleReceiptEmail'
@@ -44,10 +44,8 @@ const EmailMarketingManager: React.FC = () => {
       setAllUsers(response.data)
     } catch (error) {
       console.error('Error fetching users:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch users. Please try again.",
-        variant: "destructive",
+      toast.error('Error', {
+        description: 'Failed to fetch users. Please try again.',
       })
     } finally {
       setIsLoading(false)
@@ -91,16 +89,13 @@ const EmailMarketingManager: React.FC = () => {
       // });
 
       // await Promise.all(emailPromises);
-      toast({
-        title: "Success",
-        description: "All emails sent successfully!",
+      toast.success('Success', {
+        description: 'All emails sent successfully!',
       });
     } catch (error) {
       console.error('Error sending emails:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send emails. Please check the console for more details.",
-        variant: "destructive",
+      toast.error('Error', {
+        description: 'Failed to send emails. Please check the console for more details.',
       });
     } finally {
       setIsLoading(false);

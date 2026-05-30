@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select"
 import { format, differenceInDays } from 'date-fns'
 import { Button } from '@/components/custom/button'
-import { toast } from "@/components/ui/use-toast"
+import { toast } from 'sonner'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { initialData, initialUsers } from '../data/kanbans';
@@ -55,8 +55,7 @@ export default function EnhancedVulnerabilityKanban() {
           const daysUntilDue = differenceInDays(item.endDate, today)
           if (daysUntilDue <= 3 && daysUntilDue > 0 && !notifiedDueItemsRef.current.has(item.id)) {
             notifiedDueItemsRef.current.add(item.id)
-            toast({
-              title: "Due Date Approaching",
+            toast('Due Date Approaching', {
               description: `${item.title} is due in ${daysUntilDue} day${daysUntilDue > 1 ? 's' : ''}`,
               duration: 5000,
             })
@@ -81,9 +80,8 @@ export default function EnhancedVulnerabilityKanban() {
       })
       return updatedColumns
     })
-    toast({
-      title: "Data Refreshed",
-      description: "Vulnerability data has been updated.",
+    toast.success('Data Refreshed', {
+      description: 'Vulnerability data has been updated.',
     })
   }, [])
 
@@ -136,8 +134,7 @@ export default function EnhancedVulnerabilityKanban() {
 
     addActivity(`Moved "${removed.title}" from ${sourceColumn.title} to ${destColumn.title}`)
 
-    toast({
-      title: "Item moved",
+    toast.success('Item moved', {
       description: `${removed.title} moved to ${destColumn.title}`,
     })
   }
@@ -186,8 +183,7 @@ export default function EnhancedVulnerabilityKanban() {
     }))
     setIsAddDialogOpen(false)
     addActivity(`Added new vulnerability "${newItem.title}"`)
-    toast({
-      title: "Vulnerability added",
+    toast.success('Vulnerability added', {
       description: `${newItem.title} has been added to the Draft column`,
     })
   }
@@ -213,8 +209,7 @@ export default function EnhancedVulnerabilityKanban() {
     setIsDetailDialogOpen(false)
     setSelectedVulnerability(null)
     addActivity(`Updated vulnerability "${updatedVulnerability.title}"`)
-    toast({
-      title: "Vulnerability updated",
+    toast.success('Vulnerability updated', {
       description: `${updatedVulnerability.title} has been updated`,
     })
   }
@@ -240,8 +235,7 @@ export default function EnhancedVulnerabilityKanban() {
     setIsSeverityDialogOpen(false)
     setSelectedVulnerability(null)
     addActivity(`Updated vulnerability "${updatedVulnerability.title}"`)
-    toast({
-      title: "Vulnerability updated",
+    toast.success('Vulnerability updated', {
       description: `${updatedVulnerability.title} has been updated`,
     })
   }
@@ -274,9 +268,8 @@ export default function EnhancedVulnerabilityKanban() {
       }
       return updatedColumns
     })
-    toast({
-      title: "Vulnerability deleted",
-      description: `The vulnerability has been removed`,
+    toast.success('Vulnerability deleted', {
+      description: 'The vulnerability has been removed',
     })
   }
 
@@ -302,8 +295,7 @@ export default function EnhancedVulnerabilityKanban() {
     })
     addActivity(`Bulk ${action === 'move' ? 'moved' : 'assigned'} ${selectedItems.length} items`)
     setSelectedItems([])
-    toast({
-      title: "Bulk action completed",
+    toast.success('Bulk action completed', {
       description: `${selectedItems.length} items have been ${action === 'move' ? 'moved' : 'assigned'}`,
     })
   }

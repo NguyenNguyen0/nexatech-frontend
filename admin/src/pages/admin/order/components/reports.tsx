@@ -52,7 +52,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import {
   adminGetAllOrders,
   adminUpdateOrderStatus,
@@ -213,16 +213,13 @@ function OrderDetailDialog({
     setUpdating(true)
     try {
       await onStatusChange(order.id, nextStatus)
-      toast({
-        title: 'Order updated',
+      toast.success('Order updated', {
         description: `${order.orderNumber} changed to ${nextStatus}.`,
       })
       onClose()
     } catch (error: unknown) {
-      toast({
-        title: 'Unable to update order',
+      toast.error('Unable to update order', {
         description: (error as Error).message,
-        variant: 'destructive',
       })
     } finally {
       setUpdating(false)
@@ -449,10 +446,8 @@ export function EnhancedOrderManagement() {
       setTotalPages(result.totalPages)
       setTotalElements(result.totalElements)
     } catch (error: unknown) {
-      toast({
-        title: 'Unable to load orders',
+      toast.error('Unable to load orders', {
         description: (error as Error).message,
-        variant: 'destructive',
       })
     } finally {
       setLoading(false)

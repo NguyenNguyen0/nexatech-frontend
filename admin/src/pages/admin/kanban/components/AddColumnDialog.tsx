@@ -4,7 +4,7 @@ import { Button } from '@/components/custom/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Plus } from 'lucide-react'
-import { toast } from "@/components/ui/use-toast"
+import { toast } from 'sonner'
 interface AddColumnDialogProps {
   onAddColumn: (title: string) => void
 }
@@ -19,8 +19,7 @@ export default function AddColumnDialog({ onAddColumn }: AddColumnDialogProps) {
     onAddColumn(newColumnTitle)
     setIsAddColumnDialogOpen(false)
     setNewColumnTitle('')
-    toast({
-      title: "Column added",
+    toast.success('Column added', {
       description: `New column "${newColumnTitle}" has been added`,
     })
   }
