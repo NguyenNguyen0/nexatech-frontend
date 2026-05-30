@@ -253,7 +253,19 @@ function handleCategories(sub: string[]) {
 
 // ── BUILD PC ──────────────────────────────────────────────────────────────────
 
-const PC_PART_SLUGS = ['cpu', 'mainboard', 'ram', 'ssd', 'hdd', 'gpu', 'psu'] as const;
+const PC_PART_SLUGS = [
+  'cpu',
+  'mainboard',
+  'ram',
+  'ssd',
+  'hdd',
+  'gpu',
+  'psu',
+  'mouse',
+  'keyboard',
+  'chair',
+  'headphones',
+] as const;
 
 function normalizeBuildCategorySlug(slug: string): string {
   return slug.toLowerCase().replace(/_/g, '-');

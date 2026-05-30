@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { getOrderById } from '@/features/order/services/order-api';
+import { clearCart } from '@/features/cart/services/cart-api';
 import type { OrderStatus } from '@/types/order';
 
 const RECENT_GUEST_ORDERS_KEY = 'nexatech_recent_orders';
@@ -54,6 +55,13 @@ function SuccessContent() {
   useEffect(() => {
     if (!orderId || !orderNumber || orderNumber === '---') return;
     rememberRecentOrder(orderId, orderNumber);
+    void clearCart();
+    try {
+      localStorage.removeItem('nexatech_pending_order');
+      sessionStorage.removeItem('nexatech_pending_order');
+    } catch {
+      // ignore storage errors
+    }
   }, [orderId, orderNumber]);
 
   useEffect(() => {
