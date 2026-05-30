@@ -6,3 +6,5 @@ export * from './promo-banner';
 export * from './tech-news';
 export * from './trust-strip';
 export * from './review-corner';
+export * from './service-banners';
+export * from './payment-promos';
