@@ -83,7 +83,7 @@ export function Footer() {
                     key={method.name}
                     className={`flex h-8 w-12 items-center justify-center rounded ${method.bg} text-[10px] font-bold text-white`}
                   >
-                    {method.display || method.name}
+                    {method.name}
                   </div>
                 ))}
               </div>
