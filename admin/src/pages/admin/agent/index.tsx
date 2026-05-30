@@ -396,12 +396,22 @@ export default function AgentPage() {
             if (event.name === "tool.started" || event.name === "tool.completed" || event.name === "tool.error") {
               const toolCall: AgentToolCall = {
                 id: (event.data.callId as string) || (event.data.id as string) || `tool-${Date.now()}`,
-                name: (event.data.toolName as string) || (event.data.name as string) || "unknown_tool",
+                name:
+                  (event.data.toolName as string)
+                  || (event.data.name as string)
+                  || (event.data.tool as string)
+                  || "unknown_tool",
                 args: (event.data.args as Record<string, unknown>) || {},
                 state: event.name === "tool.started" ? "pending" : event.name === "tool.completed" ? "completed" : "error",
                 startedAt: event.timestamp,
                 finishedAt: event.name === "tool.started" ? undefined : event.timestamp,
-                errorMessage: typeof event.data.errorMessage === "string" ? event.data.errorMessage : undefined,
+                errorMessage:
+                  typeof event.data.errorMessage === "string"
+                    ? event.data.errorMessage
+                    : typeof event.data.message === "string"
+                      ? event.data.message
+                      : undefined,
+                statusCode: typeof event.data.statusCode === "number" ? event.data.statusCode : undefined,
               };
 
               upsertToolCallInAssistant(streamConversationId, assistantMessage.id, toolCall);

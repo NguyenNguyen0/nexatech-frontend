@@ -7,6 +7,9 @@ interface AgentToolCallCardProps {
 }
 
 export function AgentToolCallCard({ toolCall }: AgentToolCallCardProps) {
+  const isError = toolCall.state === "error";
+  const failedSummary = `Call ${toolCall.name} tool failed with status code ${toolCall.statusCode ?? "unknown"}`;
+
   return (
     <div className={cn("rounded-lg border border-border bg-muted/30 p-3 text-xs")}> 
       <div className="mb-1 flex items-center justify-between gap-2">
@@ -18,8 +21,10 @@ export function AgentToolCallCard({ toolCall }: AgentToolCallCardProps) {
           <span>{toolCall.state}</span>
         </div>
       </div>
-      <pre className="overflow-auto rounded bg-background px-2 py-1 text-[11px]">{JSON.stringify(toolCall.args, null, 2)}</pre>
-      {toolCall.errorMessage && <p className="mt-1 text-destructive">{toolCall.errorMessage}</p>}
+      {!isError && (
+        <pre className="overflow-auto rounded bg-background px-2 py-1 text-[11px]">{JSON.stringify(toolCall.args, null, 2)}</pre>
+      )}
+      {isError && <p className="mt-1 text-destructive">{failedSummary}</p>}
     </div>
   );
 }

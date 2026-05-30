@@ -12,6 +12,7 @@ export interface AgentToolCall {
   startedAt: string;
   finishedAt?: string;
   errorMessage?: string;
+  statusCode?: number;
 }
 
 export interface AgentUICard {
