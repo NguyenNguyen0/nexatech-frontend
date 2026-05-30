@@ -119,6 +119,7 @@ export interface ProductReview {
   title: string;
   content: string;
   images?: string[];
+  videos?: string[];
   helpfulCount: number;
   createdAt?: string;
   updatedAt?: string;
@@ -132,6 +133,7 @@ export interface ReviewWriteBody {
   title: string;
   content: string;
   images: string[];
+  videos: string[];
 }
 
 export type ReviewUpdateBody = ReviewWriteBody;

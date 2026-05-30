@@ -110,16 +110,26 @@ export function normalizePageResult<T>(payload: unknown): PageResult<T> {
     return undefined;
   };
 
-  const page = readNumber('page', 'pageNumber', 'currentPage') ?? 1;
+  const page = readNumber('page', 'pageNumber', 'currentPage') ?? 0;
   const size = readNumber('size', 'pageSize', 'limit') ?? (items.length || 0);
+  const totalPages = readNumber('totalPages', 'pages', 'pageCount');
+
+  const hasNext =
+    typeof record.hasNext === 'boolean'
+      ? record.hasNext
+      : typeof record.last === 'boolean'
+        ? !record.last
+        : typeof totalPages === 'number'
+          ? page + 1 < totalPages
+          : undefined;
 
   return {
     items,
     page,
     size,
     totalItems: readNumber('totalItems', 'totalElements', 'totalCount'),
-    totalPages: readNumber('totalPages', 'pages', 'pageCount'),
-    hasNext: typeof record.hasNext === 'boolean' ? record.hasNext : undefined,
+    totalPages,
+    hasNext,
     raw: payload,
   };
 }

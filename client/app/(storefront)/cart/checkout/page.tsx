@@ -14,7 +14,7 @@ import { authStorage } from '@/features/auth/utils/auth-storage';
 import { listMyAddresses } from '@/features/auth/services/address-api';
 import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
 import type { Cart } from '@/types/cart';
-import type { OrderPaymentMethod } from '@/types/order';
+import type { OrderItemResponse, OrderPaymentMethod } from '@/types/order';
 
 // Map UI radio value → backend PaymentMethod enum
 const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
