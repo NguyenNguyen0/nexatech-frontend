@@ -498,6 +498,7 @@ export default function ProductListPage() {
               </TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Brand</TableHead>
+              <TableHead>Stock Qty</TableHead>
               <TableHead>Stock Status</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
@@ -516,7 +517,7 @@ export default function ProductListPage() {
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className='h-24 text-center text-muted-foreground'>
+                <TableCell colSpan={10} className='h-24 text-center text-muted-foreground'>
                   {emptyStateMessage}
                 </TableCell>
               </TableRow>
@@ -528,6 +529,7 @@ export default function ProductListPage() {
                   <TableCell>{formatCurrency(product.price)}</TableCell>
                   <TableCell>{product.primaryCategoryName ?? '-'}</TableCell>
                   <TableCell>{product.brandName ?? '-'}</TableCell>
+                  <TableCell>{product.stockQuantity ?? '-'}</TableCell>
                   <TableCell>
                     <Badge variant='outline'>{product.stockStatus ?? '-'}</Badge>
                   </TableCell>
@@ -545,6 +547,11 @@ export default function ProductListPage() {
                       </Button>
                       <Button variant='outline' size='sm' asChild>
                         <Link to={`/admin/product/edit/${product.id}`}>Edit</Link>
+                      </Button>
+                      <Button variant='outline' size='sm' asChild>
+                        <Link to={`/admin/product/stock?keyword=${encodeURIComponent(product.sku ?? product.name)}`}>
+                          Stock
+                        </Link>
                       </Button>
                     {product.active === false ? (
                       <Button

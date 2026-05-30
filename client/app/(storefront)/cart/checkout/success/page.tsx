@@ -35,6 +35,15 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 10; // 30 giây tổng cộng
 
+const COMPENSATION_STATUSES: OrderStatus[] = ['OUT_OF_STOCK', 'SHIPPING_FAILED', 'REFUND_PENDING', 'REFUNDED'];
+
+const COMPENSATION_COPY: Partial<Record<OrderStatus, string>> = {
+  OUT_OF_STOCK: 'Sản phẩm hiện tại của bạn đang đặt đã hết số lượng, vui lòng đặt sản phẩm khác, xin lỗi vì bất tiện này',
+  SHIPPING_FAILED: 'Đơn hàng đã thanh toán thành công nhưng hiện chưa thể tạo đơn giao hàng. Hệ thống sẽ xử lý hoàn tiền cho bạn.',
+  REFUND_PENDING: 'Đơn hàng đang được xử lý hoàn tiền.',
+  REFUNDED: 'Đơn hàng đã được hoàn tiền.',
+};
+
 function SuccessContent() {
   const params = useSearchParams();
   const orderNumber = params.get('orderNumber') ?? '---';
@@ -65,7 +74,7 @@ function SuccessContent() {
   }, [orderId, orderNumber]);
 
   useEffect(() => {
-    if (!isVnpay || !orderId) return;
+    if (!orderId) return;
 
     const poll = async () => {
       if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) return;
@@ -75,8 +84,8 @@ function SuccessContent() {
         const order = await getOrderById(orderId);
         setOrderStatus(order.status);
 
-        // Tiếp tục poll nếu vẫn đang PENDING
-        if (order.status === 'PENDING' && pollAttemptsRef.current < MAX_POLL_ATTEMPTS) {
+        const stillSettling = ['PENDING', 'CONFIRMED'].includes(order.status);
+        if (stillSettling && pollAttemptsRef.current < MAX_POLL_ATTEMPTS) {
           timerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch {
@@ -89,13 +98,15 @@ function SuccessContent() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isVnpay, orderId]);
+  }, [orderId]);
 
   // Trạng thái chờ xác nhận VNPay (IPN chưa tới)
   const isAwaitingVnpay = isVnpay && orderId && orderStatus === 'PENDING';
   // Hết giới hạn poll mà vẫn PENDING
   const isPollTimeout = isVnpay && orderId && orderStatus === 'PENDING'
     && pollAttemptsRef.current >= MAX_POLL_ATTEMPTS;
+  const isCompensation = orderStatus != null && COMPENSATION_STATUSES.includes(orderStatus);
+  const compensationCopy = orderStatus ? COMPENSATION_COPY[orderStatus] : undefined;
 
   return (
     <div className="flex-grow bg-surface-container-low py-12 flex items-center justify-center min-h-[70vh]">
@@ -103,7 +114,16 @@ function SuccessContent() {
         <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant p-8 text-center flex flex-col items-center">
 
           {/* Icon trạng thái */}
-          {isAwaitingVnpay && !isPollTimeout ? (
+          {isCompensation ? (
+            <div className="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mb-6">
+              <span
+                className="material-symbols-outlined text-error text-[48px]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                error
+              </span>
+            </div>
+          ) : isAwaitingVnpay && !isPollTimeout ? (
             <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
               <span
                 className="material-symbols-outlined text-warning text-[48px]"
@@ -124,7 +144,14 @@ function SuccessContent() {
           )}
 
           {/* Tiêu đề & mô tả */}
-          {isAwaitingVnpay && !isPollTimeout ? (
+          {isCompensation ? (
+            <>
+              <h1 className="text-display-lg font-display-lg text-on-surface mb-2">Đơn hàng cần xử lý hoàn tiền</h1>
+              <p className="text-body-md text-on-surface-variant mb-8">
+                {compensationCopy}
+              </p>
+            </>
+          ) : isAwaitingVnpay && !isPollTimeout ? (
             <>
               <h1 className="text-display-lg font-display-lg text-on-surface mb-2">Đang xác nhận thanh toán...</h1>
               <p className="text-body-md text-on-surface-variant mb-8">
@@ -167,10 +194,12 @@ function SuccessContent() {
                   </span>
                   <div>
                     <div className="text-label-sm font-label-sm text-on-surface-variant">Trạng thái thanh toán</div>
-                    <div className={`text-body-md font-medium ${isAwaitingVnpay && !isPollTimeout ? 'text-warning' : 'text-success'}`}>
-                      {isAwaitingVnpay && !isPollTimeout
+                    <div className={`text-body-md font-medium ${isCompensation ? 'text-error' : isAwaitingVnpay && !isPollTimeout ? 'text-warning' : 'text-success'}`}>
+                      {isCompensation
+                        ? 'Đang xử lý hoàn tiền'
+                        : isAwaitingVnpay && !isPollTimeout
                         ? 'Đang chờ xác nhận từ VNPay...'
-                        : orderStatus === 'CONFIRMED'
+                        : (orderStatus === 'CONFIRMED' || orderStatus === 'PROCESSING')
                           ? 'Đã thanh toán thành công'
                           : 'Đang xử lý'}
                     </div>

@@ -17,7 +17,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
+import { getOrderById, cancelOrder, continuePayment, submitRefundBankInfo } from '@/features/order/services/order-api';
 import { getShipmentByOrderId } from '@/features/shipping/services/shipping-api';
 import { clearCart } from '@/features/cart/services/cart-api';
 import { formatCurrency } from '@/lib/utils';
@@ -35,6 +35,9 @@ const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   COMPLETED:  'Hoàn thành',
   CANCELLED:  'Đã huỷ',
   RETURNED:   'Trả hàng',
+  OUT_OF_STOCK: 'Tạm thời hết hàng',
+  SHIPPING_FAILED: 'Tạo đơn giao thất bại',
+  REFUND_PENDING: 'Đang xử lý hoàn tiền',
   REFUNDED:   'Đã hoàn tiền',
 };
 
@@ -47,6 +50,9 @@ const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
   COMPLETED:  'text-green-700 bg-green-50 border-green-200',
   CANCELLED:  'text-red-700 bg-red-50 border-red-200',
   RETURNED:   'text-orange-700 bg-orange-50 border-orange-200',
+  OUT_OF_STOCK: 'text-amber-800 bg-amber-50 border-amber-200',
+  SHIPPING_FAILED: 'text-red-700 bg-red-50 border-red-200',
+  REFUND_PENDING: 'text-purple-700 bg-purple-50 border-purple-200',
   REFUNDED:   'text-purple-700 bg-purple-50 border-purple-200',
 };
 
@@ -78,6 +84,21 @@ const SHIPMENT_STATUS_ICON: Record<ShipmentStatus, React.ElementType> = {
   CANCELLED:      XCircle,
 };
 
+const COMPENSATION_COPY: Partial<Record<OrderStatus, string>> = {
+  OUT_OF_STOCK: 'Sản phẩm hiện tại của bạn đang đặt đã hết số lượng, vui lòng đặt sản phẩm khác, xin lỗi vì bất tiện này',
+  SHIPPING_FAILED: 'Đơn hàng đã thanh toán thành công nhưng hiện chưa thể tạo đơn giao hàng. Hệ thống sẽ xử lý hoàn tiền cho bạn.',
+  REFUND_PENDING: 'Thông tin hoàn tiền đã được ghi nhận. Hệ thống đang xử lý hoàn tiền cho bạn.',
+  REFUNDED: 'Đơn hàng đã được hoàn tiền.',
+};
+
+function needsRefundBankInfo(order: OrderResponse) {
+  return (
+    (order.status === 'OUT_OF_STOCK' || order.status === 'SHIPPING_FAILED') &&
+    order.paymentMethod !== 'COD' &&
+    !order.refundInfoSubmittedAt
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
@@ -90,6 +111,10 @@ export default function OrderDetailPage() {
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [continuingPayment, setContinuingPayment] = useState(false);
+  const [submittingRefundInfo, setSubmittingRefundInfo] = useState(false);
+  const [refundBankName, setRefundBankName] = useState('');
+  const [refundAccountNumber, setRefundAccountNumber] = useState('');
+  const [refundAccountHolder, setRefundAccountHolder] = useState('');
 
   const fetchOrder = useCallback(async () => {
     setLoadingOrder(true);
@@ -165,6 +190,29 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleSubmitRefundInfo = async () => {
+    if (!order) return;
+    if (!refundBankName.trim() || !refundAccountNumber.trim() || !refundAccountHolder.trim()) {
+      toast.error('Vui lòng nhập đầy đủ thông tin tài khoản hoàn tiền.');
+      return;
+    }
+
+    setSubmittingRefundInfo(true);
+    try {
+      const updated = await submitRefundBankInfo(order.id, {
+        bankName: refundBankName.trim(),
+        accountNumber: refundAccountNumber.trim(),
+        accountHolder: refundAccountHolder.trim(),
+      });
+      setOrder(updated);
+      toast.success('Đã ghi nhận thông tin hoàn tiền.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể gửi thông tin hoàn tiền.');
+    } finally {
+      setSubmittingRefundInfo(false);
+    }
+  };
+
   if (loadingOrder) {
     return (
       <div className="flex-grow flex items-center justify-center py-24">
@@ -178,6 +226,9 @@ export default function OrderDetailPage() {
   const canCancel = order.status === 'PENDING' || order.status === 'CONFIRMED';
   const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY';
   const statusClass = ORDER_STATUS_COLOR[order.status];
+  const compensationMessage = COMPENSATION_COPY[order.status]
+    ?? (order.compensationReason ? 'Đơn hàng đang được xử lý bồi hoàn.' : null);
+  const showRefundBankForm = needsRefundBankInfo(order);
 
   return (
     <div className="flex-grow bg-surface-container-low py-8">
@@ -225,6 +276,21 @@ export default function OrderDetailPage() {
             )}
           </div>
         </div>
+
+        {compensationMessage && (
+          <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm">
+            <div className="flex gap-3">
+              <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-700" />
+              <div>
+                <h2 className="text-sm font-semibold text-amber-900">Đơn hàng cần xử lý hoàn tiền</h2>
+                <p className="mt-1 text-sm leading-6 text-amber-800">{compensationMessage}</p>
+                {order.compensationReason && (
+                  <p className="mt-2 text-xs leading-5 text-amber-700">Lý do: {order.compensationReason}</p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -401,6 +467,53 @@ export default function OrderDetailPage() {
                 </div>
               )}
             </section>
+
+            {showRefundBankForm && (
+              <section className="bg-surface rounded-xl border border-amber-200 p-5 shadow-sm">
+                <h2 className="text-base font-semibold text-on-surface mb-2">Thông tin hoàn tiền</h2>
+                <p className="text-xs leading-5 text-on-surface-variant mb-4">
+                  Vui lòng cung cấp tài khoản ngân hàng để đội ngũ NexaTech xử lý hoàn tiền thủ công khi cần.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    Tên ngân hàng
+                    <input
+                      value={refundBankName}
+                      onChange={(event) => setRefundBankName(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                      placeholder="VD: Vietcombank"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    Số tài khoản
+                    <input
+                      value={refundAccountNumber}
+                      onChange={(event) => setRefundAccountNumber(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                      placeholder="Nhập số tài khoản"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    Tên chủ tài khoản
+                    <input
+                      value={refundAccountHolder}
+                      onChange={(event) => setRefundAccountHolder(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                      placeholder="Nguyen Van A"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSubmitRefundInfo}
+                    disabled={submittingRefundInfo}
+                    className="mt-1 h-10 rounded-xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  >
+                    {submittingRefundInfo && <Loader2 className="size-4 animate-spin" />}
+                    Gửi thông tin hoàn tiền
+                  </button>
+                </div>
+              </section>
+            )}
 
             {/* Delivery info */}
             {(order.carrierName || order.estimatedDelivery) && (

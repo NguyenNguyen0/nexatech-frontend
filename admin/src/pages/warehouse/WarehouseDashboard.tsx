@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -85,10 +86,12 @@ function statusBadgeVariant(status: InventoryStatus) {
 }
 
 export default function WarehouseDashboard() {
+    const [searchParams] = useSearchParams()
+    const initialKeyword = searchParams.get('keyword') ?? ''
     const [items, setItems] = useState<InventoryItem[]>([])
     const [loading, setLoading] = useState<boolean>(true)
 
-    const [keyword, setKeyword] = useState<string>('')
+    const [keyword, setKeyword] = useState<string>(initialKeyword)
     const [status, setStatus] = useState<InventoryFilterStatus>('ALL')
     const [page, setPage] = useState<number>(0)
     const size = WAREHOUSE_PAGE_SIZE

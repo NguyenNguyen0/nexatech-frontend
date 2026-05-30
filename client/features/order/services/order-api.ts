@@ -12,6 +12,7 @@ import type {
   PageResponse,
   CreateReturnRequest,
   ContinuePaymentResponse,
+  RefundBankInfoRequest,
   ReturnResponse,
 } from '@/types/order';
 import { ORDER_API_BASE, RETURN_API_BASE } from '@/lib/constants';
@@ -74,6 +75,24 @@ export async function continuePayment(orderId: string): Promise<ContinuePaymentR
     return data.data;
   } catch (error) {
     throw new Error(readOrderApiError(error, 'Không thể tiếp tục thanh toán'));
+  }
+}
+
+export async function submitRefundBankInfo(
+  orderId: string,
+  request: RefundBankInfoRequest,
+): Promise<OrderResponse> {
+  try {
+    const { data } = await axiosClient.post<OrderApiResponse<OrderResponse>>(
+      `${ORDER_API_BASE}/${orderId}/refund-info`,
+      request,
+    );
+    if (!data.success || !data.data) {
+      throw new Error(data.message ?? 'Khong the gui thong tin hoan tien');
+    }
+    return data.data;
+  } catch (error) {
+    throw new Error(readOrderApiError(error, 'Khong the gui thong tin hoan tien'));
   }
 }
 
