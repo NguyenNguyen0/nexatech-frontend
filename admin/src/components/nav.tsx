@@ -268,8 +268,10 @@ function NavLinkIconDropdown({ title, icon, label, sub, hasUnreadBadge = false }
 function useChatUnreadBadge(): boolean {
   const [hasUnreadChat, setHasUnreadChat] = useState(false)
   const retryAfterRef = useRef(0)
+  const shouldPollChat = typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin/agent')
 
   const refresh = useCallback(async () => {
+    if (!shouldPollChat) return
     if (Date.now() < retryAfterRef.current) return
 
     try {
@@ -282,9 +284,10 @@ function useChatUnreadBadge(): boolean {
       }
       // Keep the last known badge state if chat-service is temporarily unavailable.
     }
-  }, [])
+  }, [shouldPollChat])
 
   useEffect(() => {
+    if (!shouldPollChat) return
     void refresh()
 
     const intervalId = window.setInterval(() => {
@@ -308,7 +311,7 @@ function useChatUnreadBadge(): boolean {
       window.removeEventListener(CHAT_UNREAD_CHANGED_EVENT, handleUnreadChanged)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [refresh])
+  }, [refresh, shouldPollChat])
 
   return hasUnreadChat
 }

@@ -10,7 +10,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { AgentConversationSummary } from "@/features/agent/types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 interface AgentConversationListProps {
   conversations: AgentConversationSummary[];
@@ -50,7 +49,7 @@ export function AgentConversationList({
         </div>
       </div>
 
-      <ScrollArea className={cn("h-[calc(100%-56px)]", isCollapsed && "hidden")}> 
+      <ScrollArea className={cn("h-[calc(100%-56px)]", isCollapsed && "hidden")}>
         <div className="space-y-1 p-2">
           {conversations.length === 0 && (
             <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
