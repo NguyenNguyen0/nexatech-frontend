@@ -14,7 +14,7 @@ import { authStorage } from '@/features/auth/utils/auth-storage';
 import { listMyAddresses } from '@/features/auth/services/address-api';
 import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
 import type { Cart } from '@/types/cart';
-import type { OrderPaymentMethod } from '@/types/order';
+import type { OrderItemResponse, OrderPaymentMethod } from '@/types/order';
 
 // Map UI radio value → backend PaymentMethod enum
 const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
@@ -82,9 +82,8 @@ export default function CheckoutPage() {
     orderId: string;
     orderNumber: string;
     paymentUrl: string;
-    items?: any[];
+    items?: OrderItemResponse[] | null;
   } | null>(null);
-  const [checkingPendingOrder, setCheckingPendingOrder] = useState(false);
   const [cancellingPending, setCancellingPending] = useState(false);
   const [continuingPending, setContinuingPending] = useState(false);
 
@@ -119,7 +118,7 @@ export default function CheckoutPage() {
                 }
               }
             }
-          } catch (e) {
+          } catch {
             // ignore storage/JSON parsing errors
           }
         }
@@ -168,7 +167,7 @@ export default function CheckoutPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   const handleOrder = async () => {
     if (!cart || cart.items.length === 0) return;
@@ -254,7 +253,7 @@ export default function CheckoutPage() {
         try {
           sessionStorage.setItem('nexatech_pending_order', JSON.stringify(pendingOrderObj));
           localStorage.setItem('nexatech_pending_order', JSON.stringify(pendingOrderObj));
-        } catch (e) {
+        } catch {
           // ignore storage errors
         }
 
@@ -307,7 +306,7 @@ export default function CheckoutPage() {
         for (const item of pendingOrder.items) {
           try {
             await updateCartItem(item.productId, { quantity: item.quantity });
-          } catch (e) {
+          } catch {
             // ignore restore errors
           }
         }
@@ -318,7 +317,7 @@ export default function CheckoutPage() {
       try {
         const freshCart = await getCart();
         setCart(freshCart);
-      } catch (e) {
+      } catch {
         // ignore refresh errors
       }
     } catch (err) {
