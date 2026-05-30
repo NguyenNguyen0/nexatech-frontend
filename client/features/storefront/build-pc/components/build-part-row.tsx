@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import { formatCurrency } from '@/lib/utils';
 import type { BuildPart, CatalogItem } from '../types';
 
@@ -16,8 +18,12 @@ export function BuildPartRow({ part, selectedItem, onChoose, onDelete }: BuildPa
           <p className="text-label-sm font-bold uppercase text-on-surface">{part.shortLabel}</p>
         </div>
 
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm border border-dashed border-[#ddd] bg-white">
-          <span className="material-symbols-outlined text-outline">{part.icon}</span>
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-dashed border-[#ddd] bg-white">
+          {selectedItem?.image ? (
+            <img src={selectedItem.image} alt={selectedItem.name} className="h-full w-full object-contain p-1" />
+          ) : (
+            <span className="material-symbols-outlined text-outline">{part.icon}</span>
+          )}
         </div>
 
         <div className="min-w-0">
