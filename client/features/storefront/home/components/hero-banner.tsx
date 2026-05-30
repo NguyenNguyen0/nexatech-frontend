@@ -17,18 +17,16 @@ const CAROUSEL_ASPECT = 1672 / 941;
 const bannerSlides = [
   { image: '/carousel/1.jpg' },
   { image: '/carousel/2.jpg' },
-  { image: '/carousel/3.jpg' },
-  { image: '/carousel/4.jpg' },
 ];
 
 export function HeroBanner() {
   const plugin = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
 
   return (
-    <section className="mx-auto w-full max-w-[1200px] px-4 pt-5">
+    <section className="w-full">
       <Carousel
         plugins={[plugin.current as never]}
-        className="group relative w-full overflow-hidden rounded-md [&_[data-slot=carousel-content]]:h-full"
+        className="group relative w-full overflow-hidden [&_[data-slot=carousel-content]]:h-full"
         style={{ aspectRatio: CAROUSEL_ASPECT }}
         opts={{ loop: true }}
         onMouseEnter={plugin.current.stop}
