@@ -31,6 +31,8 @@ export interface AgentChatMessage {
   toolCalls?: AgentToolCall[];
   uiCards?: AgentUICard[];
   isStreaming?: boolean;
+  errorMessage?: string;
+  retryPrompt?: string;
 }
 
 export interface AgentConversation {
@@ -48,8 +50,3 @@ export interface AgentConversationSummary {
   preview: string;
 }
 
-export interface AgentRunCallbacks {
-  onTextDelta: (delta: string) => void;
-  onToolCallUpdate: (toolCall: AgentToolCall) => void;
-  onUICard: (card: AgentUICard) => void;
-}

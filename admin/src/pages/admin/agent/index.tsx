@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { IconSparkles } from "@tabler/icons-react";
+import { IconAlertTriangle, IconRefresh, IconSparkles } from "@tabler/icons-react";
 import { CopilotKitProvider } from "@copilotkit/react-core/v2";
 import { Layout } from "@/components/custom/layout";
+import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
@@ -56,6 +57,73 @@ function toSummary(conversation: AgentConversation): AgentConversationSummary {
   };
 }
 
+function getAgentStreamErrorMessage(error: unknown): string {
+  if (error instanceof TypeError) {
+    return "Khong ket noi duoc den agent service. Kiem tra mang hoac backend roi thu lai.";
+  }
+
+  if (error instanceof Error) {
+    const detail = error.message.trim();
+    if (!detail) return "Agent service khong phan hoi. Vui long thu lai.";
+    if (/failed to fetch|networkerror|network request failed/i.test(detail)) {
+      return "Mat ket noi khi dang nhan phan hoi tu agent. Vui long kiem tra mang va thu lai.";
+    }
+    return detail;
+  }
+
+  return "Agent service khong phan hoi. Vui long thu lai.";
+}
+
+function getToolStateLabel(toolCall: AgentToolCall): string {
+  if (toolCall.state === "pending") return "Dang chay";
+  if (toolCall.state === "completed") return "Hoan tat";
+  return "Loi";
+}
+
+function AgentStreamingIndicator({ message }: { message: AgentChatMessage }) {
+  const toolCalls = message.toolCalls ?? [];
+  const activeTool = [...toolCalls].reverse().find((toolCall) => toolCall.state === "pending");
+  const completedCount = toolCalls.filter((toolCall) => toolCall.state === "completed").length;
+
+  return (
+    <div className="space-y-3 text-sm text-muted-foreground">
+      <div className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-1" aria-label="Agent dang streaming">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
+        </span>
+        <span>
+          {activeTool
+            ? `Dang goi tool: ${activeTool.name}`
+            : completedCount > 0
+              ? `Da chay ${completedCount} tool, dang tong hop phan hoi`
+              : "Agent dang xu ly"}
+        </span>
+      </div>
+
+      {toolCalls.length > 0 && (
+        <div className="space-y-1 border-l border-border pl-3">
+          {toolCalls.map((toolCall) => (
+            <div key={toolCall.id} className="flex min-w-0 items-center gap-2 text-xs">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 shrink-0 rounded-full",
+                  toolCall.state === "pending" && "animate-pulse bg-primary",
+                  toolCall.state === "completed" && "bg-emerald-600",
+                  toolCall.state === "error" && "bg-destructive",
+                )}
+              />
+              <span className="truncate font-medium text-foreground">{toolCall.name}</span>
+              <span className="shrink-0 text-muted-foreground">{getToolStateLabel(toolCall)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AgentPage() {
   const runtimeUrl = (import.meta.env.VITE_COPILOTKIT_RUNTIME_URL || "").trim();
   const copilotKitEnabled = runtimeUrl.length > 0;
@@ -98,7 +166,8 @@ export default function AgentPage() {
       const summaries = await listAgentConversations(20);
       setConversations((current) => {
         const currentMap = new Map(current.map((item) => [item.id, item]));
-        return summaries.map((summary) => {
+        const summaryIds = new Set(summaries.map((summary) => summary.id));
+        const serverConversations = summaries.map((summary) => {
           const existing = currentMap.get(summary.id);
           return {
             id: summary.id,
@@ -108,6 +177,14 @@ export default function AgentPage() {
             messages: existing?.messages || [],
           };
         });
+        const optimisticConversations = current.filter(
+          (conversation) =>
+            !summaryIds.has(conversation.id)
+            && (conversation.id.startsWith("local-")
+              || conversation.messages.length > 0
+              || conversation.id === activeConversationId),
+        );
+        return [...serverConversations, ...optimisticConversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
       });
 
       setActiveConversationId((current) => {
@@ -184,6 +261,7 @@ export default function AgentPage() {
     });
 
     setActiveConversationId((current) => (current === fromId ? toId : current));
+    loadedConversationDetailRef.current.add(toId);
   }
 
   function updateMessage(
@@ -312,17 +390,7 @@ export default function AgentPage() {
     }
   }
 
-  async function handleSubmitOrCancel() {
-    if (isStreaming) {
-      abortRef.current?.abort();
-      const runId = runTrackingRef.current.runId;
-      if (runId) {
-        void cancelAgentRun(runId).catch(() => undefined);
-      }
-      return;
-    }
-
-    const prompt = draft.trim();
+  async function sendAgentMessage(prompt: string, options: { clearDraft?: boolean } = {}) {
     if (!prompt) return;
 
     const conversation = ensureActiveConversation(prompt);
@@ -342,6 +410,7 @@ export default function AgentPage() {
       content: "",
       createdAt: nowIso(),
       isStreaming: true,
+      retryPrompt: prompt,
       toolCalls: [],
       uiCards: [],
     };
@@ -355,7 +424,9 @@ export default function AgentPage() {
       messages: [...conversation.messages, userMessage, assistantMessage],
     });
 
-    setDraft("");
+    if (options.clearDraft !== false) {
+      setDraft("");
+    }
     setIsStreaming(true);
 
     const controller = new AbortController();
@@ -438,9 +509,8 @@ export default function AgentPage() {
 
               updateMessage(streamConversationId, assistantMessage.id, (message) => ({
                 ...message,
-                content: message.content.trim()
-                  ? `${message.content}\n\n_${errorText}_`
-                  : errorText,
+                errorMessage: errorText,
+                retryPrompt: prompt,
               }));
             }
           },
@@ -459,19 +529,39 @@ export default function AgentPage() {
             : "_Stream cancelled by user._",
         }));
       } else {
+        const errorMessage = getAgentStreamErrorMessage(error);
         updateMessage(streamConversationId, assistantMessage.id, (message) => ({
           ...message,
           isStreaming: false,
-          content: message.content.trim()
-            ? `${message.content}\n\n_Co loi xay ra khi stream response._`
-            : "Co loi xay ra khi stream response. Vui long thu lai.",
+          errorMessage,
+          retryPrompt: prompt,
         }));
+        toast.error(errorMessage);
       }
     } finally {
       abortRef.current = null;
       runTrackingRef.current = {};
       setIsStreaming(false);
     }
+  }
+
+  async function handleSubmitOrCancel() {
+    if (isStreaming) {
+      abortRef.current?.abort();
+      const runId = runTrackingRef.current.runId;
+      if (runId) {
+        void cancelAgentRun(runId).catch(() => undefined);
+      }
+      return;
+    }
+
+    const prompt = draft.trim();
+    await sendAgentMessage(prompt);
+  }
+
+  async function handleRetryMessage(message: AgentChatMessage) {
+    if (isStreaming || !message.retryPrompt?.trim()) return;
+    await sendAgentMessage(message.retryPrompt.trim(), { clearDraft: false });
   }
 
   function renderEmptyState() {
@@ -543,10 +633,45 @@ export default function AgentPage() {
                             : "border-border bg-card",
                         )}
                       >
-                        {message.role === "assistant" ? (
-                          <AgentMarkdown content={message.content || "Dang streaming..."} />
-                        ) : (
+                        {message.role === "assistant" && message.content.trim() ? (
+                          <AgentMarkdown content={message.content} />
+                        ) : message.role === "assistant" && message.isStreaming ? (
+                          <AgentStreamingIndicator message={message} />
+                        ) : message.role === "user" ? (
                           <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                        ) : null}
+
+                        {message.role === "assistant" && message.isStreaming && message.content.trim() && (
+                          <div className="mt-3 border-t border-border/70 pt-2">
+                            <AgentStreamingIndicator message={message} />
+                          </div>
+                        )}
+
+                        {message.role === "assistant" && message.errorMessage && (
+                          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                            <div className="flex items-start gap-2">
+                              <IconAlertTriangle size={16} className="mt-0.5 shrink-0" />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium">Khong the nhan phan hoi tu agent</p>
+                                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">
+                                  {message.errorMessage}
+                                </p>
+                              </div>
+                            </div>
+                            {message.retryPrompt && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="mt-3 border-destructive/40 bg-background text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                disabled={isStreaming}
+                                leftSection={<IconRefresh size={14} />}
+                                onClick={() => void handleRetryMessage(message)}
+                              >
+                                Thu lai message nay
+                              </Button>
+                            )}
+                          </div>
                         )}
 
                         {message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
