@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Plus, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -85,10 +86,12 @@ function statusBadgeVariant(status: InventoryStatus) {
 }
 
 export default function WarehouseDashboard() {
+    const [searchParams] = useSearchParams()
+    const initialKeyword = searchParams.get('keyword') ?? ''
     const [items, setItems] = useState<InventoryItem[]>([])
     const [loading, setLoading] = useState<boolean>(true)
 
-    const [keyword, setKeyword] = useState<string>('')
+    const [keyword, setKeyword] = useState<string>(initialKeyword)
     const [status, setStatus] = useState<InventoryFilterStatus>('ALL')
     const [page, setPage] = useState<number>(0)
     const size = WAREHOUSE_PAGE_SIZE
@@ -145,7 +148,7 @@ export default function WarehouseDashboard() {
                 }
             }
         } catch (error) {
-            toast.error(getApiErrorMessage(error, 'Load inventory failed'))
+            toast.error(getApiErrorMessage(error, 'Load inventory failed'), { id: 'warehouse-load-inventory' })
             setItems([])
             setTotalElements(0)
             setTotalPages(0)
@@ -179,7 +182,7 @@ export default function WarehouseDashboard() {
                 setMovements(response.content)
             } catch (error) {
                 if (!mounted) return
-                toast.error(getApiErrorMessage(error, 'Load stock movement failed'))
+                toast.error(getApiErrorMessage(error, 'Load stock movement failed'), { id: 'warehouse-load-movements' })
                 setMovements([])
             } finally {
                 if (mounted) setMovementLoading(false)
@@ -211,7 +214,7 @@ export default function WarehouseDashboard() {
                     setProductResults(response.content)
                 } catch (error) {
                     if (!mounted) return
-                    toast.error(getApiErrorMessage(error, 'Load products failed'))
+                    toast.error(getApiErrorMessage(error, 'Load products failed'), { id: 'warehouse-load-products' })
                     setProductResults([])
                 } finally {
                     if (mounted) setProductSearchLoading(false)

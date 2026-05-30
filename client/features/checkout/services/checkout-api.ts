@@ -18,6 +18,13 @@ export class CheckoutUnavailableError extends Error {
   }
 }
 
+export class CheckoutConflictError extends Error {
+  constructor(message = 'Yeu cau dat hang dang duoc xu ly. Vui long cho trong giay lat.') {
+    super(message);
+    this.name = 'CheckoutConflictError';
+  }
+}
+
 function readCheckoutErrorMessage(error: unknown): string {
   if (!isAxiosError(error)) {
     return error instanceof Error ? error.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
@@ -45,6 +52,10 @@ function isPaymentUnavailableError(error: unknown): boolean {
   );
 }
 
+function isCheckoutConflictError(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 409;
+}
+
 export async function checkout(
   request: CheckoutRequest,
   idempotencyKey?: string,
@@ -66,6 +77,9 @@ export async function checkout(
   } catch (error) {
     if (isPaymentUnavailableError(error)) {
       throw new CheckoutUnavailableError();
+    }
+    if (isCheckoutConflictError(error)) {
+      throw new CheckoutConflictError(readCheckoutErrorMessage(error));
     }
     throw new Error(readCheckoutErrorMessage(error));
   }
