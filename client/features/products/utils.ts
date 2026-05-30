@@ -53,15 +53,21 @@ export function unwrapProductApiResponse<T>(payload: unknown): T {
     result?: unknown;
   };
 
-  if (typeof response.status === 'number' && 'data' in response) {
-    if (response.status < 200 || response.status >= 400) {
+  if (typeof response.success === 'boolean') {
+    if (!response.success) {
       throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
     }
-    return response.data as T;
+    if ('data' in response) {
+      return response.data as T;
+    }
+    if ('result' in response) {
+      return response.result as T;
+    }
+    return undefined as T;
   }
 
-  if (typeof response.success === 'boolean' && 'data' in response) {
-    if (!response.success) {
+  if (typeof response.status === 'number' && 'data' in response) {
+    if (response.status < 200 || response.status >= 400) {
       throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
     }
     return response.data as T;

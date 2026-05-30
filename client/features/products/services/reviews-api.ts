@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 import axiosClient from '@/lib/axios-client';
 import { unwrapProductApiResponse } from '../utils';
-import type { ProductReview, ReviewUpdateBody, ReviewWriteBody } from '../types';
+import type { ProductReview, ProductReviewEligibility, ReviewUpdateBody, ReviewWriteBody } from '../types';
 
 export interface ReviewMediaUploadResult {
   url: string;
@@ -44,15 +44,12 @@ async function mutateReview(path: string, method: 'post' | 'put' | 'delete', bod
   }
 }
 
-export async function fetchMyProductReview(productId: string): Promise<ProductReview | null> {
+export async function fetchMyProductReviewEligibility(productId: string): Promise<ProductReviewEligibility> {
   try {
     const response = await axiosClient.get<unknown>(`/api/v1/products/${encodeURIComponent(productId)}/reviews/mine`);
-    return unwrapProductApiResponse<ProductReview>(response.data);
+    return unwrapProductApiResponse<ProductReviewEligibility>(response.data);
   } catch (error) {
-    if (isAxiosError(error) && error.response?.status === 404) {
-      return null;
-    }
-    throw new Error(getReviewErrorMessage(error, 'Không thể tải đánh giá của bạn'));
+    throw new Error(getReviewErrorMessage(error, 'Không thể tải thông tin đánh giá của bạn'));
   }
 }
 

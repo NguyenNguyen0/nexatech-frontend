@@ -11,13 +11,14 @@ import { fetchProductReviews } from '../services/products-api';
 import {
   createProductReview,
   deleteProductReview,
-  fetchMyProductReview,
+  fetchMyProductReviewEligibility,
   getReviewErrorMessage,
   markReviewHelpful,
   updateProductReview,
 } from '../services/reviews-api';
 import { ReviewMediaUploadField } from './review-media-upload-field';
-import type { ProductReview, ReviewWriteBody } from '../types';
+import { ReviewRatingPicker } from './review-rating-picker';
+import type { ProductReview, ProductReviewEligibility, ReviewWriteBody } from '../types';
 
 interface ProductReviewSectionProps {
   productId: string;
@@ -72,6 +73,26 @@ function deriveAverageRating(items: ProductReview[]): number {
   return Math.round((sum / items.length) * 10) / 10;
 }
 
+function getReviewEligibilityMessage(eligibility: ProductReviewEligibility | null): string {
+  if (!eligibility) {
+    return 'Đang kiểm tra quyền đánh giá...';
+  }
+
+  if (eligibility.purchasedCount <= 0) {
+    return 'Bạn cần mua sản phẩm này trước khi đánh giá.';
+  }
+
+  if (eligibility.canReview && eligibility.remainingCount > 1) {
+    return `Bạn còn ${eligibility.remainingCount} lượt đánh giá (đã mua ${eligibility.purchasedCount} sản phẩm).`;
+  }
+
+  if (eligibility.canReview) {
+    return 'Bạn có thể gửi đánh giá mới cho sản phẩm này.';
+  }
+
+  return `Bạn đã dùng hết số lượt đánh giá (${eligibility.reviewCount}/${eligibility.purchasedCount}).`;
+}
+
 export function ProductReviewSection({
   productId,
   productSlug,
@@ -89,8 +110,8 @@ export function ProductReviewSection({
   const searchParams = useSearchParams();
   const [hasAccessToken, setHasAccessToken] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [ownReview, setOwnReview] = useState<ProductReview | null>(null);
-  const [loadingOwnReview, setLoadingOwnReview] = useState(false);
+  const [reviewEligibility, setReviewEligibility] = useState<ProductReviewEligibility | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(false);
   const [form, setForm] = useState(initialFormState);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -113,27 +134,27 @@ export function ProductReviewSection({
 
   useEffect(() => {
     if (!hasAccessToken) {
-      setOwnReview(null);
+      setReviewEligibility(null);
       return;
     }
 
     let cancelled = false;
-    setLoadingOwnReview(true);
+    setLoadingEligibility(true);
 
-    void fetchMyProductReview(productId)
-      .then((review) => {
+    void fetchMyProductReviewEligibility(productId)
+      .then((eligibility) => {
         if (!cancelled) {
-          setOwnReview(review);
+          setReviewEligibility(eligibility);
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setOwnReview(null);
+          setReviewEligibility(null);
         }
       })
       .finally(() => {
         if (!cancelled) {
-          setLoadingOwnReview(false);
+          setLoadingEligibility(false);
         }
       });
 
@@ -190,19 +211,21 @@ export function ProductReviewSection({
     setDraft(toReviewDraft(review));
   };
 
-  const refreshOwnReview = async () => {
+  const refreshReviewEligibility = async () => {
     if (!hasAccessToken) {
-      setOwnReview(null);
+      setReviewEligibility(null);
       return;
     }
 
     try {
-      const review = await fetchMyProductReview(productId);
-      setOwnReview(review);
+      const eligibility = await fetchMyProductReviewEligibility(productId);
+      setReviewEligibility(eligibility);
     } catch {
-      setOwnReview(null);
+      setReviewEligibility(null);
     }
   };
+
+  const canCreateReview = Boolean(reviewEligibility?.canReview);
 
   const loadReviews = async (nextPage: number, mode: 'replace' | 'append', ratingOverride?: RatingFilter) => {
     const filter = ratingOverride ?? activeRating;
@@ -299,20 +322,15 @@ export function ProductReviewSection({
 
       toast.success('Đã gửi đánh giá');
       setForm(initialFormState);
-      await refreshOwnReview();
+      await refreshReviewEligibility();
       await reloadCurrentFilter();
     } catch (error) {
       const message = getReviewErrorMessage(error, 'Không thể gửi đánh giá');
       toast.error(message);
 
-      if (message.includes('đã đánh giá')) {
-        const existingReview = await fetchMyProductReview(productId).catch(() => null);
-        if (existingReview) {
-          setOwnReview(existingReview);
-          openEditReview(existingReview);
-        } else {
-          await reloadCurrentFilter();
-        }
+      if (message.includes('dùng hết') || message.includes('đã mua') || message.includes('mua sản phẩm')) {
+        await refreshReviewEligibility();
+        await reloadCurrentFilter();
       }
     } finally {
       setSubmitting(false);
@@ -344,8 +362,8 @@ export function ProductReviewSection({
     try {
       await deleteProductReview(reviewId);
       toast.success('Đã xóa đánh giá');
-      setOwnReview(null);
       setEditingId(null);
+      await refreshReviewEligibility();
       await reloadCurrentFilter();
     } catch (error) {
       toast.error(getReviewErrorMessage(error, 'Không thể xóa đánh giá'));
@@ -376,7 +394,7 @@ export function ProductReviewSection({
 
       toast.success('Đã cập nhật đánh giá');
       setEditingId(null);
-      await refreshOwnReview();
+      await refreshReviewEligibility();
       await reloadCurrentFilter();
     } catch (error) {
       toast.error(getReviewErrorMessage(error, 'Không thể cập nhật đánh giá'));
@@ -400,9 +418,7 @@ export function ProductReviewSection({
 
         {hasAccessToken ? (
           <div className="rounded bg-surface-container-low border border-outline-variant px-4 py-3 text-label-sm text-on-surface-variant">
-            {ownReview
-              ? 'Bạn đã đánh giá sản phẩm này. Hãy chỉnh sửa đánh giá hiện có bên dưới.'
-              : 'Bạn có thể gửi đánh giá mới cho sản phẩm này.'}
+            {loadingEligibility ? 'Đang kiểm tra quyền đánh giá...' : getReviewEligibilityMessage(reviewEligibility)}
           </div>
         ) : (
           <a
@@ -415,23 +431,17 @@ export function ProductReviewSection({
         )}
       </div>
 
-      {hasAccessToken && !ownReview && !loadingOwnReview ? (
+      {hasAccessToken && canCreateReview && !loadingEligibility ? (
         <form onSubmit={handleCreateReview} className="mt-6 grid gap-4 rounded-md border border-outline-variant bg-surface-container-lowest p-5">
-          <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-            <label className="space-y-2 text-label-sm font-medium text-on-surface">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+            <div className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Chấm điểm</span>
-              <select
+              <ReviewRatingPicker
                 value={form.rating}
-                onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                className="h-11 w-full rounded border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-              >
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating} sao
-                  </option>
-                ))}
-              </select>
-            </label>
+                disabled={submitting}
+                onChange={(rating) => setForm((current) => ({ ...current, rating }))}
+              />
+            </div>
 
             <label className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Tiêu đề</span>
@@ -480,22 +490,6 @@ export function ProductReviewSection({
         </form>
       ) : null}
 
-      {hasAccessToken && ownReview && editingId !== ownReview.id ? (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-outline-variant bg-surface-container-lowest p-5">
-          <p className="text-body-sm text-on-surface-variant">
-            Bạn đã gửi đánh giá cho sản phẩm này. Bạn chỉ có thể có một đánh giá trên mỗi sản phẩm.
-          </p>
-          <button
-            type="button"
-            onClick={() => openEditReview(ownReview)}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-outline-variant bg-surface px-4 text-label-sm font-bold text-primary transition hover:bg-surface-container"
-          >
-            <PencilLine className="h-4 w-4" />
-            Chỉnh sửa đánh giá
-          </button>
-        </div>
-      ) : null}
-
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {(['ALL', 5, 4, 3, 2, 1] as const).map((rating) => {
           const selected = activeRating === rating;
@@ -531,22 +525,16 @@ export function ProductReviewSection({
               <article key={review.id} className="rounded-md border border-outline-variant bg-surface p-5">
                 {isEditing ? (
                   <form onSubmit={(event) => handleEditSubmit(event, review.id)} className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-                      <label className="space-y-2 text-sm font-medium text-text-primary">
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+                      <div className="space-y-2 text-label-sm font-medium text-on-surface">
                         <span>Chấm điểm</span>
-                        <select
+                        <ReviewRatingPicker
                           value={draft.rating}
-                          onChange={(event) => setDraft((current) => ({ ...current, rating: Number(event.target.value) }))}
-                          className="h-11 w-full rounded border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
-                        >
-                          {[5, 4, 3, 2, 1].map((rating) => (
-                            <option key={rating} value={rating}>
-                              {rating} sao
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="space-y-2 text-sm font-medium text-text-primary">
+                          size="sm"
+                          onChange={(rating) => setDraft((current) => ({ ...current, rating }))}
+                        />
+                      </div>
+                      <label className="space-y-2 text-label-sm font-medium text-on-surface">
                         <span>Tiêu đề</span>
                         <input
                           value={draft.title}

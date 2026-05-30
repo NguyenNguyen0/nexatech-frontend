@@ -109,6 +109,14 @@ export interface RecommendationResponse {
   recommendations: RecommendationItem[];
 }
 
+export interface ProductReviewEligibility {
+  purchasedCount: number;
+  reviewCount: number;
+  remainingCount: number;
+  canReview: boolean;
+  reviews: ProductReview[];
+}
+
 export interface ProductReview {
   id: string;
   productId: string;
