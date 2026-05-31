@@ -223,8 +223,9 @@ export default function OrderDetailPage() {
 
   if (!order) return null;
 
+  const paymentCompleted = order.paymentStatus === 'COMPLETED' || order.paymentStatus === 'REFUNDED';
   const canCancel = order.status === 'PENDING' || order.status === 'CONFIRMED';
-  const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY';
+  const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY' && !paymentCompleted;
   const statusClass = ORDER_STATUS_COLOR[order.status];
   const compensationMessage = COMPENSATION_COPY[order.status]
     ?? (order.compensationReason
@@ -452,6 +453,18 @@ export default function OrderDetailPage() {
               <p className="text-sm text-on-surface">
                 {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
               </p>
+              {order.paymentStatus && (
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Trạng thái thanh toán: {order.paymentStatus}
+                </p>
+              )}
+              {order.status === 'PENDING' && order.paymentMethod === 'VNPAY' && paymentCompleted && (
+                <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <p className="text-xs leading-5 text-blue-800">
+                    Thanh toán VNPay đã hoàn tất. Hệ thống đang kiểm tra tồn kho và sẽ cập nhật trạng thái đơn hàng.
+                  </p>
+                </div>
+              )}
               {canContinuePayment && (
                 <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <p className="text-xs leading-5 text-amber-800">

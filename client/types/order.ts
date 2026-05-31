@@ -24,6 +24,8 @@ export type OrderPaymentMethod =
   | 'VNPAY'
   | 'CREDIT_CARD';
 
+export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | string;
+
 export type ReturnStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
 
 // ── Order ────────────────────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ export interface OrderResponse {
   shippingAddress: string;
   shippingMethod: string;
   paymentMethod: OrderPaymentMethod;
+  paymentId?: string;
+  paymentStatus?: PaymentStatus;
   note?: string;
   items: OrderItemResponse[] | null;
   createdAt: string;

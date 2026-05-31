@@ -168,12 +168,12 @@ export function getStockStatusLabel(status?: StockStatus): string {
 export function getStockStatusClassName(status?: StockStatus): string {
   switch (status) {
     case 'IN_STOCK':
-      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+      return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
     case 'LOW_STOCK':
-      return 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+      return 'border border-amber-200 bg-amber-50 text-amber-700';
     case 'OUT_OF_STOCK':
-      return 'bg-danger/10 text-danger';
+      return 'border border-red-300 bg-red-600 text-white shadow-sm';
     default:
-      return 'bg-primary/10 text-primary';
+      return 'border border-primary/20 bg-primary/10 text-primary';
   }
 }
