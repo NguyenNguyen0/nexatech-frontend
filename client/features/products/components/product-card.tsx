@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
 import type { ProductMinimal } from '../types';
-import { getStockStatusLabel } from '../utils';
+import { getStockStatusClassName, getStockStatusLabel } from '../utils';
 
 interface ProductCardProps {
     product: ProductMinimal;
@@ -27,6 +27,7 @@ export function ProductCard({ product, variant = 'grid', className, action, acti
     const wishlisted = isWishlisted(product.id);
     const isWishlistUpdating = isMutating(product.id);
     const productHref = `/product/${product.slug}`;
+    const isOutOfStock = product.stockStatus === 'OUT_OF_STOCK' || product.stockQuantity === 0;
 
     return (
         <article
@@ -86,7 +87,13 @@ export function ProductCard({ product, variant = 'grid', className, action, acti
                             </span>
                         ) : null}
                         {product.stockStatus ? (
-                            <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-1 rounded-sm">
+                            <span
+                                className={cn(
+                                    'text-[10px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-sm',
+                                    getStockStatusClassName(product.stockStatus),
+                                    isOutOfStock && 'ring-2 ring-red-100',
+                                )}
+                            >
                                 {getStockStatusLabel(product.stockStatus)}
                             </span>
                         ) : null}
@@ -129,8 +136,17 @@ export function ProductCard({ product, variant = 'grid', className, action, acti
                             <span className="shrink-0 font-medium">{rating > 0 ? rating.toFixed(1) : '0.0'}</span>
                             <span className="min-w-0 truncate">({product.reviewCount ?? 0})</span>
                         </div>
-                        <span className="min-w-0 shrink truncate text-right">
-                            {typeof product.stockQuantity === 'number' ? `${product.stockQuantity} kho` : 'Còn hàng'}
+                        <span
+                            className={cn(
+                                'min-w-0 shrink truncate rounded-sm px-1.5 py-0.5 text-right font-semibold',
+                                isOutOfStock ? 'bg-red-50 text-red-700' : 'text-on-surface-variant',
+                            )}
+                        >
+                            {isOutOfStock
+                                ? 'Hết hàng'
+                                : typeof product.stockQuantity === 'number'
+                                  ? `${product.stockQuantity} kho`
+                                  : 'Còn hàng'}
                         </span>
                     </div>
                 </div>

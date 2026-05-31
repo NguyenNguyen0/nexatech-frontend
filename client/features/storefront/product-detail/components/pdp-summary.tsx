@@ -10,7 +10,7 @@ import { fetchProductBySlug } from '@/features/products/services/products-api';
 import type { StockStatus } from '@/features/products/types';
 import { getStockStatusLabel } from '@/features/products/utils';
 import { useWishlist } from '@/features/wishlist/hooks/use-wishlist';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { PRODUCT_CONSULT_CHAT_EVENT } from '@/components/shared/chat-widget';
 import { PdpPromotions } from './pdp-promotions';
 
@@ -73,6 +73,11 @@ export function PdpSummary({
   const { isWishlisted, isMutating, toggleWishlist } = useWishlist();
   const wishlisted = isWishlisted(productId);
   const isWishlistUpdating = isMutating(productId);
+
+  useEffect(() => {
+    setLiveStockQuantity(stockQuantity);
+    setLiveStockStatus(deriveStockStatus(stockQuantity, stockStatus));
+  }, [stockQuantity, stockStatus]);
 
   useEffect(() => {
     void trackBehavior({
@@ -233,9 +238,21 @@ export function PdpSummary({
         </div>
         <span className="text-outline-variant">|</span>
         <div
-          className={`flex items-center gap-1 font-semibold ${isOutOfStock ? 'text-error' : 'text-success'}`}
+          className={cn(
+            'flex items-center gap-1.5 rounded-sm border px-2 py-1 font-extrabold uppercase tracking-wide',
+            isOutOfStock
+              ? 'border-red-300 bg-red-600 text-white shadow-sm'
+              : liveStockStatus === 'LOW_STOCK'
+                ? 'border-amber-200 bg-amber-50 text-amber-700'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+          )}
         >
-          <span className={`inline-block w-1.5 h-1.5 rounded-full ${isOutOfStock ? 'bg-error' : 'bg-success'}`} />
+          <span
+            className={cn(
+              'inline-block h-2 w-2 rounded-full',
+              isOutOfStock ? 'bg-white' : liveStockStatus === 'LOW_STOCK' ? 'bg-amber-500' : 'bg-emerald-500',
+            )}
+          />
           {stockStateText}
         </div>
       </div>
