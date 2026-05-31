@@ -405,6 +405,15 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
   }
 }
 
+export async function fetchProductById(productId: string): Promise<ProductMinimal> {
+  const normalizedId = productId.trim();
+  if (!normalizedId) {
+    throw new Error('Product id is invalid');
+  }
+
+  return requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
+}
+
 export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductMinimal[]> {
   const normalized = productSlugOrId.trim();
   const candidates = [
