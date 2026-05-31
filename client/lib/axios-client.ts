@@ -4,7 +4,13 @@ import axios, {
   isAxiosError,
 } from 'axios';
 import type { ApiResponse, AuthTokensPayload } from '@/types/auth';
-import { authPaths, isPublicAuthRequestUrl } from '@/lib/constants';
+import {
+  BEHAVIOR_API_BASE,
+  PRODUCT_API_BASE,
+  USER_API_BASE,
+  authPaths,
+  isPublicAuthRequestUrl,
+} from '@/lib/constants';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 
 /**
@@ -142,6 +148,22 @@ function resolveRequestUrl(config: InternalAxiosRequestConfig): string {
   return url.startsWith('http') ? url : `${base}${url}`;
 }
 
+function isBackgroundAuthRequestUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return (
+    url.includes(BEHAVIOR_API_BASE) ||
+    url.includes(`${PRODUCT_API_BASE}/wishlist`)
+  );
+}
+
+function isOtpStepUpRequestUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  return (
+    url.includes(`${USER_API_BASE}/me/onboarding/request-otp`) ||
+    url.includes(`${USER_API_BASE}/me/onboarding/verify-otp`)
+  );
+}
+
 /* ─── Request: refresh chủ động nếu access sắp hết hạn, rồi gắn Bearer ─── */
 
 axiosClient.interceptors.request.use(
@@ -197,7 +219,11 @@ axiosClient.interceptors.response.use(
     const pathOnly = originalRequest.url ?? '';
     if (
       isPublicAuthRequestUrl(absolute) ||
-      isPublicAuthRequestUrl(pathOnly)
+      isPublicAuthRequestUrl(pathOnly) ||
+      isOtpStepUpRequestUrl(absolute) ||
+      isOtpStepUpRequestUrl(pathOnly) ||
+      isBackgroundAuthRequestUrl(absolute) ||
+      isBackgroundAuthRequestUrl(pathOnly)
     ) {
       return Promise.reject(error);
     }

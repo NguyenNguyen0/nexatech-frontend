@@ -128,6 +128,7 @@ export function LoginForm() {
         if (session.otpStepUpPending !== true) return;
 
         authStorage.setTokens(session.accessToken, session.refreshToken);
+        authStorage.setOtpStepUpPending(true);
 
         const userId = session.user?.id;
 
@@ -187,10 +188,12 @@ export function LoginForm() {
             }
 
             if (session.otpStepUpPending !== true) {
+                authStorage.setOtpStepUpPending(false);
                 finishLoginRedirect();
                 return;
             }
 
+            authStorage.setOtpStepUpPending(true);
             const userId = session.user?.id;
             if (isTrustedDevice(userId)) {
                 try {
@@ -199,6 +202,7 @@ export function LoginForm() {
                     toast.error('Không thể cập nhật phiên đăng nhập. Vui lòng thử lại.');
                     return;
                 }
+                authStorage.setOtpStepUpPending(false);
                 finishLoginRedirect();
                 return;
             }
@@ -238,6 +242,7 @@ export function LoginForm() {
             }
             trustCurrentDevice(session?.user?.id);
             clearOtpSent(session?.user?.id);
+            authStorage.setOtpStepUpPending(false);
             otpBootstrapStarted.current = false;
             setOtpOpen(false);
             toast.success('Xác minh email thành công');
