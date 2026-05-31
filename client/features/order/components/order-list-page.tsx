@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
   Clock,
   Loader2,
   Package,
@@ -69,6 +70,24 @@ const STATUS_CONFIG: Record<
     iconClassName: 'bg-red-100 text-red-700',
     Icon: XCircle,
   },
+  OUT_OF_STOCK: {
+    label: 'Tạm thời hết hàng',
+    className: 'border-amber-200 bg-amber-50 text-amber-800',
+    iconClassName: 'bg-amber-100 text-amber-800',
+    Icon: AlertCircle,
+  },
+  SHIPPING_FAILED: {
+    label: 'Tạo đơn giao thất bại',
+    className: 'border-red-200 bg-red-50 text-red-700',
+    iconClassName: 'bg-red-100 text-red-700',
+    Icon: XCircle,
+  },
+  REFUND_PENDING: {
+    label: 'Đang xử lý hoàn tiền',
+    className: 'border-purple-200 bg-purple-50 text-purple-700',
+    iconClassName: 'bg-purple-100 text-purple-700',
+    Icon: RotateCcw,
+  },
   RETURNED: {
     label: 'Trả hàng',
     className: 'border-orange-200 bg-orange-50 text-orange-700',
@@ -92,6 +111,9 @@ const TABS: Array<{ key: OrderStatus | 'ALL'; label: string }> = [
   { key: 'DELIVERED', label: 'Đã giao' },
   { key: 'COMPLETED', label: 'Hoàn thành' },
   { key: 'CANCELLED', label: 'Đã hủy' },
+  { key: 'OUT_OF_STOCK', label: 'Hết hàng' },
+  { key: 'SHIPPING_FAILED', label: 'Lỗi giao hàng' },
+  { key: 'REFUND_PENDING', label: 'Chờ hoàn tiền' },
 ];
 
 const RECENT_GUEST_ORDERS_KEY = 'nexatech_recent_orders';

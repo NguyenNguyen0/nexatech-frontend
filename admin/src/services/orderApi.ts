@@ -27,6 +27,9 @@ export type OrderStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
+  | 'OUT_OF_STOCK'
+  | 'SHIPPING_FAILED'
+  | 'REFUND_PENDING'
   | 'RETURNED'
   | 'REFUNDED';
 
@@ -72,6 +75,11 @@ export interface OrderResponse {
   estimatedDelivery?: string;
   shippedAt?: string;
   deliveredAt?: string;
+  compensationReason?: string;
+  refundBankName?: string;
+  refundAccountNumber?: string;
+  refundAccountHolder?: string;
+  refundInfoSubmittedAt?: string;
 }
 
 export interface PageResponse<T> {

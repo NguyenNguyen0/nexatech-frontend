@@ -50,8 +50,8 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
     notFound();
   }
 
-  const reviewsPage = await fetchProductReviews(product.slug, { page: 1, size: 10 }, product.id).catch(
-      () => ({ items: [], page: 1, size: 10, totalItems: 0, totalPages: 1, hasNext: false } as PageResult<ProductReview>),
+  const reviewsPage = await fetchProductReviews(product.slug, { page: 0, size: 10 }, product.id).catch(
+      () => ({ items: [], page: 0, size: 10, totalItems: 0, totalPages: 0, hasNext: false } as PageResult<ProductReview>),
     );
 
   const gallery = product.images && product.images.length > 0 ? product.images : product.thumbnail ? [product.thumbnail] : [];
@@ -106,7 +106,7 @@ export default async function ProductDetailPage({ params }: { params?: Promise<R
               typeof reviewsPage.hasNext === 'boolean'
                 ? reviewsPage.hasNext
                 : typeof reviewsPage.totalPages === 'number'
-                  ? reviewsPage.page < reviewsPage.totalPages
+                  ? (reviewsPage.page ?? 0) + 1 < reviewsPage.totalPages
                   : false,
             )}
           />

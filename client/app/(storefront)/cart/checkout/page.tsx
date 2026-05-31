@@ -8,7 +8,7 @@ import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart, updateCartItem } from '@/features/cart/services/cart-api';
-import { CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
+import { CheckoutConflictError, CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
 import { getUserById } from '@/features/auth/services/auth-api';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { listMyAddresses } from '@/features/auth/services/address-api';
@@ -27,6 +27,12 @@ const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
 const CHECKOUT_MIN_LOADING_MS = 3000;
 
 const RECENT_GUEST_ORDERS_KEY = 'nexatech_recent_orders';
+const VIETNAM_MOBILE_PHONE_REGEX = /^(0|\+84)(3|5|7|8|9)\d{8}$/;
+
+type PendingOrderItem = {
+  productId: string;
+  quantity: number;
+};
 
 function rememberRecentOrder(orderId: string, orderNumber: string) {
   if (typeof window === 'undefined') return;
@@ -45,6 +51,18 @@ function rememberRecentOrder(orderId: string, orderNumber: string) {
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizePhoneInput(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('+')) {
+    return `+${trimmed.slice(1).replace(/\D/g, '')}`;
+  }
+  return trimmed.replace(/\D/g, '');
+}
+
+function isValidVietnamMobilePhone(value: string): boolean {
+  return VIETNAM_MOBILE_PHONE_REGEX.test(normalizePhoneInput(value));
 }
 
 function decodeJwtSub(token: string): string | null {
@@ -82,12 +100,14 @@ export default function CheckoutPage() {
     orderId: string;
     orderNumber: string;
     paymentUrl: string;
-    items?: OrderItemResponse[] | null;
+    items?: PendingOrderItem[];
   } | null>(null);
   const [cancellingPending, setCancellingPending] = useState(false);
   const [continuingPending, setContinuingPending] = useState(false);
 
   const idempotencyKey = useRef(crypto.randomUUID());
+  const submittingRef = useRef(false);
+  const isLoggedIn = Boolean(authStorage.getAccessToken());
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +126,7 @@ export default function CheckoutPage() {
                   orderId: parsed.orderId,
                   orderNumber: orderInfo.orderNumber,
                   paymentUrl: parsed.paymentUrl,
-                  items: orderInfo.items,
+                  items: orderInfo.items ?? undefined,
                 });
               } else {
                 localStorage.removeItem('nexatech_pending_order');
@@ -170,6 +190,7 @@ export default function CheckoutPage() {
   }, [router]);
 
   const handleOrder = async () => {
+    if (submittingRef.current || submitting) return;
     if (!cart || cart.items.length === 0) return;
 
     // Validate buyer info
@@ -179,6 +200,12 @@ export default function CheckoutPage() {
     }
     if (!buyerPhone.trim()) {
       toast.error('Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    const normalizedPhone = normalizePhoneInput(buyerPhone);
+    if (!isValidVietnamMobilePhone(normalizedPhone)) {
+      toast.error('Số điện thoại không hợp lệ. Vui lòng nhập số di động Việt Nam, ví dụ 0912345678.');
       return;
     }
 
@@ -198,6 +225,7 @@ export default function CheckoutPage() {
       unitPrice: item.price,  // Send price from localStorage cart as fallback for product-service
     }));
 
+    submittingRef.current = true;
     setSubmitting(true);
     const loadingStartedAt = Date.now();
     try {
@@ -209,7 +237,7 @@ export default function CheckoutPage() {
           couponCode: couponCode.trim() || undefined,
           guestName: buyerName.trim(),
           guestEmail: buyerEmail.trim() || undefined,
-          guestPhone: buyerPhone.trim(),
+          guestPhone: normalizedPhone,
           items: cartItems,
         },
         idempotencyKey.current,
@@ -273,8 +301,13 @@ export default function CheckoutPage() {
         return;
       }
       const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
+      if (err instanceof CheckoutConflictError) {
+        toast.error('Yeu cau dat hang dang duoc xu ly. Vui long cho trong giay lat roi kiem tra lai.');
+        return;
+      }
       toast.error(msg);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -344,17 +377,23 @@ export default function CheckoutPage() {
               <span className="material-symbols-outlined text-amber-600 text-[64px] mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
               <h2 className="text-headline-sm font-headline-sm text-on-surface mb-2">Bạn có một đơn hàng chưa thanh toán</h2>
               <p className="text-body-md text-on-surface-variant mb-6 leading-relaxed">
-                Đơn hàng <strong>#{pendingOrder.orderNumber}</strong> đang chờ thanh toán VNPay. Bạn có muốn tiếp tục thanh toán đơn hàng này để tránh đặt trùng lặp không?
+                Đơn hàng <strong>#{pendingOrder.orderNumber}</strong> đang chờ thanh toán VNPay.
+                {' '}
+                {isLoggedIn
+                  ? 'Bạn có muốn tiếp tục thanh toán đơn hàng này để tránh đặt trùng lặp không?'
+                  : 'Nếu bạn không thanh toán trong vòng 20 phút nữa, hệ thống sẽ tự động huỷ đơn hàng. Nếu bạn muốn huỷ ngay, vui lòng liên hệ hotline: 19001234.'}
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  onClick={handleCancelPendingOrder}
-                  disabled={cancellingPending}
-                  className="w-full sm:w-auto h-12 px-6 text-sm font-semibold text-error hover:bg-error/5 rounded-xl transition-colors border border-outline-variant hover:border-error disabled:opacity-50 inline-flex items-center justify-center"
-                >
-                  {cancellingPending ? 'Đang hủy...' : 'Hủy đơn cũ & mua lại'}
-                </button>
+                {isLoggedIn && (
+                  <button
+                    onClick={handleCancelPendingOrder}
+                    disabled={cancellingPending}
+                    className="w-full sm:w-auto h-12 px-6 text-sm font-semibold text-error hover:bg-error/5 rounded-xl transition-colors border border-outline-variant hover:border-error disabled:opacity-50 inline-flex items-center justify-center"
+                  >
+                    {cancellingPending ? 'Đang hủy...' : 'Hủy đơn cũ & mua lại'}
+                  </button>
+                )}
                 <button
                   onClick={handleContinuePendingPayment}
                   disabled={continuingPending}
@@ -401,18 +440,24 @@ export default function CheckoutPage() {
               <div>
                 <h3 className="text-on-surface font-semibold text-title-md">Bạn có một đơn hàng chưa hoàn tất thanh toán</h3>
                 <p className="text-body-sm text-on-surface-variant mt-1">
-                  Đơn hàng <strong>#{pendingOrder.orderNumber}</strong> đang chờ thanh toán VNPay. Bạn có muốn tiếp tục thanh toán đơn hàng này để tránh đặt trùng lặp không?
+                  Đơn hàng <strong>#{pendingOrder.orderNumber}</strong> đang chờ thanh toán VNPay.
+                  {' '}
+                  {isLoggedIn
+                    ? 'Bạn có muốn tiếp tục thanh toán đơn hàng này để tránh đặt trùng lặp không?'
+                    : 'Nếu bạn không thanh toán trong vòng 20 phút nữa, hệ thống sẽ tự động huỷ đơn hàng. Nếu bạn muốn huỷ ngay, vui lòng liên hệ hotline: 19001234.'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
-              <button
-                onClick={handleCancelPendingOrder}
-                disabled={cancellingPending}
-                className="h-10 px-4 text-sm font-medium text-error hover:bg-error/10 rounded-lg transition-colors border border-outline-variant hover:border-error disabled:opacity-50"
-              >
-                {cancellingPending ? 'Đang hủy...' : 'Hủy đơn cũ'}
-              </button>
+              {isLoggedIn && (
+                <button
+                  onClick={handleCancelPendingOrder}
+                  disabled={cancellingPending}
+                  className="h-10 px-4 text-sm font-medium text-error hover:bg-error/10 rounded-lg transition-colors border border-outline-variant hover:border-error disabled:opacity-50"
+                >
+                  {cancellingPending ? 'Đang hủy...' : 'Hủy đơn cũ'}
+                </button>
+              )}
               <button
                 onClick={handleContinuePendingPayment}
                 disabled={continuingPending}
@@ -452,9 +497,16 @@ export default function CheckoutPage() {
                     className="w-full h-11 px-3 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-md bg-surface-container-lowest"
                     placeholder="VD: 0912345678"
                     type="tel"
+                    inputMode="tel"
+                    maxLength={12}
                     value={buyerPhone}
-                    onChange={(e) => setBuyerPhone(e.target.value)}
+                    onChange={(e) => setBuyerPhone(normalizePhoneInput(e.target.value))}
                   />
+                  {buyerPhone.trim() && !isValidVietnamMobilePhone(buyerPhone) && (
+                    <p className="mt-1 text-xs text-error">
+                      Số điện thoại phải là số di động Việt Nam hợp lệ, ví dụ 0912345678.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-label-sm text-on-surface-variant mb-1">Email (tùy chọn)</label>

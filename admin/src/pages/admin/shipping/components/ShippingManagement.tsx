@@ -40,7 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import type { OrderResponse } from '@/services/orderApi'
 import {
   cancelShipment,
@@ -304,10 +304,8 @@ export function ShippingManagement() {
         if (found) setSelected(found)
       }
     } catch (error: unknown) {
-      toast({
-        title: 'Unable to load shipments',
+      toast.error('Unable to load shipments', {
         description: (error as Error).message,
-        variant: 'destructive',
       })
     } finally {
       setLoading(false)
@@ -342,7 +340,7 @@ export function ShippingManagement() {
   const lookupTracking = async () => {
     const trackingCode = manualLookup.trim()
     if (!trackingCode) {
-      toast({ title: 'Enter a tracking code', variant: 'destructive' })
+      toast.error('Enter a tracking code')
       return
     }
 
@@ -357,10 +355,8 @@ export function ShippingManagement() {
 
       setSelected({ order: orderFromShipment(shipment), shipment })
     } catch (error: unknown) {
-      toast({
-        title: 'Shipment not found',
+      toast.error('Shipment not found', {
         description: (error as Error).message,
-        variant: 'destructive',
       })
     } finally {
       setLoading(false)
@@ -369,7 +365,7 @@ export function ShippingManagement() {
 
   const handleCancel = async (trackingCode: string) => {
     const result = await cancelShipment(trackingCode)
-    toast({ title: 'Cancel request sent', description: result.message })
+    toast.success('Cancel request sent', { description: result.message })
     setRows((prev) =>
       prev.map((row) =>
         row.shipment.trackingCode === trackingCode

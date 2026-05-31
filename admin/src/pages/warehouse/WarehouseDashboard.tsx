@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Upload } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import {
+    AlertTriangle,
+    PackageCheck,
+    PackageX,
+    Plus,
+    RefreshCw,
+    RotateCcw,
+    Save,
+    Upload,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import {
     Bar,
@@ -85,10 +95,14 @@ function statusBadgeVariant(status: InventoryStatus) {
 }
 
 export default function WarehouseDashboard() {
+    const [searchParams] = useSearchParams()
+    const initialKeyword = searchParams.get('keyword') ?? ''
     const [items, setItems] = useState<InventoryItem[]>([])
     const [loading, setLoading] = useState<boolean>(true)
+    const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({})
+    const [rowUpdating, setRowUpdating] = useState<Record<string, boolean>>({})
 
-    const [keyword, setKeyword] = useState<string>('')
+    const [keyword, setKeyword] = useState<string>(initialKeyword)
     const [status, setStatus] = useState<InventoryFilterStatus>('ALL')
     const [page, setPage] = useState<number>(0)
     const size = WAREHOUSE_PAGE_SIZE
@@ -145,7 +159,7 @@ export default function WarehouseDashboard() {
                 }
             }
         } catch (error) {
-            toast.error(getApiErrorMessage(error, 'Load inventory failed'))
+            toast.error(getApiErrorMessage(error, 'Load inventory failed'), { id: 'warehouse-load-inventory' })
             setItems([])
             setTotalElements(0)
             setTotalPages(0)
@@ -157,6 +171,18 @@ export default function WarehouseDashboard() {
     useEffect(() => {
         fetchInventory()
     }, [keyword, status, page, size, sort])
+
+    useEffect(() => {
+        setQuantityDrafts((current) => {
+            const next = { ...current }
+            items.forEach((item) => {
+                if (next[item.productId] === undefined) {
+                    next[item.productId] = String(item.quantity)
+                }
+            })
+            return next
+        })
+    }, [items])
 
     useEffect(() => {
         if (!selectedInventory) {
@@ -179,7 +205,7 @@ export default function WarehouseDashboard() {
                 setMovements(response.content)
             } catch (error) {
                 if (!mounted) return
-                toast.error(getApiErrorMessage(error, 'Load stock movement failed'))
+                toast.error(getApiErrorMessage(error, 'Load stock movement failed'), { id: 'warehouse-load-movements' })
                 setMovements([])
             } finally {
                 if (mounted) setMovementLoading(false)
@@ -211,7 +237,7 @@ export default function WarehouseDashboard() {
                     setProductResults(response.content)
                 } catch (error) {
                     if (!mounted) return
-                    toast.error(getApiErrorMessage(error, 'Load products failed'))
+                    toast.error(getApiErrorMessage(error, 'Load products failed'), { id: 'warehouse-load-products' })
                     setProductResults([])
                 } finally {
                     if (mounted) setProductSearchLoading(false)
@@ -310,6 +336,80 @@ export default function WarehouseDashboard() {
         }
     }
 
+    const displayProductName = (item: InventoryItem) =>
+        item.productName?.trim() || item.sku || item.productId
+
+    const applyUpdatedInventory = (updated: InventoryItem) => {
+        setItems((current) =>
+            current.map((item) =>
+                item.productId === updated.productId
+                    ? {
+                          ...updated,
+                          productName: updated.productName?.trim() || item.productName,
+                          productSlug: updated.productSlug || item.productSlug,
+                          productThumbnail: updated.productThumbnail || item.productThumbnail,
+                      }
+                    : item
+            )
+        )
+        setSelectedInventory((current) =>
+            current?.productId === updated.productId
+                ? {
+                      ...updated,
+                      productName: updated.productName?.trim() || current.productName,
+                      productSlug: updated.productSlug || current.productSlug,
+                      productThumbnail: updated.productThumbnail || current.productThumbnail,
+                  }
+                : current
+        )
+        setQuantityDrafts((current) => ({
+            ...current,
+            [updated.productId]: String(updated.quantity),
+        }))
+    }
+
+    const handleQuantityDraftChange = (productId: string, value: string) => {
+        setQuantityDrafts((current) => ({
+            ...current,
+            [productId]: value,
+        }))
+    }
+
+    const handleQuantityUpdate = async (item: InventoryItem, nextValue?: number) => {
+        const rawValue = nextValue ?? Number(quantityDrafts[item.productId] ?? item.quantity)
+        const quantity = Number(rawValue)
+
+        if (!Number.isInteger(quantity) || quantity < 0) {
+            toast.error('Quantity must be a whole number greater than or equal to 0')
+            return
+        }
+
+        try {
+            setRowUpdating((current) => ({ ...current, [item.productId]: true }))
+            const updated = await updateInventoryStock({
+                productId: item.productId,
+                sku: item.sku,
+                quantity,
+                reason: 'Admin stock adjustment',
+            })
+            applyUpdatedInventory(updated)
+            toast.success(`Updated ${displayProductName(item)} to ${quantity}`)
+        } catch (error) {
+            toast.error(getApiErrorMessage(error, 'Update stock failed'))
+        } finally {
+            setRowUpdating((current) => ({ ...current, [item.productId]: false }))
+        }
+    }
+
+    const pageSummary = useMemo(() => {
+        const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0)
+        const totalAvailable = items.reduce((sum, item) => sum + item.availableQuantity, 0)
+        const outOfStock = items.filter((item) => item.availableQuantity <= 0).length
+        const lowStock = items.filter((item) => item.status === 'LOW_STOCK').length
+
+        return { totalQuantity, totalAvailable, outOfStock, lowStock }
+    }, [items])
+
     const statusChartData = useMemo(() => {
         const map: Record<InventoryStatus, number> = {
             IN_STOCK: 0,
@@ -343,16 +443,61 @@ export default function WarehouseDashboard() {
         <div className='space-y-4 p-4 md:p-6'>
             <div className='flex flex-wrap items-start justify-between gap-3'>
                 <div>
-                    <h1 className='text-2xl font-bold tracking-tight'>Warehouse Inventory Dashboard</h1>
+                    <h1 className='text-2xl font-bold tracking-tight'>Stock Management</h1>
                     <p className='text-muted-foreground'>
-                        Inventory list, stock movement history, CSV import report, and trend charts.
+                        Search products, edit quantity inline, and inspect reservations before selling.
                     </p>
                 </div>
 
-                <Button onClick={openAddModal}>
-                    <Plus className='mr-2 h-4 w-4' />
-                    Add Inventory
-                </Button>
+                <div className='flex flex-wrap items-center gap-2'>
+                    <Button variant='outline' onClick={fetchInventory} loading={loading}>
+                        <RefreshCw className='mr-2 h-4 w-4' />
+                        Refresh
+                    </Button>
+                    <Button onClick={openAddModal}>
+                        <Plus className='mr-2 h-4 w-4' />
+                        Add Inventory
+                    </Button>
+                </div>
+            </div>
+
+            <div className='grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4'>
+                <Card>
+                    <CardContent className='flex items-center justify-between p-4'>
+                        <div>
+                            <p className='text-sm text-muted-foreground'>Page quantity</p>
+                            <p className='text-2xl font-bold'>{pageSummary.totalQuantity}</p>
+                        </div>
+                        <PackageCheck className='h-8 w-8 text-muted-foreground' />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className='flex items-center justify-between p-4'>
+                        <div>
+                            <p className='text-sm text-muted-foreground'>Available</p>
+                            <p className='text-2xl font-bold'>{pageSummary.totalAvailable}</p>
+                        </div>
+                        <PackageCheck className='h-8 w-8 text-muted-foreground' />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className='flex items-center justify-between p-4'>
+                        <div>
+                            <p className='text-sm text-muted-foreground'>Low stock</p>
+                            <p className='text-2xl font-bold'>{pageSummary.lowStock}</p>
+                        </div>
+                        <AlertTriangle className='h-8 w-8 text-muted-foreground' />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className='flex items-center justify-between p-4'>
+                        <div>
+                            <p className='text-sm text-muted-foreground'>Out of stock</p>
+                            <p className='text-2xl font-bold'>{pageSummary.outOfStock}</p>
+                        </div>
+                        <PackageX className='h-8 w-8 text-muted-foreground' />
+                    </CardContent>
+                </Card>
             </div>
 
             <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
@@ -462,18 +607,23 @@ export default function WarehouseDashboard() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Inventory Filters</CardTitle>
+                    <CardTitle>Find Stock</CardTitle>
                 </CardHeader>
-                <CardContent className='grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-6'>
-                    <Input
-                        value={keyword}
-                        onChange={(event) => {
-                            setKeyword(event.target.value)
-                            setPage(0)
-                        }}
-                        placeholder='Search by product, sku, location...'
-                        className='lg:col-span-2'
-                    />
+                <CardContent className='grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_180px_220px_auto]'>
+                    <div className='relative'>
+                        <Input
+                            value={keyword}
+                            onChange={(event) => {
+                                setKeyword(event.target.value)
+                                setPage(0)
+                            }}
+                            placeholder='Search product, SKU, location...'
+                            className='pl-9'
+                        />
+                        <span className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground'>
+                            <PackageCheck className='h-4 w-4' />
+                        </span>
+                    </div>
 
                     <Select
                         value={status}
@@ -513,67 +663,144 @@ export default function WarehouseDashboard() {
                         </SelectContent>
                     </Select>
 
-                    <div className='flex items-center gap-2'>
+                    <div className='flex flex-wrap items-center gap-2'>
                         <Button variant='outline' onClick={() => handleFilterQuickStatus('LOW_STOCK')}>
                             Low stock
                         </Button>
                         <Button variant='outline' onClick={() => handleFilterQuickStatus('OUT_OF_STOCK')}>
                             Out
                         </Button>
+                        {(keyword || status !== 'ALL') && (
+                            <Button
+                                variant='ghost'
+                                onClick={() => {
+                                    setKeyword('')
+                                    setStatus('ALL')
+                                    setPage(0)
+                                }}
+                            >
+                                <RotateCcw className='mr-2 h-4 w-4' />
+                                Reset
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Inventory Table</CardTitle>
+                    <CardTitle>Editable Inventory</CardTitle>
                     <CardDescription>
-                        Total {totalElements} items | Page {Math.min(page + 1, totalPages || 1)} of {totalPages || 1}
+                        Total {totalElements} items | Page {Math.min(page + 1, totalPages || 1)} of {totalPages || 1}. Edit quantity and save each row.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className='rounded-md border'>
+                    <div className='overflow-x-auto rounded-md border'>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Product</TableHead>
-                                    <TableHead>SKU</TableHead>
-                                    <TableHead>Quantity</TableHead>
+                                    <TableHead className='min-w-[280px]'>Product</TableHead>
+                                    <TableHead className='min-w-[120px]'>SKU</TableHead>
+                                    <TableHead className='min-w-[170px]'>Quantity</TableHead>
+                                    <TableHead>Reserved</TableHead>
                                     <TableHead>Available</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Location</TableHead>
+                                    <TableHead className='min-w-[120px]'>Location</TableHead>
+                                    <TableHead className='min-w-[210px] text-right'>Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className='h-24 text-center text-muted-foreground'>
+                                        <TableCell colSpan={8} className='h-24 text-center text-muted-foreground'>
                                             Loading inventory...
                                         </TableCell>
                                     </TableRow>
                                 ) : items.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className='h-24 text-center text-muted-foreground'>
+                                        <TableCell colSpan={8} className='h-24 text-center text-muted-foreground'>
                                             No inventory records found.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    items.map((item) => (
-                                        <TableRow
-                                            key={item.id}
-                                            className={selectedInventory?.id === item.id ? 'bg-muted/40' : ''}
-                                            onClick={() => setSelectedInventory(item)}
-                                        >
-                                            <TableCell className='font-medium'>{item.productName}</TableCell>
-                                            <TableCell>{item.sku}</TableCell>
-                                            <TableCell>{item.quantity}</TableCell>
-                                            <TableCell>{item.availableQuantity}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={statusBadgeVariant(item.status)}>{item.status}</Badge>
-                                            </TableCell>
-                                            <TableCell>{item.warehouseLocation ?? '-'}</TableCell>
-                                        </TableRow>
-                                    ))
+                                    items.map((item) => {
+                                        const draft = quantityDrafts[item.productId] ?? String(item.quantity)
+                                        const dirty = Number(draft) !== item.quantity
+                                        const updating = rowUpdating[item.productId] === true
+
+                                        return (
+                                            <TableRow
+                                                key={item.id}
+                                                className={selectedInventory?.id === item.id ? 'bg-muted/40' : ''}
+                                                onClick={() => setSelectedInventory(item)}
+                                            >
+                                                <TableCell>
+                                                    <div className='min-w-0'>
+                                                        <p className='font-medium'>{displayProductName(item)}</p>
+                                                        <p className='truncate text-xs text-muted-foreground'>
+                                                            ID: {item.productId}
+                                                        </p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{item.sku}</TableCell>
+                                                <TableCell onClick={(event) => event.stopPropagation()}>
+                                                    <Input
+                                                        type='number'
+                                                        min={0}
+                                                        step={1}
+                                                        value={draft}
+                                                        onChange={(event) => handleQuantityDraftChange(item.productId, event.target.value)}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === 'Enter') {
+                                                                void handleQuantityUpdate(item)
+                                                            }
+                                                        }}
+                                                        className='w-32'
+                                                    />
+                                                </TableCell>
+                                                <TableCell>{item.reservedQuantity}</TableCell>
+                                                <TableCell>
+                                                    <span className={item.availableQuantity <= 0 ? 'font-semibold text-destructive' : 'font-medium'}>
+                                                        {item.availableQuantity}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={statusBadgeVariant(item.status)}>{item.status}</Badge>
+                                                </TableCell>
+                                                <TableCell>{item.warehouseLocation ?? '-'}</TableCell>
+                                                <TableCell onClick={(event) => event.stopPropagation()}>
+                                                    <div className='flex justify-end gap-2'>
+                                                        <Button
+                                                            size='sm'
+                                                            variant={dirty ? 'default' : 'outline'}
+                                                            loading={updating}
+                                                            onClick={() => handleQuantityUpdate(item)}
+                                                            disabled={!dirty && !updating}
+                                                        >
+                                                            <Save className='mr-2 h-4 w-4' />
+                                                            Save
+                                                        </Button>
+                                                        <Button
+                                                            size='sm'
+                                                            variant='outline'
+                                                            loading={updating}
+                                                            onClick={() => handleQuantityUpdate(item, 10)}
+                                                        >
+                                                            Set 10
+                                                        </Button>
+                                                        <Button
+                                                            size='sm'
+                                                            variant='outline'
+                                                            loading={updating}
+                                                            onClick={() => handleQuantityUpdate(item, 0)}
+                                                        >
+                                                            Set 0
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 )}
                             </TableBody>
                         </Table>
@@ -606,7 +833,7 @@ export default function WarehouseDashboard() {
                         <CardTitle>Stock Movement History</CardTitle>
                         <CardDescription>
                             {selectedInventory
-                                ? `Latest movements for ${selectedInventory.productName} (${selectedInventory.sku})`
+                                ? `Latest movements for ${displayProductName(selectedInventory)} (${selectedInventory.sku})`
                                 : 'Select an inventory row to view movement timeline'}
                         </CardDescription>
                     </CardHeader>

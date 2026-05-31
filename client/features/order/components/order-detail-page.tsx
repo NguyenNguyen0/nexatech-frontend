@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   ArrowLeft,
   Package,
@@ -17,12 +18,14 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
-import { getShipmentByOrderId } from '@/features/shipping/services/shipping-api';
+import { getOrderById, cancelOrder, continuePayment, submitRefundBankInfo } from '@/features/order/services/order-api';
+import { getShipmentByOrderId, getTrackingByCode } from '@/features/shipping/services/shipping-api';
 import { clearCart } from '@/features/cart/services/cart-api';
+import { fetchProductById } from '@/features/products/services/products-api';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderResponse, OrderStatus } from '@/types/order';
-import type { TrackingResponse, ShipmentStatus } from '@/types/shipping';
+import type { ProductMinimal } from '@/features/products/types';
+import type { TrackingHistoryResponse, TrackingResponse, ShipmentStatus } from '@/types/shipping';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -35,6 +38,9 @@ const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   COMPLETED:  'Hoàn thành',
   CANCELLED:  'Đã huỷ',
   RETURNED:   'Trả hàng',
+  OUT_OF_STOCK: 'Tạm thời hết hàng',
+  SHIPPING_FAILED: 'Tạo đơn giao thất bại',
+  REFUND_PENDING: 'Đang xử lý hoàn tiền',
   REFUNDED:   'Đã hoàn tiền',
 };
 
@@ -47,6 +53,9 @@ const ORDER_STATUS_COLOR: Record<OrderStatus, string> = {
   COMPLETED:  'text-green-700 bg-green-50 border-green-200',
   CANCELLED:  'text-red-700 bg-red-50 border-red-200',
   RETURNED:   'text-orange-700 bg-orange-50 border-orange-200',
+  OUT_OF_STOCK: 'text-amber-800 bg-amber-50 border-amber-200',
+  SHIPPING_FAILED: 'text-red-700 bg-red-50 border-red-200',
+  REFUND_PENDING: 'text-purple-700 bg-purple-50 border-purple-200',
   REFUNDED:   'text-purple-700 bg-purple-50 border-purple-200',
 };
 
@@ -78,24 +87,141 @@ const SHIPMENT_STATUS_ICON: Record<ShipmentStatus, React.ElementType> = {
   CANCELLED:      XCircle,
 };
 
+const COMPENSATION_COPY: Partial<Record<OrderStatus, string>> = {
+  OUT_OF_STOCK: 'Sản phẩm hiện tại của bạn đang đặt đã hết số lượng, vui lòng đặt sản phẩm khác, xin lỗi vì bất tiện này',
+  SHIPPING_FAILED: 'Đơn hàng đã thanh toán thành công nhưng hiện chưa thể tạo đơn giao hàng. Hệ thống sẽ xử lý hoàn tiền cho bạn.',
+  REFUND_PENDING: 'Thông tin hoàn tiền đã được ghi nhận. Hệ thống đang xử lý hoàn tiền cho bạn.',
+  REFUNDED: 'Đơn hàng đã được hoàn tiền.',
+};
+
+function needsRefundBankInfo(order: OrderResponse) {
+  return (
+    (order.status === 'OUT_OF_STOCK' || order.status === 'SHIPPING_FAILED') &&
+    order.paymentMethod !== 'COD' &&
+    !order.refundInfoSubmittedAt
+  );
+}
+
+function friendlyCompensationReason(reason?: string): string | null {
+  if (!reason) return null;
+  if (reason.includes('PHONE_INVALID') || reason.includes('master_data_validate_phone')) {
+    return 'Số điện thoại nhận hàng không hợp lệ nên đơn vị vận chuyển chưa thể tạo đơn giao hàng. NexaTech sẽ xử lý hoàn tiền hoặc liên hệ lại để hỗ trợ bạn.';
+  }
+  if (reason.includes('GHN API error')) {
+    return 'Đơn vị vận chuyển chưa thể tạo đơn giao hàng. NexaTech sẽ kiểm tra lại thông tin giao hàng và xử lý hoàn tiền nếu cần.';
+  }
+  return reason;
+}
+
+function friendlyShipmentNote(note?: string): string | null {
+  if (!note) return null;
+  const normalized = note.trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized.includes('ghn shipment created') || normalized.includes('shipment created')) {
+    return 'Đơn vận chuyển đã được tạo';
+  }
+  return note;
+}
+
+type ProductMetaMap = Record<string, Pick<ProductMinimal, 'slug' | 'thumbnail' | 'name'>>;
+
+function addMinutes(iso: string | undefined, minutes: number): string {
+  const base = iso ? new Date(iso) : new Date();
+  if (Number.isNaN(base.getTime())) return new Date().toISOString();
+  return new Date(base.getTime() + minutes * 60_000).toISOString();
+}
+
+function resolveTrackingDisplay(order: OrderResponse, tracking: TrackingResponse) {
+  const histories = [...(tracking.histories ?? [])].sort(
+    (left, right) => new Date(left.eventTime).getTime() - new Date(right.eventTime).getTime(),
+  );
+  const existingStatuses = new Set(histories.map((history) => history.status));
+  const firstEventTime = histories[0]?.eventTime ?? tracking.createdAt ?? order.createdAt;
+  const originAddress = histories[0]?.locationAddress
+    ?? tracking.currentLocation?.address
+    ?? 'Kho NexaTech';
+
+  const pushSynthetic = (status: ShipmentStatus, locationAddress: string, note: string, minutesFromFirst: number) => {
+    if (existingStatuses.has(status)) return;
+    histories.push({
+      status,
+      locationAddress,
+      note,
+      eventTime: status === 'DELIVERED'
+        ? (order.deliveredAt ?? addMinutes(firstEventTime, minutesFromFirst))
+        : status === 'IN_TRANSIT'
+          ? (order.shippedAt ?? addMinutes(firstEventTime, minutesFromFirst))
+          : addMinutes(firstEventTime, minutesFromFirst),
+    });
+    existingStatuses.add(status);
+  };
+
+  if (order.status === 'SHIPPED' || order.status === 'DELIVERED' || order.status === 'COMPLETED') {
+    pushSynthetic('PICKED_UP', originAddress, 'Đơn vị vận chuyển đã lấy hàng', 20);
+    pushSynthetic('IN_TRANSIT', 'Đang trên đường giao đến bạn', 'Đơn hàng đang được vận chuyển', 60);
+  }
+
+  if (order.status === 'DELIVERED' || order.status === 'COMPLETED') {
+    pushSynthetic('DELIVERED', order.shippingAddress, 'Đơn hàng đã được giao thành công', 120);
+  }
+
+  const orderedHistories = histories.sort(
+    (left, right) => new Date(left.eventTime).getTime() - new Date(right.eventTime).getTime(),
+  );
+  const latest = orderedHistories.at(-1);
+  const status = latest?.status ?? tracking.status;
+  const currentLocation = latest?.locationAddress
+    ? { ...tracking.currentLocation, address: latest.locationAddress }
+    : tracking.currentLocation;
+
+  return { status, currentLocation, histories: orderedHistories };
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { status: sessionStatus } = useSession();
 
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
+  const [productMeta, setProductMeta] = useState<ProductMetaMap>({});
   const [loadingOrder, setLoadingOrder] = useState(true);
   const [loadingTracking, setLoadingTracking] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [continuingPayment, setContinuingPayment] = useState(false);
+  const [submittingRefundInfo, setSubmittingRefundInfo] = useState(false);
+  const [refundBankName, setRefundBankName] = useState('');
+  const [refundAccountNumber, setRefundAccountNumber] = useState('');
+  const [refundAccountHolder, setRefundAccountHolder] = useState('');
 
   const fetchOrder = useCallback(async () => {
     setLoadingOrder(true);
     try {
       const o = await getOrderById(id);
       setOrder(o);
+
+      const productIds = Array.from(new Set((o.items ?? []).map((item) => item.productId).filter(Boolean)));
+      if (productIds.length > 0) {
+        const entries = await Promise.all(
+          productIds.map(async (productId) => {
+            try {
+              const product = await fetchProductById(productId);
+              return [productId, {
+                slug: product.slug,
+                thumbnail: product.thumbnail,
+                name: product.name,
+              }] as const;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        setProductMeta(Object.fromEntries(entries.filter(Boolean) as Array<readonly [string, ProductMetaMap[string]]>));
+      } else {
+        setProductMeta({});
+      }
 
       // Clear cart if this order was paid/confirmed/completed
       if (o.status === 'CONFIRMED' || o.status === 'COMPLETED') {
@@ -121,7 +247,12 @@ export default function OrderDetailPage() {
           const t = await getShipmentByOrderId(o.id);
           setTracking(t);
         } catch {
-          // Tracking not critical — silently ignore
+          try {
+            const t = await getTrackingByCode(o.trackingNumber);
+            setTracking(t);
+          } catch {
+            setTracking(null);
+          }
         } finally {
           setLoadingTracking(false);
         }
@@ -165,6 +296,29 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleSubmitRefundInfo = async () => {
+    if (!order) return;
+    if (!refundBankName.trim() || !refundAccountNumber.trim() || !refundAccountHolder.trim()) {
+      toast.error('Vui lòng nhập đầy đủ thông tin tài khoản hoàn tiền.');
+      return;
+    }
+
+    setSubmittingRefundInfo(true);
+    try {
+      const updated = await submitRefundBankInfo(order.id, {
+        bankName: refundBankName.trim(),
+        accountNumber: refundAccountNumber.trim(),
+        accountHolder: refundAccountHolder.trim(),
+      });
+      setOrder(updated);
+      toast.success('Đã ghi nhận thông tin hoàn tiền.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không thể gửi thông tin hoàn tiền.');
+    } finally {
+      setSubmittingRefundInfo(false);
+    }
+  };
+
   if (loadingOrder) {
     return (
       <div className="flex-grow flex items-center justify-center py-24">
@@ -175,9 +329,20 @@ export default function OrderDetailPage() {
 
   if (!order) return null;
 
-  const canCancel = order.status === 'PENDING' || order.status === 'CONFIRMED';
-  const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY';
+  const paymentCompleted = order.paymentStatus === 'COMPLETED' || order.paymentStatus === 'REFUNDED';
+  const isGuestOrderView = sessionStatus !== 'authenticated';
+  const canCancel = !isGuestOrderView && (order.status === 'PENDING' || order.status === 'CONFIRMED');
+  const canContinuePayment = order.status === 'PENDING' && order.paymentMethod === 'VNPAY' && !paymentCompleted;
   const statusClass = ORDER_STATUS_COLOR[order.status];
+  const readableCompensationReason = friendlyCompensationReason(order.compensationReason);
+  const compensationMessage = COMPENSATION_COPY[order.status]
+    ?? (readableCompensationReason
+      ? (order.paymentMethod === 'COD'
+        ? 'Đơn hàng đã được huỷ tự động do hết hàng hoặc sự cố hệ thống.'
+        : 'Đơn hàng đang được xử lý bồi hoàn.')
+      : null);
+  const showRefundBankForm = needsRefundBankInfo(order);
+  const trackingDisplay = tracking ? resolveTrackingDisplay(order, tracking) : null;
 
   return (
     <div className="flex-grow bg-surface-container-low py-8">
@@ -226,6 +391,23 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {compensationMessage && (
+          <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-left shadow-sm">
+            <div className="flex gap-3">
+              <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-700" />
+              <div>
+                <h2 className="text-sm font-semibold text-amber-900">
+                  {order.paymentMethod === 'COD' ? 'Thông tin huỷ đơn hàng' : 'Đơn hàng cần xử lý hoàn tiền'}
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-amber-800">{compensationMessage}</p>
+                {readableCompensationReason && (
+                  <p className="mt-2 text-xs leading-5 text-amber-700">Lý do: {readableCompensationReason}</p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* ── Left column ──────────────────────────────────── */}
@@ -238,13 +420,33 @@ export default function OrderDetailPage() {
                 Sản phẩm ({(order.items ?? []).length})
               </h2>
               <div className="flex flex-col divide-y divide-outline-variant">
-                {(order.items ?? []).map((item) => (
+                {(order.items ?? []).map((item) => {
+                  const meta = productMeta[item.productId];
+                  const productHref = meta?.slug
+                    ? `/product/${meta.slug}`
+                    : `/product?keyword=${encodeURIComponent(item.productName || item.productId)}`;
+                  const thumbnail = meta?.thumbnail;
+
+                  return (
                   <div key={item.id} className="py-3 first:pt-0 last:pb-0 flex gap-3 items-center">
-                    <div className="w-12 h-12 rounded-lg bg-surface-container border border-outline-variant flex items-center justify-center shrink-0">
-                      <Package className="size-5 text-outline" />
-                    </div>
+                    <Link
+                      href={productHref}
+                      className="w-14 h-14 rounded-lg bg-surface-container border border-outline-variant flex items-center justify-center shrink-0 overflow-hidden hover:border-primary transition-colors"
+                      aria-label={`Xem sản phẩm ${item.productName}`}
+                    >
+                      {thumbnail ? (
+                        <img src={thumbnail} alt={item.productName} className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="size-5 text-outline" />
+                      )}
+                    </Link>
                     <div className="flex-grow min-w-0">
-                      <p className="text-sm font-medium text-on-surface line-clamp-2">{item.productName}</p>
+                      <Link
+                        href={productHref}
+                        className="text-sm font-medium text-on-surface line-clamp-2 hover:text-primary hover:underline"
+                      >
+                        {meta?.name || item.productName}
+                      </Link>
                       <p className="text-xs text-on-surface-variant mt-0.5">
                         {formatCurrency(item.unitPrice)} × {item.quantity}
                       </p>
@@ -253,7 +455,8 @@ export default function OrderDetailPage() {
                       {formatCurrency(item.subtotal)}
                     </p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
 
@@ -289,26 +492,28 @@ export default function OrderDetailPage() {
                     <Loader2 className="size-4 animate-spin" />
                     Đang tải lịch sử vận chuyển...
                   </div>
-                ) : tracking ? (
+                ) : trackingDisplay ? (
                   <div className="relative">
                     {/* Current status */}
                     <div className={`flex items-center gap-3 mb-5 p-3 rounded-xl border ${ORDER_STATUS_COLOR[order.status]}`}>
                       <Truck className="size-5 shrink-0" />
                       <div>
+                        <p className="text-xs font-medium opacity-75">Trạng thái hiện tại</p>
                         <p className="text-sm font-semibold">
-                          {SHIPMENT_STATUS_LABEL[tracking.status]}
+                          {SHIPMENT_STATUS_LABEL[trackingDisplay.status]}
                         </p>
-                        {tracking.currentLocation?.address && (
-                          <p className="text-xs mt-0.5 opacity-80">{tracking.currentLocation.address}</p>
+                        {trackingDisplay.currentLocation?.address && (
+                          <p className="text-xs mt-0.5 opacity-80">{trackingDisplay.currentLocation.address}</p>
                         )}
                       </div>
                     </div>
 
                     {/* Timeline */}
-                    {(tracking.histories ?? []).length > 0 && (
+                    {trackingDisplay.histories.length > 0 && (
                       <ol className="relative border-l-2 border-outline-variant ml-3 pl-6 flex flex-col gap-5">
-                        {[...(tracking.histories ?? [])].reverse().map((h, idx) => {
+                        {trackingDisplay.histories.map((h, idx) => {
                           const Icon = SHIPMENT_STATUS_ICON[h.status as ShipmentStatus] ?? Clock;
+                          const note = friendlyShipmentNote(h.note);
                           return (
                             <li key={idx} className="relative">
                               <div className="absolute -left-9 w-4 h-4 rounded-full bg-surface border-2 border-primary flex items-center justify-center">
@@ -321,8 +526,8 @@ export default function OrderDetailPage() {
                                 {h.locationAddress && (
                                   <p className="text-xs text-on-surface-variant mt-0.5">{h.locationAddress}</p>
                                 )}
-                                {h.note && (
-                                  <p className="text-xs text-on-surface-variant mt-0.5 italic">{h.note}</p>
+                                {note && (
+                                  <p className="text-xs text-on-surface-variant mt-0.5">{note}</p>
                                 )}
                                 <p className="text-xs text-on-surface-variant mt-1">
                                   {new Date(h.eventTime).toLocaleString('vi-VN')}
@@ -380,10 +585,24 @@ export default function OrderDetailPage() {
               <p className="text-sm text-on-surface">
                 {PAYMENT_METHOD_LABEL[order.paymentMethod] ?? order.paymentMethod}
               </p>
+              {order.paymentStatus && (
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Trạng thái thanh toán: {order.paymentStatus}
+                </p>
+              )}
+              {order.status === 'PENDING' && order.paymentMethod === 'VNPAY' && paymentCompleted && (
+                <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <p className="text-xs leading-5 text-blue-800">
+                    Thanh toán VNPay đã hoàn tất. Hệ thống đang kiểm tra tồn kho và sẽ cập nhật trạng thái đơn hàng.
+                  </p>
+                </div>
+              )}
               {canContinuePayment && (
                 <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
                   <p className="text-xs leading-5 text-amber-800">
-                    Đơn hàng đang chờ thanh toán VNPay. Bạn có thể mở lại cổng thanh toán trước khi đơn tự huỷ.
+                    {isGuestOrderView
+                      ? 'Đơn hàng đang chờ thanh toán VNPay. Nếu bạn không thanh toán trong vòng 20 phút nữa, hệ thống sẽ tự động huỷ đơn hàng. Nếu bạn muốn huỷ ngay, vui lòng liên hệ hotline: 19001234.'
+                      : 'Đơn hàng đang chờ thanh toán VNPay. Bạn có thể mở lại cổng thanh toán trước khi đơn tự huỷ.'}
                   </p>
                   <button
                     type="button"
@@ -401,6 +620,53 @@ export default function OrderDetailPage() {
                 </div>
               )}
             </section>
+
+            {showRefundBankForm && (
+              <section className="bg-surface rounded-xl border border-amber-200 p-5 shadow-sm">
+                <h2 className="text-base font-semibold text-on-surface mb-2">Thông tin hoàn tiền</h2>
+                <p className="text-xs leading-5 text-on-surface-variant mb-4">
+                  Vui lòng cung cấp tài khoản ngân hàng để đội ngũ NexaTech xử lý hoàn tiền thủ công khi cần.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    Tên ngân hàng
+                    <input
+                      value={refundBankName}
+                      onChange={(event) => setRefundBankName(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                      placeholder="VD: Vietcombank"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    Số tài khoản
+                    <input
+                      value={refundAccountNumber}
+                      onChange={(event) => setRefundAccountNumber(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                      placeholder="Nhập số tài khoản"
+                    />
+                  </label>
+                  <label className="text-xs font-medium text-on-surface-variant">
+                    Tên chủ tài khoản
+                    <input
+                      value={refundAccountHolder}
+                      onChange={(event) => setRefundAccountHolder(event.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-sm text-on-surface outline-none focus:border-primary"
+                      placeholder="Nguyen Van A"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSubmitRefundInfo}
+                    disabled={submittingRefundInfo}
+                    className="mt-1 h-10 rounded-xl bg-primary text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  >
+                    {submittingRefundInfo && <Loader2 className="size-4 animate-spin" />}
+                    Gửi thông tin hoàn tiền
+                  </button>
+                </div>
+              </section>
+            )}
 
             {/* Delivery info */}
             {(order.carrierName || order.estimatedDelivery) && (

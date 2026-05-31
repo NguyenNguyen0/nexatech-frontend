@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Be_Vietnam_Pro } from 'next/font/google';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { AuthSessionProvider } from '@/components/providers/auth-session-provider';
 import './globals.css';
 
@@ -61,12 +61,7 @@ export default function RootLayout({
           </Suspense>
           <ForceChangePasswordModal />
         </AuthSessionProvider>
-        <Toaster
-          duration={3000}
-          closeButton
-          position="top-center"
-          richColors
-        />
+        <Toaster duration={3000} />
       </body>
     </html>
   );

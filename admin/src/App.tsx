@@ -1,5 +1,5 @@
 import { RouterProvider } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/components/theme-provider';
 import { router } from './routes';
@@ -11,7 +11,7 @@ function App() {
             <TooltipProvider>
                 <RouterProvider router={router} />
                 <ForceChangePasswordModal />
-                <Toaster duration={3000} closeButton position="top-center" richColors />
+                <Toaster duration={3000} closeButton position="top-center" />
             </TooltipProvider>
         </ThemeProvider>
     );

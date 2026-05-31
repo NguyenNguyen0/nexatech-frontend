@@ -405,6 +405,15 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
   }
 }
 
+export async function fetchProductById(productId: string): Promise<ProductMinimal> {
+  const normalizedId = productId.trim();
+  if (!normalizedId) {
+    throw new Error('Product id is invalid');
+  }
+
+  return requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
+}
+
 export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductMinimal[]> {
   const normalized = productSlugOrId.trim();
   const candidates = [
@@ -445,7 +454,7 @@ export async function fetchProductReviews(productSlugOrId: string, params?: Prod
     }
   }
 
-  return { items: [], page: params?.page ?? 1, size: params?.size ?? 10, totalItems: 0, totalPages: 1, hasNext: false };
+  return { items: [], page: params?.page ?? 0, size: params?.size ?? 10, totalItems: 0, totalPages: 0, hasNext: false };
 }
 
 export interface ProductSuggestionsResult {

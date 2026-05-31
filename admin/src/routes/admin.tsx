@@ -27,7 +27,7 @@ export const admin: RouteObject[] = [
         ),
         errorElement: <GeneralError />,
         children: [
-            /** Default landing → dashboard */
+            /** Default landing -> dashboard */
             { index: true, element: <Navigate to="dashboard" replace /> },
 
             /** Dashboard (overview + analytics + reports + more) */
@@ -70,14 +70,6 @@ export const admin: RouteObject[] = [
                 ],
             },
 
-            /** Kanban board */
-            {
-                path: 'kanban',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/kanban')).default,
-                }),
-            },
-
             /** Products: list + add form (nested) */
             {
                 path: 'product',
@@ -109,6 +101,12 @@ export const admin: RouteObject[] = [
                         path: 'brands',
                         lazy: async () => ({
                             Component: (await import('@/pages/admin/product/brands')).default,
+                        }),
+                    },
+                    {
+                        path: 'stock',
+                        lazy: async () => ({
+                            Component: (await import('@/pages/warehouse/WarehouseDashboard')).default,
                         }),
                     },
                     {
@@ -159,6 +157,8 @@ export const admin: RouteObject[] = [
                     Component: (await import('@/pages/admin/chats')).default,
                 }),
             },
+
+            /** Agent */
             {
                 path: 'agent',
                 lazy: async () => ({
@@ -195,49 +195,6 @@ export const admin: RouteObject[] = [
                 path: 'shipping',
                 lazy: async () => ({
                     Component: (await import('@/pages/admin/shipping')).default,
-                }),
-            },
-
-            /** Calendar (fullcalendar-based) */
-            {
-                path: 'calendar',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/calendar')).default,
-                }),
-            },
-
-            /** Emails (list + composer) */
-            {
-                path: 'emails',
-                children: [
-                    {
-                        index: true,
-                        lazy: async () => ({
-                            Component: (await import('@/pages/admin/email/list')).default,
-                        }),
-                    },
-                    {
-                        path: 'send',
-                        lazy: async () => ({
-                            Component: (await import('@/pages/admin/email/send')).default,
-                        }),
-                    },
-                ],
-            },
-
-            /** Tasks */
-            {
-                path: 'tasks',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/tasks')).default,
-                }),
-            },
-
-            /** Support */
-            {
-                path: 'supports',
-                lazy: async () => ({
-                    Component: (await import('@/pages/admin/support')).default,
                 }),
             },
 
