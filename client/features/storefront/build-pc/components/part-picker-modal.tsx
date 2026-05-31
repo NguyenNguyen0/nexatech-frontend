@@ -1,6 +1,11 @@
 import type { BuildPart, CatalogItem } from '../types';
 import { PartCard } from './part-card';
 
+type PriceRangeOption = {
+  value: string;
+  label: string;
+};
+
 type PartPickerModalProps = {
   selectedPart: BuildPart;
   filteredItems: CatalogItem[];
@@ -10,9 +15,11 @@ type PartPickerModalProps = {
   selectedBrands: string[];
   selectedSeries: string;
   selectedMinRating: number;
+  selectedPriceRange: string;
   availableBrands: string[];
   availableSeries: string[];
   availableRatings: number[];
+  availablePriceRanges: PriceRangeOption[];
   currentPage: number;
   totalPages: number;
   isLoading: boolean;
@@ -22,6 +29,7 @@ type PartPickerModalProps = {
   onToggleBrand: (brand: string) => void;
   onSeriesChange: (value: string) => void;
   onMinRatingChange: (value: number) => void;
+  onPriceRangeChange: (value: string) => void;
   onResetFilters: () => void;
   onPageChange: (page: number) => void;
 };
@@ -35,9 +43,11 @@ export function PartPickerModal({
   selectedBrands,
   selectedSeries,
   selectedMinRating,
+  selectedPriceRange,
   availableBrands,
   availableSeries,
   availableRatings,
+  availablePriceRanges,
   currentPage,
   totalPages,
   isLoading,
@@ -47,6 +57,7 @@ export function PartPickerModal({
   onToggleBrand,
   onSeriesChange,
   onMinRatingChange,
+  onPriceRangeChange,
   onResetFilters,
   onPageChange,
 }: PartPickerModalProps) {
@@ -136,6 +147,24 @@ export function PartPickerModal({
                   {availableRatings.map((rating) => (
                     <option key={rating} value={rating}>
                       Từ {rating} sao
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-label-sm font-label-sm uppercase tracking-wider text-on-surface-variant">
+                  Tầm giá
+                </label>
+                <select
+                  value={selectedPriceRange}
+                  onChange={(event) => onPriceRangeChange(event.target.value)}
+                  className="w-full rounded border border-[#ddd] bg-white px-3 py-2 text-[13px]"
+                >
+                  <option value="all">Tất cả</option>
+                  {availablePriceRanges.map((range) => (
+                    <option key={range.value} value={range.value}>
+                      {range.label}
                     </option>
                   ))}
                 </select>

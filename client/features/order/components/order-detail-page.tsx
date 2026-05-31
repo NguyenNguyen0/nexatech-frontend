@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { getOrderById, cancelOrder, continuePayment } from '@/features/order/services/order-api';
 import { getShipmentByOrderId } from '@/features/shipping/services/shipping-api';
+import { clearCart } from '@/features/cart/services/cart-api';
 import { formatCurrency } from '@/lib/utils';
 import type { OrderResponse, OrderStatus } from '@/types/order';
 import type { TrackingResponse, ShipmentStatus } from '@/types/shipping';
@@ -95,6 +96,24 @@ export default function OrderDetailPage() {
     try {
       const o = await getOrderById(id);
       setOrder(o);
+
+      // Clear cart if this order was paid/confirmed/completed
+      if (o.status === 'CONFIRMED' || o.status === 'COMPLETED') {
+        try {
+          const rawPending = localStorage.getItem('nexatech_pending_order');
+          if (rawPending) {
+            const pendingObj = JSON.parse(rawPending);
+            if (pendingObj && pendingObj.orderId === o.id) {
+              void clearCart();
+              localStorage.removeItem('nexatech_pending_order');
+              sessionStorage.removeItem('nexatech_pending_order');
+            }
+          }
+        } catch {
+          // ignore storage/JSON parsing errors
+        }
+      }
+
       // Load tracking if shipment exists
       if (o.trackingNumber) {
         setLoadingTracking(true);
