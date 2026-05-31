@@ -42,6 +42,8 @@ export interface TrackingResponse {
   trackingCode: string;
   provider: ShippingProvider;
   status: ShipmentStatus;
+  createdAt?: string;
+  updatedAt?: string;
   currentLocation?: CurrentLocation;
   histories: TrackingHistoryResponse[] | null;
 }
