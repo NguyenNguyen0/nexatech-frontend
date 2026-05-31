@@ -21,8 +21,8 @@ export async function HomeShowcase() {
       <FlashSaleStrip items={flashSaleData.items} endsAt={flashSaleData.endsAt} />
       <CategoryGrid />
       <FeaturedProductGrid />
-      <CollectionProductShowcase />
       <ServiceBanners />
+      <CollectionProductShowcase />
       <ReviewCorner />
       <TechNews />
       <PaymentPromos />
