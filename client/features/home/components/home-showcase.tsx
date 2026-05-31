@@ -1,5 +1,6 @@
 import {
   CategoryGrid,
+  CollectionProductShowcase,
   FeaturedProductGrid,
   FlashSaleStrip,
   HeroBanner,
@@ -21,6 +22,7 @@ export async function HomeShowcase() {
       <CategoryGrid />
       <FeaturedProductGrid />
       <ServiceBanners />
+      <CollectionProductShowcase />
       <ReviewCorner />
       <TechNews />
       <PaymentPromos />

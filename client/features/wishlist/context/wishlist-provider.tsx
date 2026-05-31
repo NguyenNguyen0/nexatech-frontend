@@ -19,6 +19,7 @@ import {
   migrateLegacyWishlistToBackend,
   removeFromWishlist,
 } from '@/features/wishlist/services/wishlist-api';
+import { authStorage } from '@/features/auth/utils/auth-storage';
 
 interface WishlistContextValue {
   wishlistedIds: Set<string>;
@@ -55,7 +56,19 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = status === 'authenticated' && session?.otpStepUpPending !== true;
 
+  const ensureWishlistAuth = useCallback(() => {
+    if (!isAuthenticated) return false;
+
+    if (session?.accessToken && session.refreshToken) {
+      authStorage.setTokens(session.accessToken, session.refreshToken);
+    }
+
+    return Boolean(authStorage.getAccessToken());
+  }, [isAuthenticated, session?.accessToken, session?.refreshToken]);
+
   const hydrateWishlist = useCallback(async () => {
+    if (!ensureWishlistAuth()) return;
+
     setIsHydrating(true);
     try {
       await migrateLegacyWishlistToBackend();
@@ -67,7 +80,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsHydrating(false);
     }
-  }, []);
+  }, [ensureWishlistAuth]);
 
   const refreshWishlist = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -106,6 +119,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       return null;
     }
 
+    if (!ensureWishlistAuth()) {
+      toast.error('Phiên đăng nhập chưa sẵn sàng. Vui lòng thử lại hoặc đăng nhập lại.');
+      return null;
+    }
+
     if (mutatingIds.has(productId)) {
       return wishlistedIds.has(productId);
     }
@@ -130,7 +148,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     } finally {
       markMutating(productId, false);
     }
-  }, [isAuthenticated, markMutating, mutatingIds, wishlistedIds]);
+  }, [ensureWishlistAuth, isAuthenticated, markMutating, mutatingIds, wishlistedIds]);
 
   const value = useMemo<WishlistContextValue>(() => ({
     wishlistedIds,
