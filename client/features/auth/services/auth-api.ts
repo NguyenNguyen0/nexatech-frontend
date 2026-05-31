@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios';
-import axiosClient from '@/lib/axios-client';
+import axiosClient, { isForbiddenApiError } from '@/lib/axios-client';
 import { authPaths } from '@/lib/constants';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import type {
@@ -35,6 +35,9 @@ export function getApiErrorMessage(
   fallback = 'Có lỗi xảy ra. Vui lòng thử lại.',
 ): string {
   if (!isAxiosError(error)) return fallback;
+  if (isForbiddenApiError(error)) {
+    return 'Bạn không có quyền hạn để thực hiện thao tác này.';
+  }
   const data = error.response?.data as ApiResponse<unknown> | undefined;
   const message = data?.message || error.message || '';
   const normalized = message.toLowerCase();

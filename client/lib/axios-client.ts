@@ -22,6 +22,10 @@ import { authStorage } from '@/features/auth/utils/auth-storage';
  */
 const resolvedBaseUrl =
   process.env.NEXT_PUBLIC_BACKEND_BASE_URL?.replace(/\/$/, '') ?? '';
+const FORBIDDEN_TOAST_MESSAGE = 'Bạn không có quyền hạn để thực hiện thao tác này.';
+const FORBIDDEN_TOAST_DEDUPE_MS = 1500;
+
+let lastForbiddenToastAt = 0;
 
 const axiosClient = axios.create({
   baseURL: resolvedBaseUrl || undefined,
@@ -142,6 +146,35 @@ function resolveRequestUrl(config: InternalAxiosRequestConfig): string {
   return url.startsWith('http') ? url : `${base}${url}`;
 }
 
+type PermissionAwareAxiosError = AxiosError & {
+  __nexatechForbiddenToastShown?: boolean;
+};
+
+export function isForbiddenApiError(error: unknown): boolean {
+  return isAxiosError(error) && error.response?.status === 403;
+}
+
+export function wasForbiddenToastShown(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      '__nexatechForbiddenToastShown' in error &&
+      (error as PermissionAwareAxiosError).__nexatechForbiddenToastShown,
+  );
+}
+
+async function notifyForbiddenRequest(error: AxiosError): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  const now = Date.now();
+  if (now - lastForbiddenToastAt < FORBIDDEN_TOAST_DEDUPE_MS) return;
+  lastForbiddenToastAt = now;
+
+  (error as PermissionAwareAxiosError).__nexatechForbiddenToastShown = true;
+  const { toast } = await import('sonner');
+  toast.error(FORBIDDEN_TOAST_MESSAGE);
+}
+
 /* ─── Request: refresh chủ động nếu access sắp hết hạn, rồi gắn Bearer ─── */
 
 axiosClient.interceptors.request.use(
@@ -188,6 +221,13 @@ axiosClient.interceptors.response.use(
 
     const status = error.response?.status;
     const isUnauthorized = status === 401;
+    const isForbidden = status === 403;
+
+    if (isForbidden) {
+      (error as PermissionAwareAxiosError).__nexatechForbiddenToastShown = true;
+      void notifyForbiddenRequest(error);
+      return Promise.reject(error);
+    }
 
     if (!isUnauthorized || !originalRequest || originalRequest._retry) {
       return Promise.reject(error);
