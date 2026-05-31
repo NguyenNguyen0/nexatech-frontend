@@ -3,12 +3,19 @@ import { authPaths } from "@/services/authPaths";
 import { clearAuthTokens, getRefreshToken, setAuthTokens } from "@/services/authSession";
 import type { ApiResponse, TokenExchangeResult } from "@/types/auth";
 
+const USER_API_BASE = "/api/v1/users";
+
 const PUBLIC_AUTH_PATHS = [
     authPaths.login,
     authPaths.register,
     authPaths.refresh,
     authPaths.logout,
     authPaths.forgotPassword,
+];
+
+const OTP_STEP_UP_PATHS = [
+    `${USER_API_BASE}/me/onboarding/request-otp`,
+    `${USER_API_BASE}/me/onboarding/verify-otp`,
 ];
 
 const axiosClient = axios.create({
@@ -50,7 +57,7 @@ const refreshTokenRequest = async (): Promise<string> => {
 
 function shouldLogoutAfterRefreshFailure(error: unknown): boolean {
     const e = error as Error & { code?: string };
-    if (e?.code === "NO_REFRESH_TOKEN") return true;
+    if (e?.code === "NO_REFRESH_TOKEN") return false;
 
     if (!axios.isAxiosError(error)) return false;
     const status = error.response?.status;
@@ -93,8 +100,9 @@ axiosClient.interceptors.response.use(
 
         const url = originalRequest.url ?? "";
         const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => url.includes(path));
+        const isOtpStepUpRequest = OTP_STEP_UP_PATHS.some((path) => url.includes(path));
         // Do not force logout for login/register/refresh errors or non-expiry retried failures.
-        if (isPublicAuthRequest || originalRequest._retry) {
+        if (isPublicAuthRequest || isOtpStepUpRequest || originalRequest._retry) {
             return Promise.reject(error);
         }
 

@@ -132,6 +132,7 @@ export function RegisterForm() {
       const session = await getSession();
       if (session?.accessToken && session.refreshToken) {
         authStorage.setTokens(session.accessToken, session.refreshToken);
+        authStorage.setOtpStepUpPending(session.otpStepUpPending === true);
       }
 
       // Gửi OTP xác minh email (cơ chế có sẵn)

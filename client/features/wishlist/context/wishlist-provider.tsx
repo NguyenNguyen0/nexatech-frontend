@@ -47,13 +47,13 @@ function toNextState(
 }
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [wishlistedIds, setWishlistedIds] = useState<Set<string>>(new Set());
   const [isHydrating, setIsHydrating] = useState(false);
   const [mutatingIds, setMutatingIds] = useState<Set<string>>(new Set());
   const hasHydratedRef = useRef(false);
 
-  const isAuthenticated = status === 'authenticated';
+  const isAuthenticated = status === 'authenticated' && session?.otpStepUpPending !== true;
 
   const hydrateWishlist = useCallback(async () => {
     setIsHydrating(true);
