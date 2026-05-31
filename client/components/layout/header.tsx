@@ -314,11 +314,11 @@ export function Header() {
             </Link>
             <span className="text-white/30 text-[10px] select-none">|</span>
             <a
-              href="tel:18002097"
+              href="tel:0353999999"
               className="px-3.5 py-2 text-[11px] font-semibold text-white/95 transition hover:text-white flex items-center gap-1.5"
             >
               <Phone className="h-3 w-3" />
-              Hotline: 1800 2097
+              Hotline: 0353 999 999
             </a>
           </div>
         </div>

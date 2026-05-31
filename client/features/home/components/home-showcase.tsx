@@ -1,5 +1,6 @@
 import {
   CategoryGrid,
+  CollectionProductShowcase,
   FeaturedProductGrid,
   FlashSaleStrip,
   HeroBanner,
@@ -20,6 +21,7 @@ export async function HomeShowcase() {
       <FlashSaleStrip items={flashSaleData.items} endsAt={flashSaleData.endsAt} />
       <CategoryGrid />
       <FeaturedProductGrid />
+      <CollectionProductShowcase />
       <ServiceBanners />
       <ReviewCorner />
       <TechNews />

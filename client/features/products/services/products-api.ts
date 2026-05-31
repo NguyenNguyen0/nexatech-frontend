@@ -440,6 +440,18 @@ export async function fetchProductsByCategorySlug(slug: string, params?: Product
   return normalizePageResult<ProductMinimal>(payload);
 }
 
+export async function fetchRandomProductsByCategorySlug(slug: string, limit = 8): Promise<ProductMinimal[]> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) return [];
+
+  const safeLimit = Math.max(1, Math.min(limit, 12));
+  const payload = await requestProductApi<unknown>(
+    `${PRODUCT_API_BASE}/category/slug/${encodeURIComponent(normalizedSlug)}/random?limit=${encodeURIComponent(String(safeLimit))}`,
+  );
+
+  return dedupeProducts(normalizeCollection<ProductMinimal>(payload)).slice(0, safeLimit);
+}
+
 export async function fetchFeaturedProducts(params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   return fetchProductsByTags(['hot', 'new'], params);
 }
@@ -462,6 +474,15 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
     // Backward-compatible fallback for environments that still expose the legacy direct path.
     return requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedSlug)}`);
   }
+}
+
+export async function fetchProductById(id: string): Promise<ProductDetail> {
+  const normalizedId = id.trim();
+  if (!normalizedId) {
+    throw new Error('ID san pham khong hop le');
+  }
+
+  return requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
 }
 
 export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductMinimal[]> {
