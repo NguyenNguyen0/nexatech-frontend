@@ -1,17 +1,12 @@
 import type { ReactNode } from 'react';
 import {
     IconBrandProducthunt,
-    IconCalendarWeek,
     IconChecklist,
-    IconHelpHexagon,
     IconHexagonNumber1,
-    IconHome,
     IconLayoutDashboard,
-    IconLayoutKanban,
     IconMessages,
     IconSettings,
     IconShoppingCart,
-    IconMail,
     IconUsers,
     IconShieldLock,
     IconKey,
@@ -68,12 +63,6 @@ export const sidelinks: SideLink[] = [
         ],
     },
     {
-        title: 'Kanban',
-        label: '',
-        href: '/admin/kanban',
-        icon: <IconLayoutKanban size={18} />,
-    },
-    {
         title: 'Products',
         label: '',
         href: '',
@@ -96,6 +85,12 @@ export const sidelinks: SideLink[] = [
                 label: '',
                 href: '/admin/product/brands',
                 icon: <IconChecklist size={18} />,
+            },
+            {
+                title: 'Stock Management',
+                label: '',
+                href: '/admin/product/stock',
+                icon: <IconShoppingCart size={18} />,
             },
             {
                 title: 'Add Product',
@@ -154,44 +149,6 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/shipping',
         icon: <IconTruck size={18} />,
-    },
-    {
-        title: 'Calendar',
-        label: '',
-        href: '/admin/calendar',
-        icon: <IconCalendarWeek size={18} />,
-    },
-    {
-        title: 'Email',
-        label: '',
-        href: '/admin/emails',
-        icon: <IconMail size={18} />,
-        sub: [
-            {
-                title: 'Inbox',
-                label: '',
-                href: '/admin/emails',
-                icon: <IconBrandProducthunt size={18} />,
-            },
-            {
-                title: 'Send Email',
-                label: '',
-                href: '/admin/emails/send',
-                icon: <IconHexagonNumber1 size={18} />,
-            },
-        ],
-    },
-    {
-        title: 'Tasks',
-        label: '',
-        href: '/admin/tasks',
-        icon: <IconChecklist size={18} />,
-    },
-    {
-        title: 'Supports',
-        label: '',
-        href: '/admin/supports',
-        icon: <IconHelpHexagon size={18} />,
     },
     {
         title: 'Audit Logs',

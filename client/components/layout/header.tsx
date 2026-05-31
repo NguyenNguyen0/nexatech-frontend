@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Heart, LogOut, Menu, ReceiptText, ShoppingCart, UserRound, X, KeyRound, ShieldCheck, Settings } from 'lucide-react';
+import { ChevronDown, Heart, LogOut, Menu, ReceiptText, ShoppingCart, UserRound, X, KeyRound, ShieldCheck, Settings, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -43,6 +43,20 @@ export function Header() {
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const [cartCount, setCartCount] = useState(0);
   const [logoutPending, setLogoutPending] = useState(false);
+  const [showAnnouncement, setShowAnnouncement] = useState(true);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY === 0) {
+        setShowAnnouncement(true);
+      } else {
+        setShowAnnouncement(false);
+      }
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Close category menu when account or mobile menu opens
   useEffect(() => {
@@ -271,8 +285,47 @@ export function Header() {
         </div>
       </div>
 
+      {/* Top Announcement Bar */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out bg-[var(--color-primary)] text-white text-[12px] font-medium flex items-center ${showAnnouncement ? 'h-8 opacity-100 border-b border-white/10' : 'h-0 opacity-0 pointer-events-none'
+          }`}
+      >
+        <div className="mx-auto flex w-full max-w-[1200px] items-center px-4">
+          {/* Marquee Announcement */}
+          <div className="flex-1 overflow-hidden relative mx-4">
+            <div className="animate-marquee whitespace-nowrap py-1">
+              <span className="inline-block pr-10">
+                🔥 SIÊU BÃO CÔNG NGHỆ NEXATECH: Giảm tới 50% tất cả Laptop, PC Gaming, Màn hình & Linh kiện cao cấp! Miễn phí vận chuyển toàn quốc cho đơn hàng từ 500.000đ. Hỗ trợ trả góp 0% lãi suất. Mua ngay! 🔥
+              </span>
+              <span className="inline-block pr-10">
+                🔥 SIÊU BÃO CÔNG NGHỆ NEXATECH: Giảm tới 50% tất cả Laptop, PC Gaming, Màn hình & Linh kiện cao cấp! Miễn phí vận chuyển toàn quốc cho đơn hàng từ 500.000đ. Hỗ trợ trả góp 0% lãi suất. Mua ngay! 🔥
+              </span>
+            </div>
+          </div>
+
+          {/* Right side links matching layout below */}
+          <div className="ml-auto hidden lg:flex items-center shrink-0">
+            <Link
+              href="/user/orders"
+              className="px-3.5 py-2 text-[11px] font-semibold text-white/95 transition hover:text-white flex items-center gap-1.5"
+            >
+              <ReceiptText className="h-3 w-3" />
+              Tra cứu đơn hàng
+            </Link>
+            <span className="text-white/30 text-[10px] select-none">|</span>
+            <a
+              href="tel:18002097"
+              className="px-3.5 py-2 text-[11px] font-semibold text-white/95 transition hover:text-white flex items-center gap-1.5"
+            >
+              <Phone className="h-3 w-3" />
+              Hotline: 1800 2097
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Second Tier - Category Navigation */}
-      <div className="bg-[#004d75] text-white relative">
+      <div className="bg-[var(--color-primary)] text-white relative">
         <div className="mx-auto flex max-w-[1200px] items-center px-4">
           {/* Category Dropdown Button */}
           <button

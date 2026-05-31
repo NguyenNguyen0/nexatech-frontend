@@ -11,6 +11,9 @@ export type OrderStatus =
   | 'DELIVERED'
   | 'COMPLETED'
   | 'CANCELLED'
+  | 'OUT_OF_STOCK'
+  | 'SHIPPING_FAILED'
+  | 'REFUND_PENDING'
   | 'RETURNED'
   | 'REFUNDED';
 
@@ -20,6 +23,8 @@ export type OrderPaymentMethod =
   | 'MOMO'
   | 'VNPAY'
   | 'CREDIT_CARD';
+
+export type PaymentStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | string;
 
 export type ReturnStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
 
@@ -46,6 +51,8 @@ export interface OrderResponse {
   shippingAddress: string;
   shippingMethod: string;
   paymentMethod: OrderPaymentMethod;
+  paymentId?: string;
+  paymentStatus?: PaymentStatus;
   note?: string;
   items: OrderItemResponse[] | null;
   createdAt: string;
@@ -59,6 +66,11 @@ export interface OrderResponse {
   estimatedDelivery?: string;
   shippedAt?: string;
   deliveredAt?: string;
+  compensationReason?: string;
+  refundBankName?: string;
+  refundAccountNumber?: string;
+  refundAccountHolder?: string;
+  refundInfoSubmittedAt?: string;
 }
 
 // ── Order-service ApiResponse wrapper ────────────────────────────────────────
@@ -118,6 +130,12 @@ export interface ContinuePaymentResponse {
   paymentMethod: OrderPaymentMethod;
   paymentUrl: string;
   expiresAt: string;
+}
+
+export interface RefundBankInfoRequest {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
 }
 
 // ── Return ────────────────────────────────────────────────────────────────────

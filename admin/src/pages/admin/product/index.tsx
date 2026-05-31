@@ -6,6 +6,7 @@ const productTabs = [
   { to: '/admin/product/products', label: 'Products' },
   { to: '/admin/product/categories', label: 'Categories' },
   { to: '/admin/product/brands', label: 'Brands' },
+  { to: '/admin/product/stock', label: 'Stock Management' },
 ]
 
 export default function ProductManagementLayout() {
@@ -15,7 +16,7 @@ export default function ProductManagementLayout() {
         <div className='mb-4 flex flex-col gap-3'>
           <div>
             <h1 className='text-2xl font-bold tracking-tight'>Product Management</h1>
-            <p className='text-muted-foreground'>Manage products, categories, and brands.</p>
+            <p className='text-muted-foreground'>Manage products, categories, brands, and stock.</p>
           </div>
           <div className='inline-flex w-fit items-center gap-1 rounded-lg bg-muted p-1'>
             {productTabs.map((tab) => (

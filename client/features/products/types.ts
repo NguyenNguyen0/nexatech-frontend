@@ -109,6 +109,14 @@ export interface RecommendationResponse {
   recommendations: RecommendationItem[];
 }
 
+export interface ProductReviewEligibility {
+  purchasedCount: number;
+  reviewCount: number;
+  remainingCount: number;
+  canReview: boolean;
+  reviews: ProductReview[];
+}
+
 export interface ProductReview {
   id: string;
   productId: string;
@@ -119,6 +127,7 @@ export interface ProductReview {
   title: string;
   content: string;
   images?: string[];
+  videos?: string[];
   helpfulCount: number;
   createdAt?: string;
   updatedAt?: string;
@@ -132,6 +141,7 @@ export interface ReviewWriteBody {
   title: string;
   content: string;
   images: string[];
+  videos: string[];
 }
 
 export type ReviewUpdateBody = ReviewWriteBody;

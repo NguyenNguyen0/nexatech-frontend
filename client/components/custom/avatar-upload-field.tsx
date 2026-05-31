@@ -7,7 +7,7 @@ import { UserAvatar } from '@/components/custom/user-avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 1024 * 1024;
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 
 export type AvatarUploadFieldProps = {
@@ -15,14 +15,9 @@ export type AvatarUploadFieldProps = {
   displayName?: string | null;
   disabled?: boolean;
   className?: string;
-  /** Gọi khi user chọn file — chưa upload (storage service sẽ gắn sau). */
   onFileSelected?: (file: File, previewUrl: string) => void;
 };
 
-/**
- * UI chọn ảnh đại diện. Chưa gọi API upload — chờ storage-service.
- * @see features/auth/services/avatar-api.ts (stub)
- */
 export function AvatarUploadField({
   currentUrl,
   displayName,
@@ -57,7 +52,7 @@ export function AvatarUploadField({
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error('Ảnh tối đa 5MB');
+      toast.error('Ảnh tối đa 1MB');
       return;
     }
 
@@ -69,7 +64,6 @@ export function AvatarUploadField({
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
       onFileSelected?.(file, url);
-      toast.info('Ảnh đã chọn. Tải lên server sẽ khả dụng khi storage-service hoàn tất.');
     } finally {
       setPicking(false);
     }
@@ -97,7 +91,7 @@ export function AvatarUploadField({
       <div className="flex flex-col gap-2 text-center sm:text-left">
         <p className="text-sm font-medium text-text-primary">Ảnh đại diện</p>
         <p className="text-xs text-text-tertiary max-w-[240px]">
-          JPG, PNG, WebP hoặc GIF — tối đa 5MB. Upload lên server sẽ bật sau khi triển khai storage.
+          JPG, PNG, WebP hoặc GIF — tối đa 1MB. Ảnh sẽ được lưu khi bạn bấm &quot;Lưu thay đổi&quot;.
         </p>
         {disabled ? (
           <p className="text-xs text-text-tertiary">Bấm &quot;Chỉnh sửa&quot; để thay ảnh đại diện.</p>

@@ -445,7 +445,7 @@ export async function fetchProductReviews(productSlugOrId: string, params?: Prod
     }
   }
 
-  return { items: [], page: params?.page ?? 1, size: params?.size ?? 10, totalItems: 0, totalPages: 1, hasNext: false };
+  return { items: [], page: params?.page ?? 0, size: params?.size ?? 10, totalItems: 0, totalPages: 0, hasNext: false };
 }
 
 export interface ProductSuggestionsResult {

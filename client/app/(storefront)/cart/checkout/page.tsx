@@ -8,7 +8,7 @@ import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { notifyFlashSaleSold } from '@/features/flash-sale/services/flash-sale-api';
 import { formatCurrency } from '@/lib/utils';
 import { getCart, clearCart, updateCartItem } from '@/features/cart/services/cart-api';
-import { CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
+import { CheckoutConflictError, CheckoutUnavailableError, checkout } from '@/features/checkout/services/checkout-api';
 import { getUserById } from '@/features/auth/services/auth-api';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { listMyAddresses } from '@/features/auth/services/address-api';
@@ -27,6 +27,11 @@ const UI_TO_PAYMENT_METHOD: Record<string, OrderPaymentMethod> = {
 const CHECKOUT_MIN_LOADING_MS = 3000;
 
 const RECENT_GUEST_ORDERS_KEY = 'nexatech_recent_orders';
+
+type PendingOrderItem = {
+  productId: string;
+  quantity: number;
+};
 
 function rememberRecentOrder(orderId: string, orderNumber: string) {
   if (typeof window === 'undefined') return;
@@ -82,12 +87,13 @@ export default function CheckoutPage() {
     orderId: string;
     orderNumber: string;
     paymentUrl: string;
-    items?: OrderItemResponse[] | null;
+    items?: PendingOrderItem[];
   } | null>(null);
   const [cancellingPending, setCancellingPending] = useState(false);
   const [continuingPending, setContinuingPending] = useState(false);
 
   const idempotencyKey = useRef(crypto.randomUUID());
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,7 +112,7 @@ export default function CheckoutPage() {
                   orderId: parsed.orderId,
                   orderNumber: orderInfo.orderNumber,
                   paymentUrl: parsed.paymentUrl,
-                  items: orderInfo.items,
+                  items: orderInfo.items ?? undefined,
                 });
               } else {
                 localStorage.removeItem('nexatech_pending_order');
@@ -170,6 +176,7 @@ export default function CheckoutPage() {
   }, [router]);
 
   const handleOrder = async () => {
+    if (submittingRef.current || submitting) return;
     if (!cart || cart.items.length === 0) return;
 
     // Validate buyer info
@@ -198,6 +205,7 @@ export default function CheckoutPage() {
       unitPrice: item.price,  // Send price from localStorage cart as fallback for product-service
     }));
 
+    submittingRef.current = true;
     setSubmitting(true);
     const loadingStartedAt = Date.now();
     try {
@@ -273,8 +281,13 @@ export default function CheckoutPage() {
         return;
       }
       const msg = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại.';
+      if (err instanceof CheckoutConflictError) {
+        toast.error('Yeu cau dat hang dang duoc xu ly. Vui long cho trong giay lat roi kiem tra lai.');
+        return;
+      }
       toast.error(msg);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

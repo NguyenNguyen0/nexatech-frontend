@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { useTheme } from '@/components/theme-provider'
 
 const appearanceFormSchema = z.object({
@@ -44,8 +44,7 @@ export function AppearanceForm() {
   const onSubmit = (data: AppearanceFormValues) => {
     setTheme(data.theme)
     setFont(data.font)
-    toast({
-      title: 'Preferences updated',
+    toast.success('Preferences updated', {
       description: 'Your appearance settings have been saved.',
     })
   }

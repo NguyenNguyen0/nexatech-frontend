@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { toast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import {
   getOrderStateAt,
   getOrderTimeline,
@@ -269,7 +269,9 @@ function StateAtView({ kind, initialId }: { kind: StateKind; initialId: string }
 
   const query = async () => {
     if (!id.trim() || !timestamp.trim()) {
-      toast({ title: 'Missing information', description: `Enter a ${title} ID and the time you want to inspect.`, variant: 'destructive' })
+      toast.error('Missing information', {
+        description: `Enter a ${title} ID and the time you want to inspect.`,
+      })
       return
     }
 
@@ -279,7 +281,9 @@ function StateAtView({ kind, initialId }: { kind: StateKind; initialId: string }
       const result = kind === 'order' ? await getOrderStateAt(id.trim(), iso) : await getPaymentStateAt(id.trim(), iso)
       setState(result)
     } catch (error) {
-      toast({ title: 'Unable to load the recorded state', description: (error as Error).message, variant: 'destructive' })
+      toast.error('Unable to load the recorded state', {
+        description: (error as Error).message,
+      })
       setState(null)
     } finally {
       setLoading(false)
@@ -336,14 +340,16 @@ export function AuditTrace() {
 
   const loadOrderTimeline = async (id = orderId) => {
     if (!id.trim()) {
-      toast({ title: 'Enter an order ID', variant: 'destructive' })
+      toast.error('Enter an order ID')
       return
     }
     setOrderLoading(true)
     try {
       setOrderTimeline(await getOrderTimeline(id.trim()))
     } catch (error) {
-      toast({ title: 'Unable to load order history', description: (error as Error).message, variant: 'destructive' })
+      toast.error('Unable to load order history', {
+        description: (error as Error).message,
+      })
       setOrderTimeline([])
     } finally {
       setOrderLoading(false)
@@ -352,14 +358,16 @@ export function AuditTrace() {
 
   const loadPaymentTimeline = async (id = paymentId) => {
     if (!id.trim()) {
-      toast({ title: 'Enter a payment ID', variant: 'destructive' })
+      toast.error('Enter a payment ID')
       return
     }
     setPaymentLoading(true)
     try {
       setPaymentTimeline(await getPaymentTimeline(id.trim()))
     } catch (error) {
-      toast({ title: 'Unable to load payment history', description: (error as Error).message, variant: 'destructive' })
+      toast.error('Unable to load payment history', {
+        description: (error as Error).message,
+      })
       setPaymentTimeline([])
     } finally {
       setPaymentLoading(false)
@@ -368,14 +376,16 @@ export function AuditTrace() {
 
   const loadFlow = async () => {
     if (!flowId.trim()) {
-      toast({ title: 'Enter a business flow ID', variant: 'destructive' })
+      toast.error('Enter a business flow ID')
       return
     }
     setFlowLoading(true)
     try {
       setFlowTimeline(await traceByCorrelationId(flowId.trim()))
     } catch (error) {
-      toast({ title: 'Unable to load the business flow', description: (error as Error).message, variant: 'destructive' })
+      toast.error('Unable to load the business flow', {
+        description: (error as Error).message,
+      })
       setFlowTimeline([])
     } finally {
       setFlowLoading(false)

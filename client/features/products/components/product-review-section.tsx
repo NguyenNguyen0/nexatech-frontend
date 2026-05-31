@@ -1,14 +1,24 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Star, ThumbsUp, PencilLine, Trash2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { authStorage } from '@/features/auth/utils/auth-storage';
+import { getUserIdFromAccessToken } from '@/features/auth/utils/auth-session';
 import { trackBehavior } from '@/features/behavior/services/behavior-api';
 import { fetchProductReviews } from '../services/products-api';
-import { createProductReview, deleteProductReview, markReviewHelpful, updateProductReview } from '../services/reviews-api';
-import type { ProductReview, ReviewWriteBody } from '../types';
+import {
+  createProductReview,
+  deleteProductReview,
+  fetchMyProductReviewEligibility,
+  getReviewErrorMessage,
+  markReviewHelpful,
+  updateProductReview,
+} from '../services/reviews-api';
+import { ReviewMediaUploadField } from './review-media-upload-field';
+import { ReviewRatingPicker } from './review-rating-picker';
+import type { ProductReview, ProductReviewEligibility, ReviewWriteBody } from '../types';
 
 interface ProductReviewSectionProps {
   productId: string;
@@ -32,6 +42,7 @@ const initialFormState: ReviewWriteBody = {
   title: '',
   content: '',
   images: [],
+  videos: [],
 };
 
 function renderStars(rating: number) {
@@ -41,11 +52,45 @@ function renderStars(rating: number) {
   });
 }
 
-function parseImages(value: string): string[] {
-  return value
-    .split(',')
-    .map((image) => image.trim())
-    .filter(Boolean);
+function isSameUser(left?: string | null, right?: string | null) {
+  if (!left || !right) return false;
+  return left.toLowerCase() === right.toLowerCase();
+}
+
+function toReviewDraft(review: ProductReview): ReviewWriteBody {
+  return {
+    rating: review.rating,
+    title: review.title,
+    content: review.content,
+    images: review.images ?? [],
+    videos: review.videos ?? [],
+  };
+}
+
+function deriveAverageRating(items: ProductReview[]): number {
+  if (items.length === 0) return 0;
+  const sum = items.reduce((total, review) => total + review.rating, 0);
+  return Math.round((sum / items.length) * 10) / 10;
+}
+
+function getReviewEligibilityMessage(eligibility: ProductReviewEligibility | null): string {
+  if (!eligibility) {
+    return 'Đang kiểm tra quyền đánh giá...';
+  }
+
+  if (eligibility.purchasedCount <= 0) {
+    return 'Bạn cần mua sản phẩm này trước khi đánh giá.';
+  }
+
+  if (eligibility.canReview && eligibility.remainingCount > 1) {
+    return `Bạn còn ${eligibility.remainingCount} lượt đánh giá (đã mua ${eligibility.purchasedCount} sản phẩm).`;
+  }
+
+  if (eligibility.canReview) {
+    return 'Bạn có thể gửi đánh giá mới cho sản phẩm này.';
+  }
+
+  return `Bạn đã dùng hết số lượt đánh giá (${eligibility.reviewCount}/${eligibility.purchasedCount}).`;
 }
 
 export function ProductReviewSection({
@@ -64,20 +109,59 @@ export function ProductReviewSection({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [hasAccessToken, setHasAccessToken] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [reviewEligibility, setReviewEligibility] = useState<ProductReviewEligibility | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(false);
   const [form, setForm] = useState(initialFormState);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ReviewWriteBody>(initialFormState);
   const [activeRating, setActiveRating] = useState<RatingFilter>('ALL');
   const [reviews, setReviews] = useState<ProductReview[]>(initialReviews);
-  const [page, setPage] = useState(1);
+  const [displayReviewCount, setDisplayReviewCount] = useState(reviewCount ?? initialReviews.length);
+  const [displayAverageRating, setDisplayAverageRating] = useState(typeof averageRating === 'number' ? averageRating : 0);
+  const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(Boolean(initialHasNext));
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const skipInitialFilterFetchRef = useRef(true);
 
   useEffect(() => {
-    setHasAccessToken(Boolean(authStorage.getAccessToken()));
+    const token = authStorage.getAccessToken();
+    setHasAccessToken(Boolean(token));
+    setCurrentUserId(getUserIdFromAccessToken(token));
   }, []);
+
+  useEffect(() => {
+    if (!hasAccessToken) {
+      setReviewEligibility(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingEligibility(true);
+
+    void fetchMyProductReviewEligibility(productId)
+      .then((eligibility) => {
+        if (!cancelled) {
+          setReviewEligibility(eligibility);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setReviewEligibility(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingEligibility(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasAccessToken, productId]);
 
   useEffect(() => {
     const ratingValue = Number(searchParams.get('rating'));
@@ -90,23 +174,62 @@ export function ProductReviewSection({
 
   useEffect(() => {
     setReviews(initialReviews);
-    setPage(1);
+    setPage(0);
     setHasNext(Boolean(initialHasNext));
-  }, [initialHasNext, initialReviews, productId]);
+    setDisplayReviewCount(reviewCount ?? initialReviews.length);
+    setDisplayAverageRating(typeof averageRating === 'number' ? averageRating : 0);
+    skipInitialFilterFetchRef.current = true;
+  }, [productId]);
 
-  const totalReviews = reviewCount ?? initialReviews.length;
-  const ratingValue = typeof averageRating === 'number' ? averageRating : 0;
+  const syncSummaryStats = (items: ProductReview[], totalItems?: number, isAllFilter = activeRating === 'ALL') => {
+    if (!isAllFilter) return;
+
+    const count = totalItems ?? items.length;
+    setDisplayReviewCount(count);
+
+    if (count > 0 && items.length > 0 && (totalItems == null || totalItems <= items.length)) {
+      setDisplayAverageRating(deriveAverageRating(items));
+    }
+  };
+
+  const totalReviews = displayReviewCount;
+  const ratingValue = displayAverageRating;
 
   const sortedReviews = useMemo(() => {
-    return [...reviews].sort((left, right) => {
+    const filtered =
+      activeRating === 'ALL' ? reviews : reviews.filter((review) => review.rating === activeRating);
+
+    return [...filtered].sort((left, right) => {
       const leftDate = left.createdAt ? new Date(left.createdAt).getTime() : 0;
       const rightDate = right.createdAt ? new Date(right.createdAt).getTime() : 0;
       return rightDate - leftDate;
     });
-  }, [reviews]);
+  }, [activeRating, reviews]);
 
-  const loadReviews = async (nextPage: number, mode: 'replace' | 'append') => {
-    const targetRating = activeRating === 'ALL' ? undefined : activeRating;
+  const openEditReview = (review: ProductReview) => {
+    setEditingId(review.id);
+    setDraft(toReviewDraft(review));
+  };
+
+  const refreshReviewEligibility = async () => {
+    if (!hasAccessToken) {
+      setReviewEligibility(null);
+      return;
+    }
+
+    try {
+      const eligibility = await fetchMyProductReviewEligibility(productId);
+      setReviewEligibility(eligibility);
+    } catch {
+      setReviewEligibility(null);
+    }
+  };
+
+  const canCreateReview = Boolean(reviewEligibility?.canReview);
+
+  const loadReviews = async (nextPage: number, mode: 'replace' | 'append', ratingOverride?: RatingFilter) => {
+    const filter = ratingOverride ?? activeRating;
+    const targetRating = filter === 'ALL' ? undefined : filter;
 
     if (mode === 'append') {
       setLoadingMore(true);
@@ -121,14 +244,18 @@ export function ProductReviewSection({
         productId,
       );
 
-      setReviews((current) => (mode === 'append' ? [...current, ...result.items] : result.items));
+      setReviews((current) => {
+        const nextItems = mode === 'append' ? [...current, ...result.items] : result.items;
+        syncSummaryStats(nextItems, result.totalItems, filter === 'ALL');
+        return nextItems;
+      });
       setPage(result.page ?? nextPage);
 
       const derivedHasNext =
         typeof result.hasNext === 'boolean'
           ? result.hasNext
           : typeof result.totalPages === 'number'
-            ? (result.page ?? nextPage) < result.totalPages
+            ? (result.page ?? nextPage) + 1 < result.totalPages
             : result.items.length >= PAGE_SIZE;
 
       setHasNext(derivedHasNext);
@@ -141,15 +268,15 @@ export function ProductReviewSection({
   };
 
   useEffect(() => {
-    if (activeRating === 'ALL') {
-      setReviews(initialReviews);
-      setPage(1);
-      setHasNext(Boolean(initialHasNext));
-      return;
+    if (skipInitialFilterFetchRef.current) {
+      skipInitialFilterFetchRef.current = false;
+      if (activeRating === 'ALL') {
+        return;
+      }
     }
 
-    void loadReviews(1, 'replace');
-  }, [activeRating]);
+    void loadReviews(0, 'replace', activeRating);
+  }, [activeRating, productId]);
 
   const applyRatingFilter = (rating: RatingFilter) => {
     setActiveRating(rating);
@@ -166,12 +293,7 @@ export function ProductReviewSection({
   };
 
   const reloadCurrentFilter = async () => {
-    if (activeRating === 'ALL') {
-      router.refresh();
-      return;
-    }
-
-    await loadReviews(1, 'replace');
+    await loadReviews(0, 'replace');
   };
 
   const handleCreateReview = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -184,6 +306,7 @@ export function ProductReviewSection({
         title: form.title.trim(),
         content: form.content.trim(),
         images: form.images,
+        videos: form.videos,
       });
 
       await trackBehavior({
@@ -199,9 +322,16 @@ export function ProductReviewSection({
 
       toast.success('Đã gửi đánh giá');
       setForm(initialFormState);
+      await refreshReviewEligibility();
       await reloadCurrentFilter();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể gửi đánh giá');
+      const message = getReviewErrorMessage(error, 'Không thể gửi đánh giá');
+      toast.error(message);
+
+      if (message.includes('dùng hết') || message.includes('đã mua') || message.includes('mua sản phẩm')) {
+        await refreshReviewEligibility();
+        await reloadCurrentFilter();
+      }
     } finally {
       setSubmitting(false);
     }
@@ -211,9 +341,13 @@ export function ProductReviewSection({
     try {
       await markReviewHelpful(reviewId);
       toast.success('Đã ghi nhận đánh giá hữu ích');
-      router.refresh();
+      setReviews((current) =>
+        current.map((review) =>
+          review.id === reviewId ? { ...review, helpfulCount: review.helpfulCount + 1 } : review,
+        ),
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể gửi phản hồi');
+      toast.error(getReviewErrorMessage(error, 'Không thể gửi phản hồi'));
     }
   };
 
@@ -228,9 +362,11 @@ export function ProductReviewSection({
     try {
       await deleteProductReview(reviewId);
       toast.success('Đã xóa đánh giá');
+      setEditingId(null);
+      await refreshReviewEligibility();
       await reloadCurrentFilter();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể xóa đánh giá');
+      toast.error(getReviewErrorMessage(error, 'Không thể xóa đánh giá'));
     }
   };
 
@@ -258,9 +394,10 @@ export function ProductReviewSection({
 
       toast.success('Đã cập nhật đánh giá');
       setEditingId(null);
+      await refreshReviewEligibility();
       await reloadCurrentFilter();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Không thể cập nhật đánh giá');
+      toast.error(getReviewErrorMessage(error, 'Không thể cập nhật đánh giá'));
     }
   };
 
@@ -281,7 +418,7 @@ export function ProductReviewSection({
 
         {hasAccessToken ? (
           <div className="rounded bg-surface-container-low border border-outline-variant px-4 py-3 text-label-sm text-on-surface-variant">
-            Bạn có thể gửi đánh giá mới hoặc chỉnh sửa đánh giá đã tạo.
+            {loadingEligibility ? 'Đang kiểm tra quyền đánh giá...' : getReviewEligibilityMessage(reviewEligibility)}
           </div>
         ) : (
           <a
@@ -294,23 +431,17 @@ export function ProductReviewSection({
         )}
       </div>
 
-      {hasAccessToken ? (
+      {hasAccessToken && canCreateReview && !loadingEligibility ? (
         <form onSubmit={handleCreateReview} className="mt-6 grid gap-4 rounded-md border border-outline-variant bg-surface-container-lowest p-5">
-          <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-            <label className="space-y-2 text-label-sm font-medium text-on-surface">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+            <div className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Chấm điểm</span>
-              <select
+              <ReviewRatingPicker
                 value={form.rating}
-                onChange={(event) => setForm((current) => ({ ...current, rating: Number(event.target.value) }))}
-                className="h-11 w-full rounded border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
-              >
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating} sao
-                  </option>
-                ))}
-              </select>
-            </label>
+                disabled={submitting}
+                onChange={(rating) => setForm((current) => ({ ...current, rating }))}
+              />
+            </div>
 
             <label className="space-y-2 text-label-sm font-medium text-on-surface">
               <span>Tiêu đề</span>
@@ -336,15 +467,16 @@ export function ProductReviewSection({
             />
           </label>
 
-          <label className="space-y-2 text-label-sm font-medium text-on-surface">
-            <span>Ảnh minh họa</span>
-            <input
-              value={form.images.join(', ')}
-              onChange={(event) => setForm((current) => ({ ...current, images: parseImages(event.target.value) }))}
-              placeholder="https://... , https://..."
-              className="h-11 w-full rounded border border-outline-variant bg-surface px-4 outline-none transition focus:border-primary focus:ring-1 focus:ring-primary text-body-sm"
+          <div className="space-y-2 text-label-sm font-medium text-on-surface">
+            <span>Ảnh / video minh họa</span>
+            <ReviewMediaUploadField
+              productId={productId}
+              images={form.images}
+              videos={form.videos}
+              disabled={submitting}
+              onChange={({ images, videos }) => setForm((current) => ({ ...current, images, videos }))}
             />
-          </label>
+          </div>
 
           <div className="flex items-center justify-end">
             <button
@@ -393,22 +525,16 @@ export function ProductReviewSection({
               <article key={review.id} className="rounded-md border border-outline-variant bg-surface p-5">
                 {isEditing ? (
                   <form onSubmit={(event) => handleEditSubmit(event, review.id)} className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
-                      <label className="space-y-2 text-sm font-medium text-text-primary">
+                    <div className="grid gap-4 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+                      <div className="space-y-2 text-label-sm font-medium text-on-surface">
                         <span>Chấm điểm</span>
-                        <select
+                        <ReviewRatingPicker
                           value={draft.rating}
-                          onChange={(event) => setDraft((current) => ({ ...current, rating: Number(event.target.value) }))}
-                          className="h-11 w-full rounded border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
-                        >
-                          {[5, 4, 3, 2, 1].map((rating) => (
-                            <option key={rating} value={rating}>
-                              {rating} sao
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="space-y-2 text-sm font-medium text-text-primary">
+                          size="sm"
+                          onChange={(rating) => setDraft((current) => ({ ...current, rating }))}
+                        />
+                      </div>
+                      <label className="space-y-2 text-label-sm font-medium text-on-surface">
                         <span>Tiêu đề</span>
                         <input
                           value={draft.title}
@@ -430,14 +556,15 @@ export function ProductReviewSection({
                       />
                     </label>
 
-                    <label className="space-y-2 text-sm font-medium text-text-primary">
-                      <span>Ảnh minh họa</span>
-                      <input
-                        value={draft.images.join(', ')}
-                        onChange={(event) => setDraft((current) => ({ ...current, images: parseImages(event.target.value) }))}
-                          className="h-11 w-full rounded border border-border bg-bg-elevated px-4 outline-none transition focus:border-primary"
-                        />
-                      </label>
+                    <div className="space-y-2 text-sm font-medium text-text-primary">
+                      <span>Ảnh / video minh họa</span>
+                      <ReviewMediaUploadField
+                        productId={productId}
+                        images={draft.images}
+                        videos={draft.videos}
+                        onChange={({ images, videos }) => setDraft((current) => ({ ...current, images, videos }))}
+                      />
+                    </div>
 
                     <div className="flex items-center justify-end gap-3">
                       <button
@@ -477,27 +604,19 @@ export function ProductReviewSection({
                           <ThumbsUp className="h-4 w-4" />
                           Hữu ích ({review.helpfulCount})
                         </button>
-                        {hasAccessToken && (review.canEdit || review.canDelete) ? (
+                        {hasAccessToken && (isSameUser(review.userId, currentUserId) || review.canEdit || review.canDelete) ? (
                           <div className="flex items-center gap-2">
-                            {review.canEdit ? (
+                            {isSameUser(review.userId, currentUserId) || review.canEdit ? (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setEditingId(review.id);
-                                  setDraft({
-                                    rating: review.rating,
-                                    title: review.title,
-                                    content: review.content,
-                                    images: review.images ?? [],
-                                  });
-                                }}
+                                onClick={() => openEditReview(review)}
                                 className="inline-flex items-center gap-2 rounded border border-outline-variant bg-surface px-3 py-2 text-label-sm font-bold text-on-surface transition hover:bg-surface-container"
                               >
                                 <PencilLine className="h-4 w-4" />
                                 Sửa
                               </button>
                             ) : null}
-                            {review.canDelete ? (
+                            {isSameUser(review.userId, currentUserId) || review.canDelete ? (
                               <button
                                 type="button"
                                 onClick={() => handleDelete(review.id)}
@@ -514,10 +633,19 @@ export function ProductReviewSection({
 
                     <p className="mt-4 whitespace-pre-line text-body-md text-on-surface-variant">{review.content}</p>
 
-                    {review.images && review.images.length > 0 ? (
+                    {(review.images && review.images.length > 0) || (review.videos && review.videos.length > 0) ? (
                       <div className="mt-4 flex flex-wrap gap-3">
-                        {review.images.map((image) => (
+                        {review.images?.map((image) => (
                           <img key={image} src={image} alt={review.title} className="h-20 w-20 rounded border border-outline-variant object-cover" />
+                        ))}
+                        {review.videos?.map((video) => (
+                          <video
+                            key={video}
+                            src={video}
+                            className="h-20 w-28 rounded border border-outline-variant object-cover"
+                            controls
+                            preload="metadata"
+                          />
                         ))}
                       </div>
                     ) : null}

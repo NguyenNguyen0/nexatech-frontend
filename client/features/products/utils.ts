@@ -53,15 +53,21 @@ export function unwrapProductApiResponse<T>(payload: unknown): T {
     result?: unknown;
   };
 
-  if (typeof response.status === 'number' && 'data' in response) {
-    if (response.status < 200 || response.status >= 400) {
+  if (typeof response.success === 'boolean') {
+    if (!response.success) {
       throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
     }
-    return response.data as T;
+    if ('data' in response) {
+      return response.data as T;
+    }
+    if ('result' in response) {
+      return response.result as T;
+    }
+    return undefined as T;
   }
 
-  if (typeof response.success === 'boolean' && 'data' in response) {
-    if (!response.success) {
+  if (typeof response.status === 'number' && 'data' in response) {
+    if (response.status < 200 || response.status >= 400) {
       throw new Error(typeof response.message === 'string' && response.message ? response.message : 'Product API request failed');
     }
     return response.data as T;
@@ -110,16 +116,26 @@ export function normalizePageResult<T>(payload: unknown): PageResult<T> {
     return undefined;
   };
 
-  const page = readNumber('page', 'pageNumber', 'currentPage') ?? 1;
+  const page = readNumber('page', 'pageNumber', 'currentPage') ?? 0;
   const size = readNumber('size', 'pageSize', 'limit') ?? (items.length || 0);
+  const totalPages = readNumber('totalPages', 'pages', 'pageCount');
+
+  const hasNext =
+    typeof record.hasNext === 'boolean'
+      ? record.hasNext
+      : typeof record.last === 'boolean'
+        ? !record.last
+        : typeof totalPages === 'number'
+          ? page + 1 < totalPages
+          : undefined;
 
   return {
     items,
     page,
     size,
     totalItems: readNumber('totalItems', 'totalElements', 'totalCount'),
-    totalPages: readNumber('totalPages', 'pages', 'pageCount'),
-    hasNext: typeof record.hasNext === 'boolean' ? record.hasNext : undefined,
+    totalPages,
+    hasNext,
     raw: payload,
   };
 }
@@ -152,12 +168,12 @@ export function getStockStatusLabel(status?: StockStatus): string {
 export function getStockStatusClassName(status?: StockStatus): string {
   switch (status) {
     case 'IN_STOCK':
-      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+      return 'border border-emerald-200 bg-emerald-50 text-emerald-700';
     case 'LOW_STOCK':
-      return 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+      return 'border border-amber-200 bg-amber-50 text-amber-700';
     case 'OUT_OF_STOCK':
-      return 'bg-danger/10 text-danger';
+      return 'border border-red-300 bg-red-600 text-white shadow-sm';
     default:
-      return 'bg-primary/10 text-primary';
+      return 'border border-primary/20 bg-primary/10 text-primary';
   }
 }
