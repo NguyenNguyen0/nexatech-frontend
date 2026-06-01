@@ -13,6 +13,40 @@ export interface AgentToolCall {
   finishedAt?: string;
   errorMessage?: string;
   statusCode?: number;
+  result?: unknown;
+  error?: unknown;
+  completedAt?: string;
+}
+
+export type AgentHitlDecision = "approved" | "rejected" | "edited";
+
+export interface AgentHitlActionRequest {
+  id: string;
+  action: string;
+  args: Record<string, unknown>;
+  description?: string;
+}
+
+export interface AgentHitlReviewConfig {
+  allowedDecisions?: string[];
+  timeoutSeconds?: number;
+  expiresAt?: string;
+}
+
+export interface AgentHitlPayload {
+  approvalRequestId?: string;
+  threadId?: string;
+  timeoutSeconds?: number;
+  expiresAt?: string;
+  actionRequests: AgentHitlActionRequest[];
+  reviewConfigs: AgentHitlReviewConfig[];
+  raw?: Record<string, unknown>;
+}
+
+export interface AgentHitlDecisionInput {
+  decision: AgentHitlDecision;
+  modifiedArgs?: Record<string, unknown>;
+  reason?: string;
 }
 
 export interface AgentUICard {

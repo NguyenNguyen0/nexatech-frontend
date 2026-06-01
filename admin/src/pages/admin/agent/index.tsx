@@ -4,6 +4,7 @@ import { CopilotKitProvider } from "@copilotkit/react-core/v2";
 import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
+import { useAgentChat, type RenderedToolCall } from "@/features/agent/hooks/use-agent-chat";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
 import { AgentMarkdown } from "@/features/agent/components/agent-markdown";
@@ -22,11 +23,13 @@ import type {
   AgentChatMessage,
   AgentConversation,
   AgentConversationSummary,
+  AgentHitlDecisionInput,
   AgentToolCall,
   AgentUICard,
 } from "@/features/agent/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { getAccessToken } from "@/services/authSession";
 import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "nexatech_admin_agent_draft_v1";
@@ -124,9 +127,21 @@ function AgentStreamingIndicator({ message }: { message: AgentChatMessage }) {
   );
 }
 
-export default function AgentPage() {
-  const runtimeUrl = (import.meta.env.VITE_COPILOTKIT_RUNTIME_URL || "").trim();
-  const copilotKitEnabled = runtimeUrl.length > 0;
+type AguiChatBridge = {
+  latestAssistantText: string;
+  toolCalls: RenderedToolCall[];
+  sendMessage: (content: string) => Promise<void>;
+  stopGeneration: () => void;
+  isReady: boolean;
+};
+
+function AgentPageContent({
+  copilotKitEnabled,
+  aguiChat,
+}: {
+  copilotKitEnabled: boolean;
+  aguiChat: AguiChatBridge | null;
+}) {
   const [conversations, setConversations] = useState<AgentConversation[]>([]);
   const [draft, setDraft] = useLocalStorage<string>({
     key: DRAFT_STORAGE_KEY,
@@ -138,6 +153,12 @@ export default function AgentPage() {
   const [mobileHistoryOpen, setMobileHistoryOpen] = useState(true);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const aguiRunRef = useRef<{
+    conversationId: string;
+    assistantMessageId: string;
+    prompt: string;
+    lastContent: string;
+  } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const runTrackingRef = useRef<{ runId?: string; threadId?: string }>({});
   const loadedConversationDetailRef = useRef<Set<string>>(new Set());
@@ -149,6 +170,21 @@ export default function AgentPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [conversations, activeConversationId]);
+
+  useEffect(() => {
+    if (!copilotKitEnabled || !aguiChat || !aguiChat.isReady) return;
+    const pending = aguiRunRef.current;
+    if (!pending) return;
+
+    const latestText = aguiChat.latestAssistantText;
+    if (!latestText || latestText === pending.lastContent) return;
+
+    pending.lastContent = latestText;
+    updateMessage(pending.conversationId, pending.assistantMessageId, (message) => ({
+      ...message,
+      content: latestText,
+    }));
+  }, [copilotKitEnabled, aguiChat]);
 
   const sortedSummaries = useMemo(
     () => [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(toSummary),
@@ -371,22 +407,75 @@ export default function AgentPage() {
     }));
   }
 
-  async function handleHitlDecision(card: AgentUICard, decision: "approved" | "rejected") {
+  async function handleHitlDecision(card: AgentUICard, decisionInput: AgentHitlDecisionInput) {
+    const payloadRecord = (card.payload ?? {}) as Record<string, unknown>;
+    const interruptRecord = (payloadRecord.interrupt ?? {}) as Record<string, unknown>;
+    const interruptValue = (interruptRecord.value ?? {}) as Record<string, unknown>;
     const payload = (card.payload ?? {}) as Record<string, unknown>;
     const threadIdFromPayload = typeof payload.threadId === "string" ? payload.threadId : undefined;
-    const threadId = threadIdFromPayload || activeConversationId;
+    const nestedThreadId = typeof interruptValue.threadId === "string" ? interruptValue.threadId : undefined;
+    const threadId = threadIdFromPayload || nestedThreadId || activeConversationId;
 
     if (!threadId || threadId.startsWith("local-")) {
       toast.error("Khong tim thay threadId de resume HITL.");
       return;
     }
 
+    const decision = decisionInput.decision === "edited"
+      ? {
+          decision: "edited",
+          args: decisionInput.modifiedArgs ?? {},
+          reason: decisionInput.reason,
+        }
+      : decisionInput.decision;
+
     try {
       await resumeAgentRun(threadId, decision);
-      toast.success(`Da gui quyet dinh ${decision}.`);
+      toast.success(`Da gui quyet dinh ${decisionInput.decision}.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Khong the gui quyet dinh HITL";
       toast.error(message);
+    }
+  }
+
+  async function streamAgentResponseAgui(prompt: string, conversationId: string, assistantMessageId: string) {
+    if (!aguiChat || !aguiChat.isReady) {
+      await streamAgentResponse(prompt, conversationId, assistantMessageId);
+      return;
+    }
+
+    setIsStreaming(true);
+    aguiRunRef.current = {
+      conversationId,
+      assistantMessageId,
+      prompt,
+      lastContent: "",
+    };
+
+    try {
+      await aguiChat.sendMessage(prompt);
+
+      if (aguiChat.latestAssistantText) {
+        updateMessage(conversationId, assistantMessageId, (message) => ({
+          ...message,
+          content: aguiChat.latestAssistantText,
+        }));
+      }
+
+      finalizeAssistantMessage(conversationId, assistantMessageId);
+      void loadConversationSummaries();
+    } catch (error) {
+      const errorMessage = getAgentStreamErrorMessage(error);
+      updateMessage(conversationId, assistantMessageId, (message) => ({
+        ...message,
+        isStreaming: false,
+        errorMessage,
+        retryPrompt: prompt,
+      }));
+      toast.error(errorMessage);
+    } finally {
+      aguiRunRef.current = null;
+      setIsStreaming(false);
     }
   }
 
@@ -448,6 +537,9 @@ export default function AgentPage() {
                       ? event.data.message
                       : undefined,
                 statusCode: typeof event.data.statusCode === "number" ? event.data.statusCode : undefined,
+                result: event.data.result ?? event.data.output ?? event.data.data,
+                error: event.data.error,
+                completedAt: event.name === "tool.started" ? undefined : event.timestamp,
               };
 
               upsertToolCallInAssistant(streamConversationId, assistantMessageId, toolCall);
@@ -547,11 +639,33 @@ export default function AgentPage() {
       setDraft("");
     }
 
+    if (copilotKitEnabled && aguiChat?.isReady) {
+      await streamAgentResponseAgui(prompt, conversation.id, assistantMessage.id);
+      return;
+    }
+
     await streamAgentResponse(prompt, conversation.id, assistantMessage.id);
   }
 
   async function handleSubmitOrCancel() {
     if (isStreaming) {
+      if (copilotKitEnabled && aguiChat?.isReady) {
+        aguiChat.stopGeneration();
+        const pending = aguiRunRef.current;
+        if (pending) {
+          updateMessage(pending.conversationId, pending.assistantMessageId, (message) => ({
+            ...message,
+            isStreaming: false,
+            content: message.content.trim()
+              ? `${message.content}\n\n_Stream cancelled by user._`
+              : "_Stream cancelled by user._",
+          }));
+          aguiRunRef.current = null;
+        }
+        setIsStreaming(false);
+        return;
+      }
+
       abortRef.current?.abort();
       const runId = runTrackingRef.current.runId;
       if (runId) {
@@ -635,7 +749,7 @@ export default function AgentPage() {
               </button>
               <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <IconSparkles size={14} />
-                AG-UI ready
+                {copilotKitEnabled ? "AG-UI mode" : "SSE fallback"}
               </div>
             </div>
 
@@ -736,13 +850,36 @@ export default function AgentPage() {
     </Layout>
   );
 
-  if (!copilotKitEnabled) {
-    return content;
+  return content;
+}
+
+function AgentPageAguiContent({ copilotKitEnabled }: { copilotKitEnabled: boolean }) {
+  const agui = useAgentChat();
+
+  return (
+    <AgentPageContent
+      copilotKitEnabled={copilotKitEnabled}
+      aguiChat={agui}
+    />
+  );
+}
+
+export default function AgentPage() {
+  const backendBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
+  const configuredRuntimeUrl = (import.meta.env.VITE_COPILOTKIT_RUNTIME_URL || "").trim();
+  const runtimeUrl = configuredRuntimeUrl || `${backendBaseUrl}/api/v1/agent/copilotkit`;
+  const useAguiFlag = String(import.meta.env.VITE_USE_AGUI ?? "true").toLowerCase() !== "false";
+  const accessToken = getAccessToken();
+  const aguiEnabled = useAguiFlag && Boolean(accessToken);
+  const providerHeaders = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
+
+  if (!aguiEnabled) {
+    return <AgentPageContent copilotKitEnabled={false} aguiChat={null} />;
   }
 
   return (
-    <CopilotKitProvider runtimeUrl={runtimeUrl}>
-      {content}
+    <CopilotKitProvider runtimeUrl={runtimeUrl} headers={providerHeaders}>
+      <AgentPageAguiContent copilotKitEnabled />
     </CopilotKitProvider>
   );
 }
