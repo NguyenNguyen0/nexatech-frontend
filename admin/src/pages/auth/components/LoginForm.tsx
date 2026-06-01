@@ -11,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { clearAuthTokens, getAccessToken, getDefaultPathByRole, getRolesFromAccessToken, isOtpStepUpPending, setOtpStepUpPending, clearOtpStepUpPending, setPasswordChangeRequired } from '@/services/authSession';
 
 interface LoginFormProps {
-    toggleMode: () => void;
+    /** Omitted when internal registration is disabled (production). */
+    toggleMode?: () => void;
 }
 
 export function LoginForm({ toggleMode }: LoginFormProps) {
@@ -157,12 +158,14 @@ export function LoginForm({ toggleMode }: LoginFormProps) {
                         </Button>
                     </div>
                 </form>
-                <p className="px-8 text-center text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <button type="button" onClick={toggleMode} className="font-medium text-primary underline-offset-4 hover:underline hover:text-[var(--color-primary-light)]">
-                        Sign up
-                    </button>
-                </p>
+                {toggleMode && (
+                    <p className="px-8 text-center text-sm text-muted-foreground">
+                        Don't have an account?{' '}
+                        <button type="button" onClick={toggleMode} className="font-medium text-primary underline-offset-4 hover:underline hover:text-[var(--color-primary-light)]">
+                            Sign up
+                        </button>
+                    </p>
+                )}
             </div>
             <Dialog open={otpDialogOpen} onOpenChange={() => {}}>
                 <DialogContent showCloseButton={false}>

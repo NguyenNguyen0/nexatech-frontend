@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useRoleBasePath } from "@/hooks/use-role-base-path";
 import { format } from "date-fns";
 import { ArrowLeft, CalendarDays, Eye, Lock, User } from "lucide-react";
 
@@ -20,6 +21,7 @@ const fallbackImage =
 export default function NewsPreview() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const basePath = useRoleBasePath();
   const [currentNews, setCurrentNews] = useState<NewsDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +77,7 @@ export default function NewsPreview() {
           <p className="text-muted-foreground mb-8">
             News bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.
           </p>
-          <Button onClick={() => navigate("/admin/news")}>
+          <Button onClick={() => navigate(`${basePath}/news`)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Quay lại danh sách
           </Button>
@@ -136,7 +138,7 @@ export default function NewsPreview() {
           <div className="flex items-center gap-2 mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate("/admin/news")}
+              onClick={() => navigate(`${basePath}/news`)}
               className="-ml-2"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

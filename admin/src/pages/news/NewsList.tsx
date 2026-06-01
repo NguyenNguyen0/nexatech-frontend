@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useRoleBasePath } from '@/hooks/use-role-base-path';
 import { toast } from 'sonner';
 import {
   Eye,
@@ -40,6 +41,7 @@ import {
 
 export default function NewsList() {
   const navigate = useNavigate();
+  const basePath = useRoleBasePath();
   const dispatch = useAppDispatch();
   const { allNewsList, loading } = useAppSelector((state) => state.news);
 
@@ -263,16 +265,16 @@ export default function NewsList() {
             <DropdownMenuItem
               onClick={() => {
                 if (item.isPublic) {
-                  navigate(`/admin/news/preview/${item.slug}`);
+                  navigate(`${basePath}/news/preview/${item.slug}`);
                 } else {
-                  navigate(`/admin/news/preview/${item.slug}`);
+                  navigate(`${basePath}/news/preview/${item.slug}`);
                 }
               }}
             >
               <Eye className="h-4 w-4 mr-2" />
               {item.isPublic ? 'Xem bài viết' : 'Xem trước'}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate(`/admin/news/upsert/${item.slug}`)}>
+            <DropdownMenuItem onClick={() => navigate(`${basePath}/news/upsert/${item.slug}`)}>
               <Edit className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </DropdownMenuItem>
@@ -319,7 +321,7 @@ export default function NewsList() {
       <PageHeader
         title="Quản lý tin tức"
         description="Xem và quản lý tất cả tin tức, bài viết trong hệ thống"
-        onAdd={() => navigate("/admin/news/upsert")}
+        onAdd={() => navigate(`${basePath}/news/upsert`)}
         addButtonText="Thêm tin tức"
         onRefresh={handleRefresh}
         isLoading={loading}

@@ -1,13 +1,23 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { isInternalRegisterEnabled } from "@/config/features";
 import { BrandPanel } from "./components/BrandPanel";
 import { LoginForm } from "./components/LoginForm";
 import { RegisterForm } from "./components/RegisterForm";
 
 export default function AuthPage() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const mode = searchParams.get("mode") || "login";
+    const registerEnabled = isInternalRegisterEnabled();
+    const modeParam = searchParams.get("mode") || "login";
+    const mode = modeParam === "register" && !registerEnabled ? "login" : modeParam;
     const isLogin = mode === "login";
+
+    useEffect(() => {
+        if (modeParam === "register" && !registerEnabled) {
+            setSearchParams({ mode: "login" }, { replace: true });
+        }
+    }, [modeParam, registerEnabled, setSearchParams]);
 
     const toggleMode = (newMode: "login" | "register") => {
         setSearchParams({ mode: newMode });
@@ -39,7 +49,9 @@ export default function AuthPage() {
                                         <h1 className="text-2xl font-semibold tracking-tight text-primary">Welcome back</h1>
                                         <p className="text-sm text-muted-foreground">Enter your email to sign in</p>
                                     </div>
-                                    <LoginForm toggleMode={() => toggleMode("register")} />
+                                    <LoginForm
+                                        toggleMode={registerEnabled ? () => toggleMode("register") : undefined}
+                                    />
                                 </motion.div>
                             ) : (
                                 <motion.div
