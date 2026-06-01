@@ -48,8 +48,20 @@ export function getWishlistErrorMessage(
   error: unknown,
   fallback = 'Không thể cập nhật danh sách yêu thích',
 ): string {
-  if (!isAxiosError(error)) return fallback;
+  if (!isAxiosError(error)) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('token refresh') || message.includes('No refresh token')) {
+      return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    }
+    return message || fallback;
+  }
   const data = error.response?.data as WishlistApiEnvelope<unknown> | undefined;
+  if (error.response?.status === 401) {
+    return 'Vui lòng đăng nhập để cập nhật danh sách yêu thích';
+  }
+  if (error.response?.status === 403) {
+    return 'Tài khoản không có quyền cập nhật danh sách yêu thích';
+  }
   return data?.message || error.message || fallback;
 }
 
