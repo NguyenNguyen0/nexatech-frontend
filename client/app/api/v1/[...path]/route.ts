@@ -3,6 +3,9 @@ import PRODUCTS_RAW from '@/lib/mock-data/products.json';
 import CATEGORIES from '@/lib/mock-data/categories.json';
 import REVIEWS from '@/lib/mock-data/reviews.json';
 
+type MockCategory = (typeof CATEGORIES)[number];
+type MockCategoryTreeItem = MockCategory & { children: MockCategoryTreeItem[] };
+
 // ── Normalize products: ensure thumbnail + specs as object ───────────────────
 type RawProduct = {
   id: string;
@@ -242,13 +245,31 @@ function paginate<T>(items: T[], page: number, size: number) {
 // ── CATEGORIES ────────────────────────────────────────────────────────────────
 
 function handleCategories(sub: string[]) {
-  if (sub[0] === 'menu') return ok(CATEGORIES);
+  if (sub[0] === 'menu') return ok(buildCategoryTree(null));
+  if (sub[0] === 'slug' && sub[1] && sub[2] === 'subcategories') {
+    const cat = CATEGORIES.find((c) => c.slug === sub[1]);
+    if (!cat) return notFound();
+    return ok(buildCategoryTree(cat.id));
+  }
   if (sub[0] === 'slug' && sub[1]) {
     const cat = CATEGORIES.find((c) => c.slug === sub[1]);
     if (!cat) return notFound();
     return ok(cat);
   }
+  if (sub[0] && sub[1] === 'subcategories') {
+    return ok(buildCategoryTree(sub[0]));
+  }
   return ok(CATEGORIES);
+}
+
+function buildCategoryTree(parentId: string | null): MockCategoryTreeItem[] {
+  return CATEGORIES
+    .filter((category) => (category.parentId ?? null) === parentId)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((category) => ({
+      ...category,
+      children: buildCategoryTree(category.id),
+    }));
 }
 
 // ── BUILD PC ──────────────────────────────────────────────────────────────────
