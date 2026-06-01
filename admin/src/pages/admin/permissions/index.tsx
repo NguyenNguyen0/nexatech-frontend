@@ -58,9 +58,7 @@ export default function Permissions() {
             <div>
               <h2 className='text-2xl font-bold tracking-tight'>Permission List</h2>
               <p className='text-muted-foreground'>
-                {loading
-                  ? 'Loading permissions...'
-                  : `Manage your permissions here. Total records: ${data?.length ?? 0}`}
+                {loading ? 'Loading permissions...' : 'Manage your permissions here.'}
               </p>
             </div>
           </div>
