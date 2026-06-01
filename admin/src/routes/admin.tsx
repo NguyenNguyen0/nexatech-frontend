@@ -27,7 +27,7 @@ export const admin: RouteObject[] = [
         ),
         errorElement: <GeneralError />,
         children: [
-            /** Default landing → dashboard */
+            /** Default landing -> dashboard */
             { index: true, element: <Navigate to="dashboard" replace /> },
 
             /** Dashboard (overview + analytics + reports + more) */
@@ -155,6 +155,14 @@ export const admin: RouteObject[] = [
                 path: 'chats',
                 lazy: async () => ({
                     Component: (await import('@/pages/admin/chats')).default,
+                }),
+            },
+
+            /** Agent */
+            {
+                path: 'agent',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/agent')).default,
                 }),
             },
 

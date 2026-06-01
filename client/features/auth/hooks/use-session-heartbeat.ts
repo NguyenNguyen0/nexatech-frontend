@@ -24,11 +24,11 @@ async function forceClientLogout(reason?: 'sessionRevoked' | 'accountDisabled') 
  * When the session sid is revoked in Redis, the next ping returns 401.
  */
 export function useSessionHeartbeat() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const handling = useRef(false);
 
   useEffect(() => {
-    if (status !== 'authenticated') {
+    if (status !== 'authenticated' || session?.otpStepUpPending === true) {
       handling.current = false;
       return;
     }
@@ -52,5 +52,5 @@ export function useSessionHeartbeat() {
     void tick();
     const id = setInterval(() => void tick(), HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [status]);
+  }, [status, session?.otpStepUpPending]);
 }

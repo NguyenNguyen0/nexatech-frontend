@@ -2,20 +2,21 @@ import type { ReactNode } from 'react';
 import {
     IconBrandProducthunt,
     IconChecklist,
+    IconCreditCard,
     IconHexagonNumber1,
+    IconHistory,
+    IconKey,
     IconLayoutDashboard,
     IconMessages,
-    IconSettings,
-    IconShoppingCart,
-    IconUsers,
-    IconShieldLock,
-    IconKey,
     IconNews,
-    IconHistory,
-    IconCreditCard,
-    IconTruck,
     IconRosetteDiscount,
+    IconSettings,
+    IconShieldLock,
+    IconShoppingCart,
+    IconSparkles,
     IconTimeline,
+    IconTruck,
+    IconUsers,
 } from '@tabler/icons-react';
 
 export interface NavLink {
@@ -117,6 +118,12 @@ export const sidelinks: SideLink[] = [
         label: '',
         href: '/admin/chats',
         icon: <IconMessages size={18} />,
+    },
+    {
+        title: 'Agent',
+        label: '',
+        href: '/admin/agent',
+        icon: <IconSparkles size={18} />,
     },
     {
         title: 'Promotions',

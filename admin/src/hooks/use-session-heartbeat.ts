@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import axiosClient from '@/lib/axiosClient'
 import { authPaths } from '@/services/authPaths'
+import { getAccessToken, getRefreshToken, isOtpStepUpPending } from '@/services/authSession'
 
 /**
  * Periodically pings the backend session liveness endpoint.
@@ -18,6 +19,10 @@ import { authPaths } from '@/services/authPaths'
 export function useSessionHeartbeat(intervalMs = 20_000) {
   useEffect(() => {
     const ping = () => {
+      if (isOtpStepUpPending() || (!getAccessToken() && !getRefreshToken())) {
+        return
+      }
+
       axiosClient
         .get<void>(authPaths.sessionPing)
         .catch(() => {

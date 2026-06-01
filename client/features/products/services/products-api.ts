@@ -48,6 +48,14 @@ const RECOMMEND_API_BASE = '/api/v1/recommend';
 const API_GATEWAY_URL = resolveBackendBaseUrl();
 const FRONTEND_BASE_URL = process.env.NEXT_PUBLIC_FRONTEND_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
 const RECOMMEND_REQUEST_TIMEOUT_MS = 5000;
+const PRODUCT_CACHE_REVALIDATE_SECONDS = 60 * 60;
+
+type NextFetchInit = RequestInit & {
+  next?: {
+    revalidate?: number;
+    tags?: string[];
+  };
+};
 
 type RecommendationApiPayload = Partial<RecommendationResponse> & {
   similar?: RecommendationItem[];
@@ -143,15 +151,16 @@ function resolveApiPath(path: string): string {
   return path;
 }
 
-async function requestProductApi<T>(path: string): Promise<T> {
-  const resolvedPath = resolveApiPath(path);
-  
-  // Log for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.debug(`${getMockApiIndicator()} [Products API] GET ${resolvedPath}`);
+function isServerRuntime(): boolean {
+  return typeof window === 'undefined';
+}
+
+export async function fetchCatalogCacheVersion(): Promise<string | null> {
+  if (featureFlags.USE_MOCK_API) {
+    return 'mock-catalog';
   }
 
-  const response = await fetch(resolvedPath, {
+  const response = await fetch(resolveApiPath(`${PRODUCT_API_BASE}/catalog-version`), {
     method: 'GET',
     cache: 'no-store',
     credentials: 'include',
@@ -159,6 +168,56 @@ async function requestProductApi<T>(path: string): Promise<T> {
       Accept: 'application/json',
     },
   });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = await response.json().catch(() => null);
+  const unwrapped = unwrapProductApiResponse<unknown>(payload);
+
+  if (unwrapped && typeof unwrapped === 'object' && 'version' in unwrapped) {
+    const version = (unwrapped as { version?: unknown }).version;
+    return typeof version === 'string' && version.trim() ? version : null;
+  }
+
+  return null;
+}
+
+async function requestProductApi<T>(path: string): Promise<T> {
+  const resolvedPath = resolveApiPath(path);
+  const catalogVersion = isServerRuntime()
+    ? await fetchCatalogCacheVersion().catch(() => null)
+    : null;
+  const useServerCache = isServerRuntime() && Boolean(catalogVersion);
+  
+  // Log for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.debug(`${getMockApiIndicator()} [Products API] GET ${resolvedPath}`, {
+      cache: useServerCache ? 'force-cache' : 'no-store',
+      catalogVersion,
+    });
+  }
+
+  const fetchInit: NextFetchInit = {
+    method: 'GET',
+    cache: useServerCache ? 'force-cache' : 'no-store',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      ...(catalogVersion ? { 'x-nexatech-catalog-version': catalogVersion } : {}),
+    },
+    ...(useServerCache
+      ? {
+          next: {
+            revalidate: PRODUCT_CACHE_REVALIDATE_SECONDS,
+            tags: ['product-catalog', `product-catalog:${catalogVersion}`],
+          },
+        }
+      : {}),
+  };
+
+  const response = await fetch(resolvedPath, fetchInit);
 
   const payload = await response.json().catch(() => null);
 
@@ -381,6 +440,18 @@ export async function fetchProductsByCategorySlug(slug: string, params?: Product
   return normalizePageResult<ProductMinimal>(payload);
 }
 
+export async function fetchRandomProductsByCategorySlug(slug: string, limit = 8): Promise<ProductMinimal[]> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) return [];
+
+  const safeLimit = Math.max(1, Math.min(limit, 12));
+  const payload = await requestProductApi<unknown>(
+    `${PRODUCT_API_BASE}/category/slug/${encodeURIComponent(normalizedSlug)}/random?limit=${encodeURIComponent(String(safeLimit))}`,
+  );
+
+  return dedupeProducts(normalizeCollection<ProductMinimal>(payload)).slice(0, safeLimit);
+}
+
 export async function fetchFeaturedProducts(params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   return fetchProductsByTags(['hot', 'new'], params);
 }
@@ -405,13 +476,13 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
   }
 }
 
-export async function fetchProductById(productId: string): Promise<ProductMinimal> {
-  const normalizedId = productId.trim();
+export async function fetchProductById(id: string): Promise<ProductDetail> {
+  const normalizedId = id.trim();
   if (!normalizedId) {
-    throw new Error('Product id is invalid');
+    throw new Error('ID san pham khong hop le');
   }
 
-  return requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
+  return requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
 }
 
 export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductMinimal[]> {

@@ -146,9 +146,14 @@ async function postBehaviorBatch(events: BehaviorEventPayload[]): Promise<void> 
 export async function trackBehavior(event: BehaviorEventDraft): Promise<void> {
   if (!featureFlags.ENABLE_BEHAVIOR_TRACKING) return;
 
-  const userId = getCurrentUserId();
   const draft = createDraft(event);
 
+  if (authStorage.isOtpStepUpPending()) {
+    appendGuestBehavior(draft);
+    return;
+  }
+
+  const userId = getCurrentUserId();
   if (!userId) {
     appendGuestBehavior(draft);
     return;
@@ -159,6 +164,7 @@ export async function trackBehavior(event: BehaviorEventDraft): Promise<void> {
 
 export async function flushGuestBehaviors(): Promise<number> {
   if (!featureFlags.ENABLE_BEHAVIOR_TRACKING) return 0;
+  if (authStorage.isOtpStepUpPending()) return 0;
 
   const userId = getCurrentUserId();
   if (!userId) return 0;
