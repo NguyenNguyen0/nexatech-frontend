@@ -243,6 +243,16 @@ async function requestGatewayApi<T>(path: string): Promise<T> {
   const resolvedPath = resolveGatewayPath(path);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RECOMMEND_REQUEST_TIMEOUT_MS);
+  const headers: HeadersInit = {
+    Accept: 'application/json',
+  };
+
+  if (typeof window !== 'undefined') {
+    const accessToken = window.localStorage.getItem('access_token');
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+  }
 
   try {
     const response = await fetch(resolvedPath, {
@@ -250,9 +260,7 @@ async function requestGatewayApi<T>(path: string): Promise<T> {
       cache: 'no-store',
       credentials: 'include',
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-      },
+      headers,
     });
 
     const payload = await response.json().catch(() => null);
