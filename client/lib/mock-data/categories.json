@@ -1,19 +1,83 @@
 [
-  { "id": "cat-laptop", "name": "Laptop Gaming", "slug": "laptop", "parentId": null },
-  { "id": "cat-pc", "name": "PC", "slug": "pc", "parentId": null },
-  { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": "cat-pc" },
-  { "id": "cat-graphic-pc", "name": "Graphic PC", "slug": "graphic-pc", "parentId": "cat-pc" },
-  { "id": "cat-office-pc", "name": "Office PC", "slug": "office-pc", "parentId": "cat-pc" },
-  { "id": "cat-monitor", "name": "Màn hình", "slug": "monitor", "parentId": null },
-  { "id": "cat-keyboard", "name": "Bàn phím", "slug": "keyboard", "parentId": null },
-  { "id": "cat-mouse", "name": "Chuột gaming", "slug": "mouse", "parentId": null },
-  { "id": "cat-chair", "name": "Ghế gaming", "slug": "chair", "parentId": null },
-  { "id": "cat-headset", "name": "Tai nghe", "slug": "headset", "parentId": null },
-  { "id": "cat-gpu", "name": "Card màn hình", "slug": "gpu", "parentId": null },
-  { "id": "cat-ram", "name": "RAM", "slug": "ram", "parentId": null },
-  { "id": "cat-cpu", "name": "Vi xử lý", "slug": "cpu", "parentId": null },
-  { "id": "cat-mainboard", "name": "Bo mạch chủ", "slug": "mainboard", "parentId": null },
-  { "id": "cat-ssd", "name": "Ổ SSD", "slug": "ssd", "parentId": null },
-  { "id": "cat-hdd", "name": "Ổ HDD", "slug": "hdd", "parentId": null },
-  { "id": "cat-psu", "name": "Nguồn máy tính", "slug": "psu", "parentId": null }
+    { "id": "cat-laptop", "name": "Laptop Gaming", "slug": "laptop", "parentId": null, "sortOrder": 0 },
+    { "id": "cat-pc", "name": "PC", "slug": "pc", "parentId": null, "sortOrder": 1 },
+    { "id": "cat-gaming-pc", "name": "Gaming PC", "slug": "gaming-pc", "parentId": "cat-pc", "sortOrder": 0 },
+    { "id": "cat-graphic-pc", "name": "Graphic PC", "slug": "graphic-pc", "parentId": "cat-pc", "sortOrder": 1 },
+    { "id": "cat-office-pc", "name": "Office PC", "slug": "office-pc", "parentId": "cat-pc", "sortOrder": 2 },
+    { "id": "cat-monitor", "name": "Man hinh", "slug": "monitor", "parentId": null, "sortOrder": 2 },
+    { "id": "cat-keyboard", "name": "Ban phim", "slug": "keyboard", "parentId": null, "sortOrder": 3 },
+    { "id": "cat-mouse", "name": "Chuot gaming", "slug": "mouse", "parentId": null, "sortOrder": 4 },
+    { "id": "cat-chair", "name": "Ghe gaming", "slug": "chair", "parentId": null, "sortOrder": 5 },
+    { "id": "cat-headset", "name": "Tai nghe", "slug": "headset", "parentId": null, "sortOrder": 6 },
+    { "id": "cat-vga", "name": "VGA", "slug": "vga", "parentId": null, "sortOrder": 7 },
+    { "id": "cat-vga-brands", "name": "Hãng", "slug": "vga-brands", "parentId": "cat-vga", "sortOrder": 0 },
+    { "id": "cat-vga-asus", "name": "ASUS", "slug": "vga-asus", "parentId": "cat-vga-brands", "sortOrder": 0 },
+    { "id": "cat-vga-msi", "name": "MSI", "slug": "vga-msi", "parentId": "cat-vga-brands", "sortOrder": 1 },
+    {
+        "id": "cat-vga-gigabyte",
+        "name": "Gigabyte",
+        "slug": "vga-gigabyte",
+        "parentId": "cat-vga-brands",
+        "sortOrder": 2
+    },
+    { "id": "cat-vga-zotac", "name": "Zotac", "slug": "vga-zotac", "parentId": "cat-vga-brands", "sortOrder": 3 },
+    { "id": "cat-vga-galax", "name": "Galax", "slug": "vga-galax", "parentId": "cat-vga-brands", "sortOrder": 4 },
+    {
+        "id": "cat-vga-sapphire",
+        "name": "Sapphire",
+        "slug": "vga-sapphire",
+        "parentId": "cat-vga-brands",
+        "sortOrder": 5
+    },
+    {
+        "id": "cat-vga-powercolor",
+        "name": "PowerColor",
+        "slug": "vga-powercolor",
+        "parentId": "cat-vga-brands",
+        "sortOrder": 6
+    },
+    { "id": "cat-ram", "name": "RAM", "slug": "ram", "parentId": null, "sortOrder": 8 },
+    { "id": "cat-cpu", "name": "CPU", "slug": "cpu", "parentId": null, "sortOrder": 9 },
+    { "id": "cat-cpu-brands", "name": "Hãng", "slug": "cpu-brands", "parentId": "cat-cpu", "sortOrder": 0 },
+    { "id": "cat-cpu-intel", "name": "Intel", "slug": "cpu-intel", "parentId": "cat-cpu-brands", "sortOrder": 0 },
+    { "id": "cat-cpu-amd", "name": "AMD", "slug": "cpu-amd", "parentId": "cat-cpu-brands", "sortOrder": 1 },
+    { "id": "cat-mainboard", "name": "Mainboard", "slug": "mainboard", "parentId": null, "sortOrder": 10 },
+    {
+        "id": "cat-mainboard-brands",
+        "name": "Hãng",
+        "slug": "mainboard-brands",
+        "parentId": "cat-mainboard",
+        "sortOrder": 0
+    },
+    {
+        "id": "cat-mainboard-asus",
+        "name": "ASUS",
+        "slug": "mainboard-asus",
+        "parentId": "cat-mainboard-brands",
+        "sortOrder": 0
+    },
+    {
+        "id": "cat-mainboard-msi",
+        "name": "MSI",
+        "slug": "mainboard-msi",
+        "parentId": "cat-mainboard-brands",
+        "sortOrder": 1
+    },
+    {
+        "id": "cat-mainboard-gigabyte",
+        "name": "Gigabyte",
+        "slug": "mainboard-gigabyte",
+        "parentId": "cat-mainboard-brands",
+        "sortOrder": 2
+    },
+    {
+        "id": "cat-mainboard-asrock",
+        "name": "ASRock",
+        "slug": "mainboard-asrock",
+        "parentId": "cat-mainboard-brands",
+        "sortOrder": 3
+    },
+    { "id": "cat-ssd", "name": "SSD", "slug": "ssd", "parentId": null, "sortOrder": 11 },
+    { "id": "cat-hdd", "name": "HDD", "slug": "hdd", "parentId": null, "sortOrder": 12 },
+    { "id": "cat-psu", "name": "Nguon may tinh", "slug": "psu", "parentId": null, "sortOrder": 13 }
 ]
