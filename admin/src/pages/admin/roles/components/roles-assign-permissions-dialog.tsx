@@ -231,9 +231,6 @@ export function RolesAssignPermissionsDialog() {
               />
             </div>
             <div className='flex flex-wrap items-center gap-2'>
-              <Badge variant='outline' className='h-8 rounded-md px-3'>
-                {selectedIds.size} selected
-              </Badge>
               <Button
                 type='button'
                 variant='outline'
@@ -256,9 +253,6 @@ export function RolesAssignPermissionsDialog() {
               </Button>
             </div>
           </div>
-          <p className='mt-2 text-xs text-muted-foreground'>
-            Showing {visiblePermissionIds.length} permissions, {selectedVisibleCount} selected in this view.
-          </p>
         </div>
 
         <ScrollArea className='min-h-0 flex-1'>
