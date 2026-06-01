@@ -183,6 +183,8 @@ export function ChatWidget() {
   const clientRef = useRef<Client | null>(null);
   const subscriptionsRef = useRef<Record<string, StompSubscription>>({});
   const knownMessageIdsRef = useRef<Set<string>>(new Set());
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  const refreshingCurrentConversationRef = useRef(false);
 
   const isOpen = widgetState === 'open';
   const wsUrl = useMemo(() => resolveWsUrl(), []);
@@ -238,6 +240,10 @@ export function ChatWidget() {
     [hydrateConversation],
   );
 
+  useEffect(() => {
+    conversationIdsRef.current = new Set(conversations.map((conversation) => conversation.id));
+  }, [conversations]);
+
   const loadInitialConversations = useCallback(async () => {
     if (!identityReady) return;
 
@@ -278,6 +284,22 @@ export function ChatWidget() {
       return null;
     }
   }, [activeConversation, guestSessionId, identityReady, upsertConversation, userId]);
+
+  const refreshCurrentConversation = useCallback(async (): Promise<Conversation | null> => {
+    if (!identityReady) return null;
+    if (!userId && !guestSessionId) return null;
+    if (refreshingCurrentConversationRef.current) return null;
+
+    refreshingCurrentConversationRef.current = true;
+    try {
+      const conversation = await fetchCurrentConversation({ guestSessionId });
+      return upsertConversation(conversation);
+    } catch {
+      return null;
+    } finally {
+      refreshingCurrentConversationRef.current = false;
+    }
+  }, [guestSessionId, identityReady, upsertConversation, userId]);
 
   const loadMessages = useCallback(
     async (conversationId: string) => {
@@ -326,6 +348,11 @@ export function ChatWidget() {
     (message: ChatMessage) => {
       const isKnownMessage = knownMessageIdsRef.current.has(message.id);
       knownMessageIdsRef.current.add(message.id);
+      const isKnownConversation = conversationIdsRef.current.has(message.conversationId);
+
+      if (!isKnownConversation) {
+        void refreshCurrentConversation();
+      }
 
       updateConversationPreview(message);
 
@@ -367,6 +394,7 @@ export function ChatWidget() {
       currentParticipantId,
       guestSessionId,
       isOpen,
+      refreshCurrentConversation,
       scrollToBottom,
       updateConversationPreview,
       upsertMessage,
