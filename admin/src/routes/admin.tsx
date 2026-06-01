@@ -19,7 +19,7 @@ export const admin: RouteObject[] = [
     {
         path: '/admin',
         element: (
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={['ADMIN']}>
                 <LazyWrapper>
                     <AppShell />
                 </LazyWrapper>

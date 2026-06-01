@@ -23,10 +23,9 @@ import {
 } from './ui/tooltip'
 import { cn } from '@/lib/utils'
 import useCheckActiveNav from '@/hooks/use-check-active-nav'
-import { SideLink } from '@/data/sidelinks'
+import { getRoleNavConfig, type SideLink } from '@/data/sidelinks'
 import { fetchConversations, isChatServiceUnavailable } from '@/pages/admin/chats/chat-api'
-
-const CHAT_ROUTE = '/admin/chats'
+import { useLocation } from 'react-router-dom'
 const CHAT_UNREAD_CHANGED_EVENT = 'admin-chat-unread-changed'
 const CHAT_UNREAD_POLL_INTERVAL_MS = 15000
 const CHAT_UNREAD_FAILURE_PAUSE_MS = 5 * 60 * 1000
@@ -45,11 +44,13 @@ export default function Nav({
   className,
   closeNav,
 }: NavProps) {
-  const hasUnreadChat = useChatUnreadBadge()
+  const { pathname } = useLocation()
+  const chatRoute = `${getRoleNavConfig(pathname).prefix}/chats`
+  const hasUnreadChat = useChatUnreadBadge(chatRoute)
 
   const renderLink = ({ sub, ...rest }: SideLink) => {
     const key = `${rest.title}-${rest.href}`
-    const hasUnreadBadge = rest.href === CHAT_ROUTE && hasUnreadChat
+    const hasUnreadBadge = rest.href === chatRoute && hasUnreadChat
 
     if (isCollapsed && sub)
       return (
@@ -265,10 +266,13 @@ function NavLinkIconDropdown({ title, icon, label, sub, hasUnreadBadge = false }
   )
 }
 
-function useChatUnreadBadge(): boolean {
+function useChatUnreadBadge(chatRoute: string): boolean {
   const [hasUnreadChat, setHasUnreadChat] = useState(false)
   const retryAfterRef = useRef(0)
-  const shouldPollChat = typeof window !== 'undefined' && !window.location.pathname.startsWith('/admin/agent')
+  const shouldPollChat =
+    typeof window !== 'undefined' &&
+    !window.location.pathname.includes('/agent') &&
+    (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/staff'))
 
   const refresh = useCallback(async () => {
     if (!shouldPollChat) return
