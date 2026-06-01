@@ -243,6 +243,16 @@ async function requestGatewayApi<T>(path: string): Promise<T> {
   const resolvedPath = resolveGatewayPath(path);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RECOMMEND_REQUEST_TIMEOUT_MS);
+  const headers: HeadersInit = {
+    Accept: 'application/json',
+  };
+
+  if (typeof window !== 'undefined') {
+    const accessToken = window.localStorage.getItem('access_token');
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+  }
 
   try {
     const response = await fetch(resolvedPath, {
@@ -250,9 +260,7 @@ async function requestGatewayApi<T>(path: string): Promise<T> {
       cache: 'no-store',
       credentials: 'include',
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-      },
+      headers,
     });
 
     const payload = await response.json().catch(() => null);
@@ -440,6 +448,18 @@ export async function fetchProductsByCategorySlug(slug: string, params?: Product
   return normalizePageResult<ProductMinimal>(payload);
 }
 
+export async function fetchRandomProductsByCategorySlug(slug: string, limit = 8): Promise<ProductMinimal[]> {
+  const normalizedSlug = slug.trim();
+  if (!normalizedSlug) return [];
+
+  const safeLimit = Math.max(1, Math.min(limit, 12));
+  const payload = await requestProductApi<unknown>(
+    `${PRODUCT_API_BASE}/category/slug/${encodeURIComponent(normalizedSlug)}/random?limit=${encodeURIComponent(String(safeLimit))}`,
+  );
+
+  return dedupeProducts(normalizeCollection<ProductMinimal>(payload)).slice(0, safeLimit);
+}
+
 export async function fetchFeaturedProducts(params?: ProductListParams): Promise<PageResult<ProductMinimal>> {
   return fetchProductsByTags(['hot', 'new'], params);
 }
@@ -464,13 +484,13 @@ export async function fetchProductBySlug(slug: string): Promise<ProductDetail> {
   }
 }
 
-export async function fetchProductById(productId: string): Promise<ProductMinimal> {
-  const normalizedId = productId.trim();
+export async function fetchProductById(id: string): Promise<ProductDetail> {
+  const normalizedId = id.trim();
   if (!normalizedId) {
-    throw new Error('Id san pham khong hop le');
+    throw new Error('ID san pham khong hop le');
   }
 
-  return requestProductApi<ProductMinimal>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
+  return requestProductApi<ProductDetail>(`${PRODUCT_API_BASE}/${encodeURIComponent(normalizedId)}`);
 }
 
 export async function fetchRelatedProducts(productSlugOrId: string, fallbackProductId?: string): Promise<ProductMinimal[]> {

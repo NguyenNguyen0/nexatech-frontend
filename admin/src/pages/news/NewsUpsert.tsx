@@ -6,6 +6,7 @@ import { useMyProfile } from "@/hooks/useMyProfile";
 import { useNewsImageUpload } from "@/hooks/useNewsImageUpload";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useRoleBasePath } from "@/hooks/use-role-base-path";
 import slugify from "slugify";
 import throttle from "lodash.throttle";
 import { toast } from "sonner";
@@ -70,6 +71,7 @@ const newsSchema = Yup.object().shape({
 export default function NewsUpsertPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const basePath = useRoleBasePath();
   const { user, loading } = useMyProfile();
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
@@ -139,7 +141,7 @@ export default function NewsUpsertPage() {
       } catch (error) {
         console.error("Failed to load news:", error);
         toast.error("Không thể tải dữ liệu tin tức");
-        navigate("/admin/news");
+        navigate(`${basePath}/news`);
       } finally {
         setIsLoadingNews(false);
       }
@@ -261,7 +263,7 @@ export default function NewsUpsertPage() {
       );
 
       // Navigate to news list
-      navigate("/admin/news");
+      navigate(`${basePath}/news`);
 
     } catch (error) {
       console.error("Failed to save news:", error);

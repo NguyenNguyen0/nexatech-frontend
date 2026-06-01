@@ -4,19 +4,19 @@
  */
 
 export interface MenuCategory {
-  id: string;
-  name: string;
-  slug?: string;
-  sortOrder?: number;
-  children?: MenuCategory[];
+    id: string;
+    name: string;
+    slug?: string;
+    sortOrder?: number;
+    children?: MenuCategory[];
 }
 
 export interface MenuCategoryNode {
-  level: 1 | 2 | 3;
-  id: string;
-  name: string;
-  slug?: string;
-  sortOrder?: number;
-  parent?: MenuCategoryNode;
-  children?: MenuCategoryNode[];
+    level: 1 | 2 | 3;
+    id: string;
+    name: string;
+    slug?: string;
+    sortOrder?: number;
+    parent?: MenuCategoryNode;
+    children?: MenuCategoryNode[];
 }

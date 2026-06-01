@@ -4,18 +4,28 @@ import { Layout } from './custom/layout'
 import { Button } from './custom/button'
 import Nav from './nav'
 import { cn } from '@/lib/utils'
-import { sidelinks } from '@/data/sidelinks'
+import { useLocation } from 'react-router-dom'
+import { getRoleNavConfig } from '@/data/sidelinks'
+import type { SideLink } from '@/data/sidelinks'
 
 interface SidebarProps extends React.HTMLAttributes<HTMLElement> {
   isCollapsed: boolean
   setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>
+  links?: SideLink[]
+  brandTitle?: string
 }
 
 export default function Sidebar({
   className,
   isCollapsed,
   setIsCollapsed,
+  links: linksProp,
+  brandTitle: brandTitleProp,
 }: SidebarProps) {
+  const { pathname } = useLocation()
+  const { title: roleTitle, links: roleLinks } = getRoleNavConfig(pathname)
+  const links = linksProp ?? roleLinks
+  const brandTitle = brandTitleProp ?? roleTitle
   const [navOpened, setNavOpened] = useState(false)
 
   /* Make body not scrollable when navBar is opened */
@@ -51,7 +61,7 @@ export default function Sidebar({
             <div
               className={`flex flex-col justify-end truncate ${isCollapsed ? 'invisible w-0' : 'visible w-auto'}`}
             >
-              <span className='font-medium'>Admin</span>
+              <span className='font-medium'>{brandTitle}</span>
               <span className='text-xs'>Nexatech</span>
             </div>
           </div>
@@ -76,7 +86,7 @@ export default function Sidebar({
           className={`z-40 h-full flex-1 overflow-auto ${navOpened ? 'max-h-screen' : 'max-h-0 py-0 md:max-h-screen md:py-2'}`}
           closeNav={() => setNavOpened(false)}
           isCollapsed={isCollapsed}
-          links={sidelinks}
+          links={links}
         />
 
         {/* Scrollbar width toggle button */}
