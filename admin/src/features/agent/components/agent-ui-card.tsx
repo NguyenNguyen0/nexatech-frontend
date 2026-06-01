@@ -11,6 +11,9 @@ import type {
   AgentHitlReviewConfig,
   AgentUICard,
 } from "@/features/agent/types";
+import { AgentProductCard } from "./agent-product-card";
+import { AgentOrderCard } from "./agent-order-card";
+import { AgentInventoryTable } from "./agent-inventory-table";
 
 interface AgentUICardProps {
   card: AgentUICard;
@@ -96,6 +99,16 @@ function getRemainingSeconds(expiresAt?: string): number | null {
 }
 
 export function AgentUICardView({ card, onHitlDecision }: AgentUICardProps) {
+  if (card.type === "product") {
+    return <AgentProductCard data={card.payload} />;
+  }
+  if (card.type === "order") {
+    return <AgentOrderCard data={card.payload} />;
+  }
+  if (card.type === "inventory") {
+    return <AgentInventoryTable data={card.payload} />;
+  }
+
   if (card.type === "chart") {
     const payload = (card.payload ?? {}) as ChartPayload;
     const labels = payload.labels ?? [];

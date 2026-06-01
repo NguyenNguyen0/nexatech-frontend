@@ -4,7 +4,7 @@ import { CopilotKitProvider } from "@copilotkit/react-core/v2";
 import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { useAgentChat, type RenderedToolCall } from "@/features/agent/hooks/use-agent-chat";
+import { useAgentChat } from "@/features/agent/hooks/use-agent-chat";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
 import { AgentMarkdown } from "@/features/agent/components/agent-markdown";
@@ -77,63 +77,31 @@ function getAgentStreamErrorMessage(error: unknown): string {
   return "Agent service khong phan hoi. Vui long thu lai.";
 }
 
-function getToolStateLabel(toolCall: AgentToolCall): string {
-  if (toolCall.state === "pending") return "Dang chay";
-  if (toolCall.state === "completed") return "Hoan tat";
-  return "Loi";
+function toRecordPayload(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value === "object" && value !== null) return value as Record<string, unknown>;
+  return undefined;
 }
 
-function AgentStreamingIndicator({ message }: { message: AgentChatMessage }) {
-  const toolCalls = message.toolCalls ?? [];
-  const activeTool = [...toolCalls].reverse().find((toolCall) => toolCall.state === "pending");
-  const completedCount = toolCalls.filter((toolCall) => toolCall.state === "completed").length;
 
+/** Simple pulsing dots shown while the agent is generating text with no tool activity. */
+function StreamingDots() {
   return (
-    <div className="space-y-3 text-sm text-muted-foreground">
-      <div className="inline-flex items-center gap-2">
-        <span className="inline-flex items-center gap-1" aria-label="Agent dang streaming">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
-        </span>
-        <span>
-          {activeTool
-            ? `Dang goi tool: ${activeTool.name}`
-            : completedCount > 0
-              ? `Da chay ${completedCount} tool, dang tong hop phan hoi`
-              : "Agent dang xu ly"}
-        </span>
-      </div>
-
-      {toolCalls.length > 0 && (
-        <div className="space-y-1 border-l border-border pl-3">
-          {toolCalls.map((toolCall) => (
-            <div key={toolCall.id} className="flex min-w-0 items-center gap-2 text-xs">
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  toolCall.state === "pending" && "animate-pulse bg-primary",
-                  toolCall.state === "completed" && "bg-emerald-600",
-                  toolCall.state === "error" && "bg-destructive",
-                )}
-              />
-              <span className="truncate font-medium text-foreground">{toolCall.name}</span>
-              <span className="shrink-0 text-muted-foreground">{getToolStateLabel(toolCall)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    <span className="inline-flex items-center gap-1 py-0.5" aria-label="Agent dang xu ly">
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
+    </span>
   );
 }
 
 type AguiChatBridge = {
-  latestAssistantText: string;
-  toolCalls: RenderedToolCall[];
+  derivedMessages: AgentChatMessage[];
   sendMessage: (content: string) => Promise<void>;
   stopGeneration: () => void;
+  isLoading: boolean;
   isReady: boolean;
 };
+
 
 function AgentPageContent({
   copilotKitEnabled,
@@ -158,6 +126,8 @@ function AgentPageContent({
     assistantMessageId: string;
     prompt: string;
     lastContent: string;
+    /** Stable key for change detection: "id:state|id:state" across ALL tool calls */
+    lastToolCallKey: string;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const runTrackingRef = useRef<{ runId?: string; threadId?: string }>({});
@@ -171,18 +141,39 @@ function AgentPageContent({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [conversations, activeConversationId]);
 
+  // Sync AG-UI derived messages (text + tool calls) into the local conversation.
+  // The AG-UI protocol may place tool calls and the final text response in
+  // separate AssistantMessages, so we collect ALL tool calls from ALL assistant
+  // messages rather than only reading the last one.
   useEffect(() => {
     if (!copilotKitEnabled || !aguiChat || !aguiChat.isReady) return;
     const pending = aguiRunRef.current;
     if (!pending) return;
 
-    const latestText = aguiChat.latestAssistantText;
-    if (!latestText || latestText === pending.lastContent) return;
+    const derived = aguiChat.derivedMessages;
+
+    // Latest text = content of the last assistant message
+    const lastAssistant = [...derived].reverse().find((m) => m.role === "assistant");
+    const latestText = lastAssistant?.content ?? "";
+
+    // All tool calls = union across every assistant message in the derived list
+    const allToolCalls = derived
+      .filter((m): m is AgentChatMessage & { role: "assistant" } => m.role === "assistant")
+      .flatMap((m) => m.toolCalls ?? []);
+
+    // Stable key for change detection — avoids "always-truthy length > 0" issue
+    const toolCallKey = allToolCalls.map((tc) => `${tc.id}:${tc.state}`).join("|");
+    const hasChange = latestText !== pending.lastContent || toolCallKey !== pending.lastToolCallKey;
+    if (!hasChange) return;
 
     pending.lastContent = latestText;
+    pending.lastToolCallKey = toolCallKey;
+
     updateMessage(pending.conversationId, pending.assistantMessageId, (message) => ({
       ...message,
       content: latestText,
+      toolCalls: allToolCalls.length > 0 ? allToolCalls : message.toolCalls,
+      isStreaming: aguiChat.isLoading,
     }));
   }, [copilotKitEnabled, aguiChat]);
 
@@ -445,23 +436,18 @@ function AgentPageContent({
     }
 
     setIsStreaming(true);
+    // The sync effect (above) handles real-time updates reactively;
+    // no stale-closure final sync needed here.
     aguiRunRef.current = {
       conversationId,
       assistantMessageId,
       prompt,
       lastContent: "",
+      lastToolCallKey: "",
     };
 
     try {
       await aguiChat.sendMessage(prompt);
-
-      if (aguiChat.latestAssistantText) {
-        updateMessage(conversationId, assistantMessageId, (message) => ({
-          ...message,
-          content: aguiChat.latestAssistantText,
-        }));
-      }
-
       finalizeAssistantMessage(conversationId, assistantMessageId);
       void loadConversationSummaries();
     } catch (error) {
@@ -760,80 +746,143 @@ function AgentPageContent({
                 )}
                 {!activeConversation || activeConversation.messages.length === 0
                   ? renderEmptyState()
-                  : activeConversation.messages.map((message) => (
-                    <article
-                      key={message.id}
-                      className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
-                    >
-                      <div
+                  : activeConversation.messages.map((message) => {
+                    const hasToolCalls = (message.toolCalls?.length ?? 0) > 0;
+                    const hasContent = message.role === "assistant" && message.content.trim().length > 0;
+                    const hasPendingTool = message.toolCalls?.some((tc) => tc.state === "pending") ?? false;
+                    // Show the bubble: always for user, and for assistant when there's
+                    // text, an error, or the agent is streaming with no active tool call.
+                    const showBubble =
+                      message.role === "user" ||
+                      hasContent ||
+                      Boolean(message.errorMessage) ||
+                      (message.isStreaming && !hasPendingTool);
+
+                    const cardsToRender = [...(message.uiCards ?? [])];
+                    if (message.role === "assistant" && message.toolCalls) {
+                      for (const tc of message.toolCalls) {
+                        if (tc.state === "completed" && tc.result !== undefined) {
+                          const lowerName = tc.name.toLowerCase();
+                          const cardId = `${tc.id}-card`;
+                          if (!cardsToRender.some((c) => c.id === cardId)) {
+                            if (lowerName.includes("product")) {
+                              cardsToRender.push({
+                                id: cardId,
+                                type: "product",
+                                title: "Product Information",
+                                description: "Thông tin chi tiết sản phẩm",
+                                payload: toRecordPayload(tc.result),
+                              });
+                            } else if (lowerName.includes("order")) {
+                              cardsToRender.push({
+                                id: cardId,
+                                type: "order",
+                                title: "Order Information",
+                                description: "Thông tin chi tiết đơn hàng",
+                                payload: toRecordPayload(tc.result),
+                              });
+                            } else if (lowerName.includes("inventory") || lowerName.includes("stock")) {
+                              cardsToRender.push({
+                                id: cardId,
+                                type: "inventory",
+                                title: "Inventory Information",
+                                description: "Thông tin kho hàng",
+                                payload: toRecordPayload(tc.result),
+                              });
+                            }
+                          }
+                        }
+                      }
+                    }
+
+                    return (
+                      <article
+                        key={message.id}
                         className={cn(
-                          "max-w-[86%] rounded-xl border px-3 py-2 md:max-w-[74%]",
-                          message.role === "user"
-                            ? "border-primary/30 bg-primary text-primary-foreground"
-                            : "border-border bg-card",
+                          "flex flex-col gap-1.5",
+                          message.role === "user" ? "items-end" : "items-start",
                         )}
                       >
-                        {message.role === "assistant" && message.content.trim() ? (
-                          <AgentMarkdown content={message.content} />
-                        ) : message.role === "assistant" && message.isStreaming ? (
-                          <AgentStreamingIndicator message={message} />
-                        ) : message.role === "user" ? (
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                        ) : null}
-
-                        {message.role === "assistant" && message.isStreaming && message.content.trim() && (
-                          <div className="mt-3 border-t border-border/70 pt-2">
-                            <AgentStreamingIndicator message={message} />
-                          </div>
-                        )}
-
-                        {message.role === "assistant" && message.errorMessage && (
-                          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                            <div className="flex items-start gap-2">
-                              <IconAlertTriangle size={16} className="mt-0.5 shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium">Khong the nhan phan hoi tu agent</p>
-                                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">
-                                  {message.errorMessage}
-                                </p>
-                              </div>
-                            </div>
-                            {message.retryPrompt && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="mt-3 border-destructive/40 bg-background text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                disabled={isStreaming}
-                                leftSection={<IconRefresh size={14} />}
-                                onClick={() => void handleRetryMessage(message)}
-                              >
-                                Thu lai message nay
-                              </Button>
-                            )}
-                          </div>
-                        )}
-
-                        {message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
-                          <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
-                            <div className="text-xs font-medium text-muted-foreground">Tools used</div>
-                            {message.toolCalls.map((toolCall) => (
+                        {/* ── Tool call cards — rendered ABOVE the message bubble ── */}
+                        {message.role === "assistant" && hasToolCalls && (
+                          <div className="w-full max-w-[86%] space-y-1.5 md:max-w-[74%]">
+                            {message.toolCalls!.map((toolCall) => (
                               <AgentToolCallCard key={toolCall.id} toolCall={toolCall} />
                             ))}
                           </div>
                         )}
 
-                        {message.role === "assistant" && message.uiCards && message.uiCards.length > 0 && (
-                          <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
-                            <div className="text-xs font-medium text-muted-foreground">Generated components</div>
-                            {message.uiCards.map((card) => (
+                        {/* ── Message bubble ── */}
+                        {showBubble && (
+                          <div
+                            className={cn(
+                              "max-w-[86%] rounded-xl border px-3 py-2 md:max-w-[74%]",
+                              message.role === "user"
+                                ? "border-primary/30 bg-primary text-primary-foreground"
+                                : "border-border bg-card",
+                            )}
+                          >
+                            {/* User content */}
+                            {message.role === "user" && (
+                              <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                            )}
+
+                            {/* Assistant: streaming dots (no content yet, no pending tool) */}
+                            {message.role === "assistant" && !hasContent && message.isStreaming && !hasPendingTool && (
+                              <StreamingDots />
+                            )}
+
+                            {/* Assistant: text content */}
+                            {hasContent && <AgentMarkdown content={message.content} />}
+
+                            {/* Assistant: trailing dots while still streaming text */}
+                            {hasContent && message.isStreaming && (
+                              <span className="mt-1 block">
+                                <StreamingDots />
+                              </span>
+                            )}
+
+                            {/* Assistant: error */}
+                            {message.role === "assistant" && message.errorMessage && (
+                              <div className={cn(hasContent && "mt-3 border-t border-border/70 pt-2", "rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive")}>
+                                <div className="flex items-start gap-2">
+                                  <IconAlertTriangle size={16} className="mt-0.5 shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium">Khong the nhan phan hoi tu agent</p>
+                                    <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">
+                                      {message.errorMessage}
+                                    </p>
+                                  </div>
+                                </div>
+                                {message.retryPrompt && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-3 border-destructive/40 bg-background text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    disabled={isStreaming}
+                                    leftSection={<IconRefresh size={14} />}
+                                    onClick={() => void handleRetryMessage(message)}
+                                  >
+                                    Thu lai message nay
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* ── UI Cards (HITL, charts, etc.) — below the bubble ── */}
+                        {message.role === "assistant" && cardsToRender.length > 0 && (
+                          <div className="w-full max-w-[86%] space-y-2 md:max-w-[74%]">
+                            {cardsToRender.map((card) => (
                               <AgentUICardView key={card.id} card={card} onHitlDecision={handleHitlDecision} />
                             ))}
                           </div>
                         )}
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -859,10 +908,17 @@ function AgentPageAguiContent({ copilotKitEnabled }: { copilotKitEnabled: boolea
   return (
     <AgentPageContent
       copilotKitEnabled={copilotKitEnabled}
-      aguiChat={agui}
+      aguiChat={{
+        derivedMessages: agui.derivedMessages,
+        sendMessage: agui.sendMessage,
+        stopGeneration: agui.stopGeneration,
+        isLoading: agui.isLoading,
+        isReady: agui.isReady,
+      }}
     />
   );
 }
+
 
 export default function AgentPage() {
   const backendBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080").replace(/\/$/, "");

@@ -6,7 +6,7 @@ import { isAxiosError } from 'axios';
 import { pingSession } from '@/features/storefront/account/services/session-api';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 
-const HEARTBEAT_INTERVAL_MS = 15_000;
+const HEARTBEAT_INTERVAL_MS = 10 * 60_000;
 
 async function forceClientLogout(reason?: 'sessionRevoked' | 'accountDisabled') {
   authStorage.clear();
