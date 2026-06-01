@@ -77,6 +77,11 @@ function getAgentStreamErrorMessage(error: unknown): string {
   return "Agent service khong phan hoi. Vui long thu lai.";
 }
 
+function toRecordPayload(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value === "object" && value !== null) return value as Record<string, unknown>;
+  return undefined;
+}
+
 
 /** Simple pulsing dots shown while the agent is generating text with no tool activity. */
 function StreamingDots() {
@@ -766,7 +771,7 @@ function AgentPageContent({
                                 type: "product",
                                 title: "Product Information",
                                 description: "Thông tin chi tiết sản phẩm",
-                                payload: tc.result,
+                                payload: toRecordPayload(tc.result),
                               });
                             } else if (lowerName.includes("order")) {
                               cardsToRender.push({
@@ -774,7 +779,7 @@ function AgentPageContent({
                                 type: "order",
                                 title: "Order Information",
                                 description: "Thông tin chi tiết đơn hàng",
-                                payload: tc.result,
+                                payload: toRecordPayload(tc.result),
                               });
                             } else if (lowerName.includes("inventory") || lowerName.includes("stock")) {
                               cardsToRender.push({
@@ -782,7 +787,7 @@ function AgentPageContent({
                                 type: "inventory",
                                 title: "Inventory Information",
                                 description: "Thông tin kho hàng",
-                                payload: tc.result,
+                                payload: toRecordPayload(tc.result),
                               });
                             }
                           }
