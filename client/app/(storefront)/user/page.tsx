@@ -9,6 +9,7 @@ import {
   getApiErrorMessage,
   type UserProfileResult,
 } from '@/features/auth/services/auth-api';
+import { wasForbiddenToastShown } from '@/lib/axios-client';
 import { authStorage } from '@/features/auth/utils/auth-storage';
 import { AddressBookSection } from '@/features/storefront/account/components/address-book-section';
 import { AvatarUploadField } from '@/components/custom/avatar-upload-field';
@@ -96,7 +97,11 @@ export default function UserProfilePage() {
           dob: data.dob ?? '',
         });
       })
-      .catch(() => toast.error('Không thể tải thông tin tài khoản'))
+      .catch((err) => {
+        if (!wasForbiddenToastShown(err)) {
+          toast.error(getApiErrorMessage(err, 'Không thể tải thông tin tài khoản'));
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -119,7 +124,9 @@ export default function UserProfilePage() {
       toast.success('Cập nhật hồ sơ thành công');
       setEditing(false);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Cập nhật thất bại'));
+      if (!wasForbiddenToastShown(err)) {
+        toast.error(getApiErrorMessage(err, 'Cập nhật thất bại'));
+      }
     } finally {
       setSaving(false);
     }

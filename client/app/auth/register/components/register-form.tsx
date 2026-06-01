@@ -306,20 +306,6 @@ export function RegisterForm() {
                 <div className="grow border-t border-border/60" />
               </div>
 
-              <div className="flex items-center justify-center w-full">
-                <Button
-                  onClick={() => toast.info('Tính năng này chưa được triển khai')}
-                  variant="outline"
-                  className="w-full h-12 border-border/60 hover:bg-muted/50 transition-all gap-2 rounded-sm"
-                  aria-label="Đăng nhập với Google"
-                  type="button"
-                  disabled={otpOpen}
-                >
-                  <FcGoogle className="h-5 w-5" />
-                  Google
-                </Button>
-              </div>
-
               <div className="text-center text-sm text-muted-foreground pt-4 border-t border-border/40">
                 Bạn đã có tài khoản?{' '}
                 <Link href="/auth/login" className="text-primary font-semibold hover:underline">

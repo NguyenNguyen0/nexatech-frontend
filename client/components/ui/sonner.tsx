@@ -7,8 +7,7 @@ import { cn } from "@/lib/utils"
 
 const BRAND_PRIMARY = "#004d75"
 const BRAND_LOGO = "/brand/n-logo-transparent-bg.png"
-/** Tránh chồng lên nút chat (fixed bottom-5 right-5, h-12) */
-const TOAST_OFFSET_BOTTOM = 80
+const TOAST_OFFSET_TOP = 18
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -29,9 +28,9 @@ function BrandLogoIcon() {
 const brandIcon = <BrandLogoIcon />
 
 const Toaster = ({
-  position = "bottom-right",
-  offset = { bottom: TOAST_OFFSET_BOTTOM, right: 16 },
-  mobileOffset = { bottom: TOAST_OFFSET_BOTTOM, right: 12 },
+  position = "top-center",
+  offset = { top: TOAST_OFFSET_TOP },
+  mobileOffset = { top: TOAST_OFFSET_TOP },
   closeButton = false,
   className,
   toastOptions,

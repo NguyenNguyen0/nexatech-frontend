@@ -134,6 +134,8 @@ function normalizeMessage(raw: UnknownRecord, index: number): AgentChatMessage {
 function normalizeToolFromEvent(rawEvent: UnknownRecord, state: AgentToolCall["state"]): AgentToolCall {
   const payload = toObject(rawEvent.data);
   const callId = toString(payload.callId) || toString(payload.id) || `tool-${Date.now()}`;
+  const result = payload.result ?? payload.output ?? payload.data;
+  const error = payload.error ?? payload.details;
 
   return {
     id: callId,
@@ -143,6 +145,9 @@ function normalizeToolFromEvent(rawEvent: UnknownRecord, state: AgentToolCall["s
     startedAt: toIso(rawEvent.timestamp),
     finishedAt: state === "pending" ? undefined : toIso(rawEvent.timestamp),
     errorMessage: toString(payload.errorMessage),
+    result,
+    error,
+    completedAt: state === "pending" ? undefined : toIso(rawEvent.timestamp),
   };
 }
 
@@ -359,7 +364,10 @@ export async function cancelAgentRun(runId: string): Promise<void> {
   }
 }
 
-export async function resumeAgentRun(threadId: string, decision: string): Promise<void> {
+export async function resumeAgentRun(
+  threadId: string,
+  decision: string | { decision: string; args?: Record<string, unknown>; reason?: string },
+): Promise<void> {
   await axiosClient.post(`${AGENT_PREFIX}/runs/resume`, {
     threadId,
     decision,
