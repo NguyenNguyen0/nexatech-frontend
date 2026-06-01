@@ -753,6 +753,43 @@ function AgentPageContent({
                       Boolean(message.errorMessage) ||
                       (message.isStreaming && !hasPendingTool);
 
+                    const cardsToRender = [...(message.uiCards ?? [])];
+                    if (message.role === "assistant" && message.toolCalls) {
+                      for (const tc of message.toolCalls) {
+                        if (tc.state === "completed" && tc.result !== undefined) {
+                          const lowerName = tc.name.toLowerCase();
+                          const cardId = `${tc.id}-card`;
+                          if (!cardsToRender.some((c) => c.id === cardId)) {
+                            if (lowerName.includes("product")) {
+                              cardsToRender.push({
+                                id: cardId,
+                                type: "product",
+                                title: "Product Information",
+                                description: "Thông tin chi tiết sản phẩm",
+                                payload: tc.result,
+                              });
+                            } else if (lowerName.includes("order")) {
+                              cardsToRender.push({
+                                id: cardId,
+                                type: "order",
+                                title: "Order Information",
+                                description: "Thông tin chi tiết đơn hàng",
+                                payload: tc.result,
+                              });
+                            } else if (lowerName.includes("inventory") || lowerName.includes("stock")) {
+                              cardsToRender.push({
+                                id: cardId,
+                                type: "inventory",
+                                title: "Inventory Information",
+                                description: "Thông tin kho hàng",
+                                payload: tc.result,
+                              });
+                            }
+                          }
+                        }
+                      }
+                    }
+
                     return (
                       <article
                         key={message.id}
@@ -831,9 +868,9 @@ function AgentPageContent({
                         )}
 
                         {/* ── UI Cards (HITL, charts, etc.) — below the bubble ── */}
-                        {message.role === "assistant" && (message.uiCards?.length ?? 0) > 0 && (
+                        {message.role === "assistant" && cardsToRender.length > 0 && (
                           <div className="w-full max-w-[86%] space-y-2 md:max-w-[74%]">
-                            {message.uiCards!.map((card) => (
+                            {cardsToRender.map((card) => (
                               <AgentUICardView key={card.id} card={card} onHitlDecision={handleHitlDecision} />
                             ))}
                           </div>

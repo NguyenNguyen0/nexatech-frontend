@@ -6,24 +6,8 @@ import {
   IconChevronDown,
   IconChevronRight,
 } from "@tabler/icons-react";
-import { AgentInventoryTable } from "@/features/agent/components/agent-inventory-table";
-import { AgentJsonFallback } from "@/features/agent/components/agent-json-fallback";
-import { AgentOrderCard } from "@/features/agent/components/agent-order-card";
-import { AgentProductCard } from "@/features/agent/components/agent-product-card";
 import type { AgentToolCall } from "@/features/agent/types";
 import { cn } from "@/lib/utils";
-
-// ── result renderer ────────────────────────────────────────────────────────────
-
-function ToolResultView({ toolCall }: { toolCall: AgentToolCall }) {
-  const lowerName = toolCall.name.toLowerCase();
-  if (lowerName.includes("product")) return <AgentProductCard data={toolCall.result} />;
-  if (lowerName.includes("order")) return <AgentOrderCard data={toolCall.result} />;
-  if (lowerName.includes("inventory") || lowerName.includes("stock")) {
-    return <AgentInventoryTable data={toolCall.result} />;
-  }
-  return <AgentJsonFallback title="Result" value={toolCall.result} />;
-}
 
 // ── card ───────────────────────────────────────────────────────────────────────
 
@@ -124,9 +108,9 @@ export function AgentToolCallCard({ toolCall }: AgentToolCallCardProps) {
         )}
       </button>
 
-      {/* ── expandable body ─────────────────────────────────────────────────── */}
+      {/* ── expandable developer body (args, results, error) ────────────────────────── */}
       {expanded && (
-        <div className="space-y-2.5 border-t border-border/40 px-3 pb-3 pt-2">
+        <div className="space-y-2.5 border-t border-border/40 px-3 pb-3 pt-2 bg-muted/10">
           {/* Args */}
           {hasArgs && (
             <div>
@@ -139,13 +123,15 @@ export function AgentToolCallCard({ toolCall }: AgentToolCallCardProps) {
             </div>
           )}
 
-          {/* Result (completed only) */}
+          {/* Raw result (only visible when expanded) */}
           {isCompleted && toolCall.result !== undefined && (
             <div>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Result
+                Result (Raw)
               </p>
-              <ToolResultView toolCall={toolCall} />
+              <pre className="overflow-auto rounded-md bg-muted/40 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed max-h-48 overflow-y-auto">
+                {JSON.stringify(toolCall.result, null, 2)}
+              </pre>
             </div>
           )}
 
@@ -155,7 +141,7 @@ export function AgentToolCallCard({ toolCall }: AgentToolCallCardProps) {
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-destructive">
                 Error
               </p>
-              <pre className="overflow-auto rounded-md bg-muted/40 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-destructive">
+              <pre className="overflow-auto rounded-md bg-muted/40 px-2.5 py-1.5 font-mono text-[11px] leading-relaxed text-destructive bg-destructive/[0.02]">
                 {JSON.stringify(
                   toolCall.error ?? toolCall.errorMessage ?? "Unknown error",
                   null,

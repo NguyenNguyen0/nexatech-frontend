@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from "react";
-import { useAgent } from "@copilotkit/react-core/v2/headless";
+import { useAgent } from "@copilotkit/react-core/v2";
 import { v4 as uuidv4 } from "uuid";
 import type { Message, AssistantMessage, ToolMessage, UserMessage } from "@ag-ui/core";
 import type { AgentChatMessage, AgentToolCall } from "@/features/agent/types";
@@ -136,7 +136,8 @@ export interface UseAgentChatResult {
 // ── inner hook that must always be called inside CopilotKitProvider ────────────
 
 function useAgentChatInner(): UseAgentChatResult {
-  const { agent } = useAgent();
+  const agentId = import.meta.env.VITE_AGUI_AGENT_NAME || "nexatech_agent";
+  const { agent } = useAgent({ agentId });
 
   const rawMessages = agent.messages as ReadonlyArray<Readonly<Message>>;
 
@@ -204,15 +205,7 @@ function useAgentChatInner(): UseAgentChatResult {
   };
 }
 
-const FALLBACK_RESULT: UseAgentChatResult = {
-  derivedMessages: [],
-  latestAssistantText: "",
-  toolCalls: [],
-  sendMessage: async () => undefined,
-  isLoading: false,
-  stopGeneration: () => undefined,
-  isReady: false,
-};
+
 
 // ── public hook ────────────────────────────────────────────────────────────────
 
@@ -225,15 +218,5 @@ const FALLBACK_RESULT: UseAgentChatResult = {
  * type-safety guard.
  */
 export function useAgentChat(): UseAgentChatResult {
-  // We split into a separate component pattern to avoid conditional hook calls.
-  // useAgentChatInner will throw if CopilotKit context is missing; the page
-  // renders useAgentChatInner only inside <CopilotKitProvider>.
-  try {
-    return useAgentChatInner();
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn("[AgentChat] CopilotKit unavailable, using fallback", error);
-    }
-    return FALLBACK_RESULT;
-  }
+  return useAgentChatInner();
 }
