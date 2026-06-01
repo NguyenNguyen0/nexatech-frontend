@@ -46,7 +46,8 @@ type ReadFilter = "all" | "unread" | "read";
 
 function resolveWsUrl(): string {
     const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080";
-    return `${String(base).replace(/\/$/, "")}/ws/chat`;
+    const sockJsBase = String(base).replace(/\/$/, "").replace(/^wss:/, "https:").replace(/^ws:/, "http:");
+    return `${sockJsBase}/ws/chat`;
 }
 
 function displayName(conversation: Conversation): string {
@@ -387,7 +388,7 @@ export default function Chats() {
 
         if (incoming.conversationId === activeConversationId) {
             upsertMessage(incoming);
-            if (incoming.senderId !== activeAdminUserId) {
+            if (incoming.senderId !== activeAdminUserId && !incoming.seenAt) {
                 markConversationReadLocally(incoming.conversationId);
                 markSeen(incoming.conversationId, incoming.id).catch(() => undefined);
             }

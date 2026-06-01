@@ -182,6 +182,7 @@ export function ChatWidget() {
   const listRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<Client | null>(null);
   const subscriptionsRef = useRef<Record<string, StompSubscription>>({});
+  const knownMessageIdsRef = useRef<Set<string>>(new Set());
 
   const isOpen = widgetState === 'open';
   const wsUrl = useMemo(() => resolveWsUrl(), []);
@@ -207,10 +208,16 @@ export function ChatWidget() {
   }, []);
 
   const hydrateConversation = useCallback(
-    (conversation: Conversation): Conversation => ({
-      ...conversation,
-      unreadCount: conversation.unreadCount ?? 0,
-    }),
+    (conversation: Conversation): Conversation => {
+      if (conversation.lastMessage?.id) {
+        knownMessageIdsRef.current.add(conversation.lastMessage.id);
+      }
+
+      return {
+        ...conversation,
+        unreadCount: conversation.unreadCount ?? 0,
+      };
+    },
     [],
   );
 
@@ -280,6 +287,7 @@ export function ChatWidget() {
           guestSessionId,
         });
         const ordered = [...payload.content].reverse();
+        ordered.forEach((message) => knownMessageIdsRef.current.add(message.id));
         setMessages(ordered);
         setAutoScrollEnabled(true);
         setTimeout(() => scrollToBottom('auto'), 0);
@@ -316,6 +324,9 @@ export function ChatWidget() {
 
   const handleIncomingMessage = useCallback(
     (message: ChatMessage) => {
+      const isKnownMessage = knownMessageIdsRef.current.has(message.id);
+      knownMessageIdsRef.current.add(message.id);
+
       updateConversationPreview(message);
 
       if (message.conversationId === activeConversationId) {
@@ -325,7 +336,7 @@ export function ChatWidget() {
         }
       }
 
-      if (message.senderId !== currentParticipantId) {
+      if (message.senderId !== currentParticipantId && !isKnownMessage) {
         setConversations((current) =>
           current.map((conversation) =>
             conversation.id === message.conversationId
@@ -342,8 +353,10 @@ export function ChatWidget() {
       }
 
       if (message.senderId !== currentParticipantId && message.recipientId === currentParticipantId) {
-        markDelivered(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
-        if (message.conversationId === activeConversationId && isOpen) {
+        if (!message.deliveredAt) {
+          markDelivered(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
+        }
+        if (message.conversationId === activeConversationId && isOpen && !message.seenAt) {
           markSeen(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
         }
       }
@@ -563,7 +576,8 @@ export function ChatWidget() {
       .find(
         (message) =>
           message.senderId !== currentParticipantId &&
-          message.recipientId === currentParticipantId,
+          message.recipientId === currentParticipantId &&
+          !message.seenAt,
       );
     if (!latestIncoming) return;
     markSeen(activeConversationId, latestIncoming.id, { guestSessionId }).catch(() => undefined);

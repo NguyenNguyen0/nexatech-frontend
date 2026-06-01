@@ -4,6 +4,7 @@ type JwtPayload = {
     realm_access?: {
         roles?: string[];
     };
+    resource_access?: Record<string, { roles?: string[] }>;
 };
 
 function base64UrlDecodeToString(input: string): string {
@@ -97,8 +98,18 @@ export function setAuthTokens(accessToken: string, refreshToken: string): void {
 export function getRolesFromAccessToken(token: string | null): string[] {
     if (!token) return [];
     const payload = decodeJwtPayload(token);
-    const roles = payload?.realm_access?.roles ?? [];
-    return roles.filter((r): r is string => typeof r === "string").map((r) => r.toUpperCase());
+    const roles = [
+        ...(payload?.realm_access?.roles ?? []),
+        ...Object.values(payload?.resource_access ?? {}).flatMap((access) => access.roles ?? []),
+    ];
+    return Array.from(
+        new Set(
+            roles
+                .filter((r): r is string => typeof r === "string")
+                .map(normalizeRoleName)
+                .filter(Boolean),
+        ),
+    );
 }
 
 export function getUserIdFromAccessToken(token: string | null): string | null {
@@ -115,6 +126,10 @@ export function isAccessTokenExpired(token: string | null): boolean {
 }
 
 const ROLE_PRIORITY: string[] = ["ADMIN", "MANAGER", "STAFF", "WAREHOUSE", "ACCOUNTANT", "CUSTOMER"];
+
+function normalizeRoleName(role: string): string {
+    return role.trim().toUpperCase().replace(/^ROLE_/, "").replace(/^SCOPE_/, "");
+}
 
 export function pickPrimaryRole(roles: string[]): string | null {
     for (const r of ROLE_PRIORITY) {
