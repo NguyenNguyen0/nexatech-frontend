@@ -182,6 +182,9 @@ export function ChatWidget() {
   const listRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<Client | null>(null);
   const subscriptionsRef = useRef<Record<string, StompSubscription>>({});
+  const knownMessageIdsRef = useRef<Set<string>>(new Set());
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  const refreshingCurrentConversationRef = useRef(false);
 
   const isOpen = widgetState === 'open';
   const wsUrl = useMemo(() => resolveWsUrl(), []);
@@ -207,10 +210,16 @@ export function ChatWidget() {
   }, []);
 
   const hydrateConversation = useCallback(
-    (conversation: Conversation): Conversation => ({
-      ...conversation,
-      unreadCount: conversation.unreadCount ?? 0,
-    }),
+    (conversation: Conversation): Conversation => {
+      if (conversation.lastMessage?.id) {
+        knownMessageIdsRef.current.add(conversation.lastMessage.id);
+      }
+
+      return {
+        ...conversation,
+        unreadCount: conversation.unreadCount ?? 0,
+      };
+    },
     [],
   );
 
@@ -230,6 +239,10 @@ export function ChatWidget() {
     },
     [hydrateConversation],
   );
+
+  useEffect(() => {
+    conversationIdsRef.current = new Set(conversations.map((conversation) => conversation.id));
+  }, [conversations]);
 
   const loadInitialConversations = useCallback(async () => {
     if (!identityReady) return;
@@ -272,6 +285,22 @@ export function ChatWidget() {
     }
   }, [activeConversation, guestSessionId, identityReady, upsertConversation, userId]);
 
+  const refreshCurrentConversation = useCallback(async (): Promise<Conversation | null> => {
+    if (!identityReady) return null;
+    if (!userId && !guestSessionId) return null;
+    if (refreshingCurrentConversationRef.current) return null;
+
+    refreshingCurrentConversationRef.current = true;
+    try {
+      const conversation = await fetchCurrentConversation({ guestSessionId });
+      return upsertConversation(conversation);
+    } catch {
+      return null;
+    } finally {
+      refreshingCurrentConversationRef.current = false;
+    }
+  }, [guestSessionId, identityReady, upsertConversation, userId]);
+
   const loadMessages = useCallback(
     async (conversationId: string) => {
       setIsLoadingMessages(true);
@@ -280,6 +309,7 @@ export function ChatWidget() {
           guestSessionId,
         });
         const ordered = [...payload.content].reverse();
+        ordered.forEach((message) => knownMessageIdsRef.current.add(message.id));
         setMessages(ordered);
         setAutoScrollEnabled(true);
         setTimeout(() => scrollToBottom('auto'), 0);
@@ -316,6 +346,14 @@ export function ChatWidget() {
 
   const handleIncomingMessage = useCallback(
     (message: ChatMessage) => {
+      const isKnownMessage = knownMessageIdsRef.current.has(message.id);
+      knownMessageIdsRef.current.add(message.id);
+      const isKnownConversation = conversationIdsRef.current.has(message.conversationId);
+
+      if (!isKnownConversation) {
+        void refreshCurrentConversation();
+      }
+
       updateConversationPreview(message);
 
       if (message.conversationId === activeConversationId) {
@@ -325,7 +363,7 @@ export function ChatWidget() {
         }
       }
 
-      if (message.senderId !== currentParticipantId) {
+      if (message.senderId !== currentParticipantId && !isKnownMessage) {
         setConversations((current) =>
           current.map((conversation) =>
             conversation.id === message.conversationId
@@ -342,8 +380,10 @@ export function ChatWidget() {
       }
 
       if (message.senderId !== currentParticipantId && message.recipientId === currentParticipantId) {
-        markDelivered(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
-        if (message.conversationId === activeConversationId && isOpen) {
+        if (!message.deliveredAt) {
+          markDelivered(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
+        }
+        if (message.conversationId === activeConversationId && isOpen && !message.seenAt) {
           markSeen(message.conversationId, message.id, { guestSessionId }).catch(() => undefined);
         }
       }
@@ -354,6 +394,7 @@ export function ChatWidget() {
       currentParticipantId,
       guestSessionId,
       isOpen,
+      refreshCurrentConversation,
       scrollToBottom,
       updateConversationPreview,
       upsertMessage,
@@ -563,7 +604,8 @@ export function ChatWidget() {
       .find(
         (message) =>
           message.senderId !== currentParticipantId &&
-          message.recipientId === currentParticipantId,
+          message.recipientId === currentParticipantId &&
+          !message.seenAt,
       );
     if (!latestIncoming) return;
     markSeen(activeConversationId, latestIncoming.id, { guestSessionId }).catch(() => undefined);

@@ -2,7 +2,7 @@ export type AgentMessageRole = "user" | "assistant";
 
 export type AgentToolCallState = "pending" | "completed" | "error";
 
-export type AgentUICardType = "hitl" | "chart" | "news-canvas" | "product" | "order" | "inventory";
+export type AgentUICardType = "hitl" | "chart" | "news-canvas";
 
 export interface AgentToolCall {
   id: string;

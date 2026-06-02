@@ -24,13 +24,20 @@ import {
 import { cn } from '@/lib/utils'
 import useCheckActiveNav from '@/hooks/use-check-active-nav'
 import { getRoleNavConfig, type SideLink } from '@/data/sidelinks'
-import { fetchConversations, isChatServiceUnavailable } from '@/pages/admin/chats/chat-api'
+import { fetchConversations, isChatServiceUnavailable, type Conversation } from '@/pages/admin/chats/chat-api'
+import { getAccessToken, getRolesFromAccessToken, getUserIdFromAccessToken, pickPrimaryRole } from '@/services/authSession'
 import { useLocation } from 'react-router-dom'
 const CHAT_UNREAD_CHANGED_EVENT = 'admin-chat-unread-changed'
 const CHAT_UNREAD_POLL_INTERVAL_MS = 15000
 const CHAT_UNREAD_FAILURE_PAUSE_MS = 5 * 60 * 1000
 
 type ChatUnreadChangedEvent = CustomEvent<{ hasUnread: boolean }>
+
+function resolveChatWsUrl(): string {
+  const base = import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:8080'
+  const sockJsBase = String(base).replace(/\/$/, '').replace(/^wss:/, 'https:').replace(/^ws:/, 'http:')
+  return `${sockJsBase}/ws/chat`
+}
 
 interface NavProps extends React.HTMLAttributes<HTMLDivElement> {
   isCollapsed: boolean
@@ -269,6 +276,9 @@ function NavLinkIconDropdown({ title, icon, label, sub, hasUnreadBadge = false }
 function useChatUnreadBadge(chatRoute: string): boolean {
   const [hasUnreadChat, setHasUnreadChat] = useState(false)
   const retryAfterRef = useRef(0)
+  const refreshingRef = useRef(false)
+  const currentUserIdRef = useRef<string | null>(null)
+  const lastRealtimeMessageIdRef = useRef<string | null>(null)
   const shouldPollChat =
     typeof window !== 'undefined' &&
     !window.location.pathname.includes('/agent') &&
@@ -277,7 +287,9 @@ function useChatUnreadBadge(chatRoute: string): boolean {
   const refresh = useCallback(async () => {
     if (!shouldPollChat) return
     if (Date.now() < retryAfterRef.current) return
+    if (refreshingRef.current) return
 
+    refreshingRef.current = true
     try {
       const page = await fetchConversations(0, 100)
       retryAfterRef.current = 0
@@ -287,11 +299,14 @@ function useChatUnreadBadge(chatRoute: string): boolean {
         retryAfterRef.current = Date.now() + CHAT_UNREAD_FAILURE_PAUSE_MS
       }
       // Keep the last known badge state if chat-service is temporarily unavailable.
+    } finally {
+      refreshingRef.current = false
     }
   }, [shouldPollChat])
 
   useEffect(() => {
     if (!shouldPollChat) return
+    currentUserIdRef.current = getUserIdFromAccessToken(getAccessToken())
     void refresh()
 
     const intervalId = window.setInterval(() => {
@@ -314,6 +329,64 @@ function useChatUnreadBadge(chatRoute: string): boolean {
       window.clearInterval(intervalId)
       window.removeEventListener(CHAT_UNREAD_CHANGED_EVENT, handleUnreadChanged)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [refresh, shouldPollChat])
+
+  useEffect(() => {
+    if (!shouldPollChat) return
+
+    let client: import('@stomp/stompjs').Client | null = null
+    let cancelled = false
+
+    async function connectRealtimeBadge() {
+      const [{ Client }, { default: SockJS }] = await Promise.all([
+        import('@stomp/stompjs'),
+        import('sockjs-client'),
+      ])
+      if (cancelled) return
+
+      const token = getAccessToken()
+      const currentUserId = getUserIdFromAccessToken(token)
+      const role = pickPrimaryRole(getRolesFromAccessToken(token)) ?? 'ADMIN'
+      currentUserIdRef.current = currentUserId
+
+      client = new Client({
+        webSocketFactory: () => new SockJS(resolveChatWsUrl()),
+        connectHeaders: {
+          ...(currentUserId ? { 'X-User-Id': currentUserId } : {}),
+          'X-User-Role': role,
+        },
+        reconnectDelay: 5000,
+        onConnect: () => {
+          client?.subscribe('/topic/conversations', (frame) => {
+            try {
+              const conversation = JSON.parse(frame.body) as Conversation
+              const messageId = conversation.lastMessage?.id
+              if (messageId && messageId === lastRealtimeMessageIdRef.current) return
+              if (messageId) lastRealtimeMessageIdRef.current = messageId
+
+              const senderId = conversation.lastMessage?.senderId
+              if (senderId && senderId !== currentUserIdRef.current && !window.location.pathname.endsWith('/chats')) {
+                setHasUnreadChat((current) => current || true)
+              }
+            } catch {
+              // Ignore malformed realtime payloads; polling is still the fallback.
+            }
+          })
+          client?.subscribe('/topic/conversations/deleted', () => {
+            void refresh()
+          })
+        },
+      })
+
+      client.activate()
+    }
+
+    void connectRealtimeBadge()
+
+    return () => {
+      cancelled = true
+      client?.deactivate()
     }
   }, [refresh, shouldPollChat])
 
