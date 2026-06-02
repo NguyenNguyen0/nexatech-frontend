@@ -166,6 +166,14 @@ export const admin: RouteObject[] = [
                 }),
             },
 
+            /** Monitoring */
+            {
+                path: 'monitoring',
+                lazy: async () => ({
+                    Component: (await import('@/pages/admin/monitoring')).default,
+                }),
+            },
+
             /** Promotions */
             {
                 path: 'promotions/flash-sales',
