@@ -279,8 +279,12 @@ function useChatUnreadBadge(chatRoute: string): boolean {
   const refreshingRef = useRef(false)
   const currentUserIdRef = useRef<string | null>(null)
   const lastRealtimeMessageIdRef = useRef<string | null>(null)
+  const isChatPage =
+    typeof window !== 'undefined' &&
+    window.location.pathname.endsWith('/chats')
   const shouldPollChat =
     typeof window !== 'undefined' &&
+    !isChatPage &&
     !window.location.pathname.includes('/agent') &&
     (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/staff'))
 
