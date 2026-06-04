@@ -2,6 +2,14 @@
 
 > E-commerce platform frontend — split into two independent applications for clear separation of concerns and independent deployment.
 
+<p align="left">
+  <img src="https://img.shields.io/badge/React-19.2.0-61dafb?logo=react&style=flat-square" alt="React 19.2.0" />
+  <img src="https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&style=flat-square" alt="Next.js 15" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9.3-3178c6?logo=typescript&style=flat-square" alt="TypeScript 5.9.3" />
+  <img src="https://img.shields.io/badge/TailwindCSS-v4-38bdf8?logo=tailwindcss&style=flat-square" alt="TailwindCSS v4" />
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&style=flat-square" alt="Vite 8" />
+</p>
+
 ## Architecture Overview
 
 ```
@@ -89,8 +97,8 @@ npm run dev
 
 | | Client (Storefront) | Admin (Dashboard) |
 |--|---------------------|-------------------|
-| **Framework** | Next.js 15 (App Router) | Vite 6 + React 19 |
-| **Language** | TypeScript | TypeScript |
+| **Framework** | Next.js 15 (App Router) | Vite 8 + React 19.2.0 |
+| **Language** | TypeScript 5.9.3 | TypeScript 5.9.3 |
 | **Styling** | TailwindCSS v4 + Shadcn UI | TailwindCSS v4 + Shadcn UI |
 | **Routing** | File-based (App Router) | react-router-dom v7 |
 | **HTTP Client** | Axios (with interceptors) | Axios (with interceptors) |
