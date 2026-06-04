@@ -6,6 +6,7 @@ import {
     IconHistory,
     IconKey,
     IconLayoutDashboard,
+    IconChartDots3,
     IconMessages,
     IconNews,
     IconRosetteDiscount,
@@ -100,6 +101,11 @@ export const adminSidelinks: SideLink[] = [
             { title: 'Audit Log', href: `${P}/audit`, icon: <IconHistory size={18} /> },
             { title: 'Trace Log', href: `${P}/audit/trace`, icon: <IconTimeline size={18} /> },
         ],
+    },
+    {
+        title: 'Monitoring',
+        href: `${P}/monitoring`,
+        icon: <IconChartDots3 size={18} />,
     },
     {
         title: 'Settings',
