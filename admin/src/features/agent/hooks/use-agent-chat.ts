@@ -5,8 +5,13 @@
  * registered), not against a missing provider.
  */
 import { useCallback } from "react";
-import { useAgent } from "@copilotkit/react-core/v2/headless";
-import { useCopilotKit } from "@copilotkit/react-core/v2";
+// Both hooks must come from the same "/v2" entry point as CopilotKitProvider
+// (index.tsx). Importing useAgent from the separate "/v2/headless" subpath
+// makes Vite pre-bundle it as its own chunk with its own copy of the shared
+// React context module, so useAgent/useCopilotKit never find the Provider
+// even though it's correctly mounted — "useCopilotKit must be used within
+// CopilotKitProvider" despite the JSX nesting being right.
+import { useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
 import { v4 as uuidv4 } from "uuid";
 import type { AbstractAgent } from "@ag-ui/client";
 import type { Message } from "@ag-ui/core";
