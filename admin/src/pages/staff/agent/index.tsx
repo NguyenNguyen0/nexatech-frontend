@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconAlertTriangle, IconRefresh, IconSparkles } from "@tabler/icons-react";
 import { CopilotKitProvider } from "@copilotkit/react-core/v2";
+import { LangGraphHttpAgent } from "@ag-ui/langgraph";
 import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { useAgentChat, type RenderedToolCall } from "@/features/agent/hooks/use-agent-chat";
+import { useAgentChat, type AgentTurnResult, type RenderedToolCall } from "@/features/agent/hooks/use-agent-chat";
+import { AGENT_TOOL_CALL_RENDERERS } from "@/features/agent/hooks/agent-generative-ui-renderers";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
 import { AgentMarkdown } from "@/features/agent/components/agent-markdown";
@@ -25,6 +27,7 @@ import type {
   AgentConversationSummary,
   AgentHitlDecisionInput,
   AgentToolCall,
+  AgentToolCallState,
   AgentUICard,
 } from "@/features/agent/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +36,7 @@ import { getAccessToken } from "@/services/authSession";
 import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "nexatech_admin_agent_draft_v1";
+const AGENT_ID = (import.meta.env.VITE_COPILOTKIT_AGENT_ID || "nexatech_agent").trim();
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -77,14 +81,28 @@ function getAgentStreamErrorMessage(error: unknown): string {
   return "Agent service khong phan hoi. Vui long thu lai.";
 }
 
-function getToolStateLabel(toolCall: AgentToolCall): string {
-  if (toolCall.state === "pending") return "Dang chay";
-  if (toolCall.state === "completed") return "Hoan tat";
+function toPersistedToolCalls(toolCalls: RenderedToolCall[]): AgentToolCall[] {
+  const now = nowIso();
+  return toolCalls.map((toolCall) => ({
+    id: toolCall.id,
+    name: toolCall.name,
+    args: toolCall.args,
+    state: toolCall.state,
+    startedAt: now,
+    completedAt: toolCall.state === "pending" ? undefined : now,
+    result: toolCall.result,
+  }));
+}
+
+function getToolStateLabel(state: AgentToolCallState): string {
+  if (state === "pending") return "Dang chay";
+  if (state === "completed") return "Hoan tat";
   return "Loi";
 }
 
-function AgentStreamingIndicator({ message }: { message: AgentChatMessage }) {
-  const toolCalls = message.toolCalls ?? [];
+type StreamingToolCall = { id: string; name: string; state: AgentToolCallState };
+
+function AgentStreamingIndicator({ toolCalls }: { toolCalls: StreamingToolCall[] }) {
   const activeTool = [...toolCalls].reverse().find((toolCall) => toolCall.state === "pending");
   const completedCount = toolCalls.filter((toolCall) => toolCall.state === "completed").length;
 
@@ -118,7 +136,7 @@ function AgentStreamingIndicator({ message }: { message: AgentChatMessage }) {
                 )}
               />
               <span className="truncate font-medium text-foreground">{toolCall.name}</span>
-              <span className="shrink-0 text-muted-foreground">{getToolStateLabel(toolCall)}</span>
+              <span className="shrink-0 text-muted-foreground">{getToolStateLabel(toolCall.state)}</span>
             </div>
           ))}
         </div>
@@ -130,9 +148,10 @@ function AgentStreamingIndicator({ message }: { message: AgentChatMessage }) {
 type AguiChatBridge = {
   latestAssistantText: string;
   toolCalls: RenderedToolCall[];
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string) => Promise<AgentTurnResult>;
   stopGeneration: () => void;
   isReady: boolean;
+  isLoading: boolean;
 };
 
 function AgentPageContent({
@@ -157,7 +176,6 @@ function AgentPageContent({
     conversationId: string;
     assistantMessageId: string;
     prompt: string;
-    lastContent: string;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const runTrackingRef = useRef<{ runId?: string; threadId?: string }>({});
@@ -171,20 +189,8 @@ function AgentPageContent({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [conversations, activeConversationId]);
 
-  useEffect(() => {
-    if (!copilotKitEnabled || !aguiChat || !aguiChat.isReady) return;
-    const pending = aguiRunRef.current;
-    if (!pending) return;
-
-    const latestText = aguiChat.latestAssistantText;
-    if (!latestText || latestText === pending.lastContent) return;
-
-    pending.lastContent = latestText;
-    updateMessage(pending.conversationId, pending.assistantMessageId, (message) => ({
-      ...message,
-      content: latestText,
-    }));
-  }, [copilotKitEnabled, aguiChat]);
+  const activeAguiMessageId =
+    copilotKitEnabled && aguiChat?.isReady ? aguiRunRef.current?.assistantMessageId ?? null : null;
 
   const sortedSummaries = useMemo(
     () => [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(toSummary),
@@ -445,24 +451,20 @@ function AgentPageContent({
     }
 
     setIsStreaming(true);
-    aguiRunRef.current = {
-      conversationId,
-      assistantMessageId,
-      prompt,
-      lastContent: "",
-    };
+    aguiRunRef.current = { conversationId, assistantMessageId, prompt };
 
     try {
-      await aguiChat.sendMessage(prompt);
+      const turnResult = await aguiChat.sendMessage(prompt);
 
-      if (aguiChat.latestAssistantText) {
-        updateMessage(conversationId, assistantMessageId, (message) => ({
-          ...message,
-          content: aguiChat.latestAssistantText,
-        }));
-      }
-
-      finalizeAssistantMessage(conversationId, assistantMessageId);
+      // Freeze the live AG-UI view into local state once the run finishes,
+      // so history/reload renders it the same way as any other message.
+      // Read from the resolved turnResult, not aguiChat — aguiChat's fields
+      // are memoized against the render this closure was created in and
+      // would be stale after the await.
+      finalizeAssistantMessage(conversationId, assistantMessageId, {
+        content: turnResult.text,
+        toolCalls: toPersistedToolCalls(turnResult.toolCalls),
+      });
       void loadConversationSummaries();
     } catch (error) {
       const errorMessage = getAgentStreamErrorMessage(error);
@@ -760,7 +762,20 @@ function AgentPageContent({
                 )}
                 {!activeConversation || activeConversation.messages.length === 0
                   ? renderEmptyState()
-                  : activeConversation.messages.map((message) => (
+                  : activeConversation.messages.map((message) => {
+                    // While this message is the in-flight AG-UI turn, render
+                    // live from aguiChat (reactive — updates as the stream
+                    // progresses) instead of the local snapshot, which is
+                    // only written once the turn finishes.
+                    const isLiveAgui = message.id === activeAguiMessageId;
+                    const displayContent = isLiveAgui ? aguiChat?.latestAssistantText ?? "" : message.content;
+                    const displayIsStreaming = isLiveAgui ? Boolean(aguiChat?.isLoading) : Boolean(message.isStreaming);
+                    const liveToolCalls = isLiveAgui ? aguiChat?.toolCalls ?? [] : null;
+                    const streamingIndicatorToolCalls: StreamingToolCall[] = liveToolCalls
+                      ? liveToolCalls.map((toolCall) => ({ id: toolCall.id, name: toolCall.name, state: toolCall.state }))
+                      : (message.toolCalls ?? []).map((toolCall) => ({ id: toolCall.id, name: toolCall.name, state: toolCall.state }));
+
+                    return (
                     <article
                       key={message.id}
                       className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
@@ -773,17 +788,17 @@ function AgentPageContent({
                             : "border-border bg-card",
                         )}
                       >
-                        {message.role === "assistant" && message.content.trim() ? (
-                          <AgentMarkdown content={message.content} />
-                        ) : message.role === "assistant" && message.isStreaming ? (
-                          <AgentStreamingIndicator message={message} />
+                        {message.role === "assistant" && displayContent.trim() ? (
+                          <AgentMarkdown content={displayContent} />
+                        ) : message.role === "assistant" && displayIsStreaming ? (
+                          <AgentStreamingIndicator toolCalls={streamingIndicatorToolCalls} />
                         ) : message.role === "user" ? (
                           <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                         ) : null}
 
-                        {message.role === "assistant" && message.isStreaming && message.content.trim() && (
+                        {message.role === "assistant" && displayIsStreaming && displayContent.trim() && (
                           <div className="mt-3 border-t border-border/70 pt-2">
-                            <AgentStreamingIndicator message={message} />
+                            <AgentStreamingIndicator toolCalls={streamingIndicatorToolCalls} />
                           </div>
                         )}
 
@@ -814,13 +829,36 @@ function AgentPageContent({
                           </div>
                         )}
 
-                        {message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
+                        {liveToolCalls && liveToolCalls.length > 0 ? (
                           <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
                             <div className="text-xs font-medium text-muted-foreground">Tools used</div>
-                            {message.toolCalls.map((toolCall) => (
-                              <AgentToolCallCard key={toolCall.id} toolCall={toolCall} />
+                            {liveToolCalls.map((toolCall) => (
+                              <div key={toolCall.id} className="space-y-1">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span
+                                    className={cn(
+                                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                                      toolCall.state === "pending" && "animate-pulse bg-primary",
+                                      toolCall.state === "completed" && "bg-emerald-600",
+                                      toolCall.state === "error" && "bg-destructive",
+                                    )}
+                                  />
+                                  <span className="font-medium text-foreground">{toolCall.name}</span>
+                                  <span>{getToolStateLabel(toolCall.state)}</span>
+                                </div>
+                                {toolCall.element}
+                              </div>
                             ))}
                           </div>
+                        ) : (
+                          message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
+                            <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
+                              <div className="text-xs font-medium text-muted-foreground">Tools used</div>
+                              {message.toolCalls.map((toolCall) => (
+                                <AgentToolCallCard key={toolCall.id} toolCall={toolCall} />
+                              ))}
+                            </div>
+                          )
                         )}
 
                         {message.role === "assistant" && message.uiCards && message.uiCards.length > 0 && (
@@ -833,7 +871,8 @@ function AgentPageContent({
                         )}
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -871,14 +910,21 @@ export default function AgentPage() {
   const useAguiFlag = String(import.meta.env.VITE_USE_AGUI ?? "true").toLowerCase() !== "false";
   const accessToken = getAccessToken();
   const aguiEnabled = useAguiFlag && Boolean(accessToken);
-  const providerHeaders = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
 
-  if (!aguiEnabled) {
+  const agent = useMemo(() => {
+    if (!aguiEnabled) return null;
+    return new LangGraphHttpAgent({
+      url: runtimeUrl,
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    });
+  }, [aguiEnabled, runtimeUrl, accessToken]);
+
+  if (!aguiEnabled || !agent) {
     return <AgentPageContent copilotKitEnabled={false} aguiChat={null} />;
   }
 
   return (
-    <CopilotKitProvider runtimeUrl={runtimeUrl} headers={providerHeaders}>
+    <CopilotKitProvider selfManagedAgents={{ [AGENT_ID]: agent }} renderToolCalls={AGENT_TOOL_CALL_RENDERERS}>
       <AgentPageAguiContent copilotKitEnabled />
     </CopilotKitProvider>
   );
