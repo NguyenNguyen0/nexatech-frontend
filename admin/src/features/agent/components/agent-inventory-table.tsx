@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { unwrapMcpResult } from "@/features/agent/lib/unwrap-mcp-result";
 
 type StockLike = {
   productId?: string;
@@ -14,9 +15,11 @@ interface AgentInventoryTableProps {
 }
 
 function toRows(data: unknown): StockLike[] {
-  if (Array.isArray(data)) return data as StockLike[];
-  if (typeof data === "object" && data !== null) {
-    const record = data as Record<string, unknown>;
+  const unwrapped = unwrapMcpResult(data);
+  if (Array.isArray(unwrapped)) return unwrapped as StockLike[];
+  if (typeof unwrapped === "object" && unwrapped !== null) {
+    const record = unwrapped as Record<string, unknown>;
+    if (Array.isArray(record.content)) return record.content as StockLike[];
     if (Array.isArray(record.items)) return record.items as StockLike[];
     if (Array.isArray(record.inventory)) return record.inventory as StockLike[];
     if (record.productId || record.sku) return [record as StockLike];

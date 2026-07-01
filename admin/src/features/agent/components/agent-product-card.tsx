@@ -1,12 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { unwrapMcpResult } from "@/features/agent/lib/unwrap-mcp-result";
 
 type ProductLike = {
   id?: string;
   name?: string;
   price?: number;
+  primaryCategoryName?: string;
   categoryName?: string;
   category?: string;
+  stockQuantity?: number;
+  stockStatus?: string;
   stock?: number;
   slug?: string;
 };
@@ -16,9 +20,11 @@ interface AgentProductCardProps {
 }
 
 function toProducts(data: unknown): ProductLike[] {
-  if (Array.isArray(data)) return data as ProductLike[];
-  if (typeof data === "object" && data !== null) {
-    const record = data as Record<string, unknown>;
+  const unwrapped = unwrapMcpResult(data);
+  if (Array.isArray(unwrapped)) return unwrapped as ProductLike[];
+  if (typeof unwrapped === "object" && unwrapped !== null) {
+    const record = unwrapped as Record<string, unknown>;
+    if (Array.isArray(record.content)) return record.content as ProductLike[];
     if (Array.isArray(record.items)) return record.items as ProductLike[];
     if (Array.isArray(record.products)) return record.products as ProductLike[];
     if (record.id || record.name) return [record as ProductLike];
@@ -47,8 +53,13 @@ export function AgentProductCard({ data }: AgentProductCardProps) {
               )}
             </div>
             <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-              {(product.categoryName || product.category) && <span>{product.categoryName ?? product.category}</span>}
-              {typeof product.stock === "number" && <span>Stock: {product.stock}</span>}
+              {(product.primaryCategoryName || product.categoryName || product.category) && (
+                <span>{product.primaryCategoryName ?? product.categoryName ?? product.category}</span>
+              )}
+              {typeof (product.stockQuantity ?? product.stock) === "number" && (
+                <span>Stock: {product.stockQuantity ?? product.stock}</span>
+              )}
+              {product.stockStatus && <span>{product.stockStatus}</span>}
               {product.id && <span>ID: {product.id}</span>}
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { unwrapMcpResult } from "@/features/agent/lib/unwrap-mcp-result";
 
 type OrderLike = {
   id?: string;
@@ -15,9 +16,11 @@ interface AgentOrderCardProps {
 }
 
 function toOrders(data: unknown): OrderLike[] {
-  if (Array.isArray(data)) return data as OrderLike[];
-  if (typeof data === "object" && data !== null) {
-    const record = data as Record<string, unknown>;
+  const unwrapped = unwrapMcpResult(data);
+  if (Array.isArray(unwrapped)) return unwrapped as OrderLike[];
+  if (typeof unwrapped === "object" && unwrapped !== null) {
+    const record = unwrapped as Record<string, unknown>;
+    if (Array.isArray(record.content)) return record.content as OrderLike[];
     if (Array.isArray(record.items)) return record.items as OrderLike[];
     if (Array.isArray(record.orders)) return record.orders as OrderLike[];
     if (record.id || record.orderId) return [record as OrderLike];
