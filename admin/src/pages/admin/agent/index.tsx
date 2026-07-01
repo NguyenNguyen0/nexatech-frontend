@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IconAlertTriangle, IconRefresh, IconSparkles } from "@tabler/icons-react";
 import { CopilotKitProvider } from "@copilotkit/react-core/v2";
+import { LangGraphHttpAgent } from "@ag-ui/langgraph";
 import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
@@ -33,6 +34,7 @@ import { getAccessToken } from "@/services/authSession";
 import { toast } from "sonner";
 
 const DRAFT_STORAGE_KEY = "nexatech_admin_agent_draft_v1";
+const AGENT_ID = (import.meta.env.VITE_COPILOTKIT_AGENT_ID || "nexatech_agent").trim();
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -871,14 +873,21 @@ export default function AgentPage() {
   const useAguiFlag = String(import.meta.env.VITE_USE_AGUI ?? "true").toLowerCase() !== "false";
   const accessToken = getAccessToken();
   const aguiEnabled = useAguiFlag && Boolean(accessToken);
-  const providerHeaders = accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined;
 
-  if (!aguiEnabled) {
+  const agent = useMemo(() => {
+    if (!aguiEnabled) return null;
+    return new LangGraphHttpAgent({
+      url: runtimeUrl,
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    });
+  }, [aguiEnabled, runtimeUrl, accessToken]);
+
+  if (!aguiEnabled || !agent) {
     return <AgentPageContent copilotKitEnabled={false} aguiChat={null} />;
   }
 
   return (
-    <CopilotKitProvider runtimeUrl={runtimeUrl} headers={providerHeaders}>
+    <CopilotKitProvider selfManagedAgents={{ [AGENT_ID]: agent }}>
       <AgentPageAguiContent copilotKitEnabled />
     </CopilotKitProvider>
   );
