@@ -93,7 +93,7 @@ function getAgentErrorMessage(error: unknown): string {
 }
 
 function AgentPageContent() {
-  const aguiChat = useAgentChat();
+  const aguiChat = useAgentChat(AGENT_ID);
 
   const [conversations, setConversations] = useState<AgentConversation[]>([]);
   const [draft, setDraft] = useLocalStorage<string>({ key: DRAFT_STORAGE_KEY, defaultValue: "" });

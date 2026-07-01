@@ -30,9 +30,13 @@ export type AgentChatBridge =
       isReady: false;
     };
 
-export function useAgentChat(): AgentChatBridge {
+export function useAgentChat(agentId: string): AgentChatBridge {
   try {
-    const { agent } = useAgent();
+    // useAgent() with no args looks up agentId "default" — our agent is
+    // registered under AGENT_ID (selfManagedAgents={{[AGENT_ID]: agent}} in
+    // index.tsx), so it must be passed explicitly here too or useAgent
+    // throws "Agent 'default' not found".
+    const { agent } = useAgent({ agentId });
     const { copilotkit } = useCopilotKit();
 
     // copilotkit.runAgent (not agent.runAgent directly) is what keeps
