@@ -1,35 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { IconAlertTriangle, IconRefresh, IconSparkles } from "@tabler/icons-react";
-import { CopilotKitProvider } from "@copilotkit/react-core/v2";
+import { IconSparkles } from "@tabler/icons-react";
+import { CopilotKitProvider, CopilotChatMessageView } from "@copilotkit/react-core/v2";
+import "@copilotkit/react-core/v2/styles.css";
 import { LangGraphHttpAgent } from "@ag-ui/langgraph";
+import { v4 as uuidv4 } from "uuid";
+import type { Message } from "@ag-ui/core";
 import { Layout } from "@/components/custom/layout";
-import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
-import { useAgentChat, type AgentTurnResult, type RenderedToolCall } from "@/features/agent/hooks/use-agent-chat";
+import { useAgentChat } from "@/features/agent/hooks/use-agent-chat";
 import { AGENT_TOOL_CALL_RENDERERS } from "@/features/agent/hooks/agent-generative-ui-renderers";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
-import { AgentMarkdown } from "@/features/agent/components/agent-markdown";
-import { AgentToolCallCard } from "@/features/agent/components/agent-tool-call-card";
-import { AgentUICardView } from "@/features/agent/components/agent-ui-card";
 import {
-  cancelAgentRun,
   deleteAgentSession,
   getAgentConversationDetail,
   listAgentConversations,
-  resumeAgentRun,
-  startAgentRunStream,
   updateAgentSessionTitle,
 } from "@/features/agent/services/agentApi";
-import type {
-  AgentChatMessage,
-  AgentConversation,
-  AgentConversationSummary,
-  AgentHitlDecisionInput,
-  AgentToolCall,
-  AgentToolCallState,
-  AgentUICard,
-} from "@/features/agent/types";
+import type { AgentChatMessage, AgentConversation, AgentConversationSummary } from "@/features/agent/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { getAccessToken } from "@/services/authSession";
@@ -40,17 +28,6 @@ const AGENT_ID = (import.meta.env.VITE_COPILOTKIT_AGENT_ID || "nexatech_agent").
 
 function nowIso(): string {
   return new Date().toISOString();
-}
-
-function createConversation(title = "Hoi thoai moi"): AgentConversation {
-  const now = nowIso();
-  return {
-    id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    title,
-    createdAt: now,
-    updatedAt: now,
-    messages: [],
-  };
 }
 
 function toSummary(conversation: AgentConversation): AgentConversationSummary {
@@ -64,133 +41,73 @@ function toSummary(conversation: AgentConversation): AgentConversationSummary {
   };
 }
 
-function getAgentStreamErrorMessage(error: unknown): string {
+/**
+ * Converts our Mongo-persisted message shape into real AG-UI messages, so a
+ * live agent instance can be seeded with a conversation's prior history
+ * (agent.setMessages) before the user continues chatting in it.
+ */
+function toAgUiMessages(messages: AgentChatMessage[]): Message[] {
+  const result: Message[] = [];
+
+  for (const message of messages) {
+    if (message.role === "user") {
+      result.push({ id: message.id, role: "user", content: message.content } as Message);
+      continue;
+    }
+
+    const toolCalls = (message.toolCalls ?? []).map((toolCall) => ({
+      id: toolCall.id,
+      type: "function" as const,
+      function: { name: toolCall.name, arguments: JSON.stringify(toolCall.args ?? {}) },
+    }));
+
+    result.push({
+      id: message.id,
+      role: "assistant",
+      content: message.content || "",
+      ...(toolCalls.length > 0 ? { toolCalls } : {}),
+    } as Message);
+
+    for (const toolCall of message.toolCalls ?? []) {
+      result.push({
+        id: `${toolCall.id}-result`,
+        role: "tool",
+        toolCallId: toolCall.id,
+        content: typeof toolCall.result === "string" ? toolCall.result : JSON.stringify(toolCall.result ?? {}),
+      } as Message);
+    }
+  }
+
+  return result;
+}
+
+function getAgentErrorMessage(error: unknown): string {
   if (error instanceof TypeError) {
     return "Khong ket noi duoc den agent service. Kiem tra mang hoac backend roi thu lai.";
   }
-
   if (error instanceof Error) {
     const detail = error.message.trim();
-    if (!detail) return "Agent service khong phan hoi. Vui long thu lai.";
-    if (/failed to fetch|networkerror|network request failed/i.test(detail)) {
-      return "Mat ket noi khi dang nhan phan hoi tu agent. Vui long kiem tra mang va thu lai.";
-    }
-    return detail;
+    return detail || "Agent service khong phan hoi. Vui long thu lai.";
   }
-
   return "Agent service khong phan hoi. Vui long thu lai.";
 }
 
-function toPersistedToolCalls(toolCalls: RenderedToolCall[]): AgentToolCall[] {
-  const now = nowIso();
-  return toolCalls.map((toolCall) => ({
-    id: toolCall.id,
-    name: toolCall.name,
-    args: toolCall.args,
-    state: toolCall.state,
-    startedAt: now,
-    completedAt: toolCall.state === "pending" ? undefined : now,
-    result: toolCall.result,
-  }));
-}
+function AgentPageContent() {
+  const aguiChat = useAgentChat();
 
-function getToolStateLabel(state: AgentToolCallState): string {
-  if (state === "pending") return "Dang chay";
-  if (state === "completed") return "Hoan tat";
-  return "Loi";
-}
-
-type StreamingToolCall = { id: string; name: string; state: AgentToolCallState };
-
-function AgentStreamingIndicator({ toolCalls }: { toolCalls: StreamingToolCall[] }) {
-  const activeTool = [...toolCalls].reverse().find((toolCall) => toolCall.state === "pending");
-  const completedCount = toolCalls.filter((toolCall) => toolCall.state === "completed").length;
-
-  return (
-    <div className="space-y-3 text-sm text-muted-foreground">
-      <div className="inline-flex items-center gap-2">
-        <span className="inline-flex items-center gap-1" aria-label="Agent dang streaming">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current [animation-delay:150ms]" />
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current [animation-delay:300ms]" />
-        </span>
-        <span>
-          {activeTool
-            ? `Dang goi tool: ${activeTool.name}`
-            : completedCount > 0
-              ? `Da chay ${completedCount} tool, dang tong hop phan hoi`
-              : "Agent dang xu ly"}
-        </span>
-      </div>
-
-      {toolCalls.length > 0 && (
-        <div className="space-y-1 border-l border-border pl-3">
-          {toolCalls.map((toolCall) => (
-            <div key={toolCall.id} className="flex min-w-0 items-center gap-2 text-xs">
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  toolCall.state === "pending" && "animate-pulse bg-primary",
-                  toolCall.state === "completed" && "bg-emerald-600",
-                  toolCall.state === "error" && "bg-destructive",
-                )}
-              />
-              <span className="truncate font-medium text-foreground">{toolCall.name}</span>
-              <span className="shrink-0 text-muted-foreground">{getToolStateLabel(toolCall.state)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-type AguiChatBridge = {
-  latestAssistantText: string;
-  toolCalls: RenderedToolCall[];
-  sendMessage: (content: string) => Promise<AgentTurnResult>;
-  stopGeneration: () => void;
-  isReady: boolean;
-  isLoading: boolean;
-};
-
-function AgentPageContent({
-  copilotKitEnabled,
-  aguiChat,
-}: {
-  copilotKitEnabled: boolean;
-  aguiChat: AguiChatBridge | null;
-}) {
   const [conversations, setConversations] = useState<AgentConversation[]>([]);
-  const [draft, setDraft] = useLocalStorage<string>({
-    key: DRAFT_STORAGE_KEY,
-    defaultValue: "",
-  });
+  const [draft, setDraft] = useLocalStorage<string>({ key: DRAFT_STORAGE_KEY, defaultValue: "" });
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [mobileHistoryOpen, setMobileHistoryOpen] = useState(true);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const aguiRunRef = useRef<{
-    conversationId: string;
-    assistantMessageId: string;
-    prompt: string;
-  } | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const runTrackingRef = useRef<{ runId?: string; threadId?: string }>({});
   const loadedConversationDetailRef = useRef<Set<string>>(new Set());
+  const seededConversationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     void loadConversationSummaries();
   }, []);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [conversations, activeConversationId]);
-
-  const activeAguiMessageId =
-    copilotKitEnabled && aguiChat?.isReady ? aguiRunRef.current?.assistantMessageId ?? null : null;
 
   const sortedSummaries = useMemo(
     () => [...conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(toSummary),
@@ -201,6 +118,13 @@ function AgentPageContent({
     () => conversations.find((conversation) => conversation.id === activeConversationId) ?? null,
     [conversations, activeConversationId],
   );
+
+  function seedAgent(conversationId: string, history: AgentChatMessage[]) {
+    if (!aguiChat.isReady) return;
+    aguiChat.agent.threadId = conversationId;
+    aguiChat.agent.setMessages(toAgUiMessages(history));
+    seededConversationIdRef.current = conversationId;
+  }
 
   async function loadConversationSummaries() {
     setIsLoadingHistory(true);
@@ -220,45 +144,29 @@ function AgentPageContent({
           };
         });
         const optimisticConversations = current.filter(
-          (conversation) =>
-            !summaryIds.has(conversation.id)
-            && (conversation.id.startsWith("local-")
-              || conversation.messages.length > 0
-              || conversation.id === activeConversationId),
+          (conversation) => !summaryIds.has(conversation.id) && conversation.messages.length > 0,
         );
         return [...serverConversations, ...optimisticConversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
       });
-
-      setActiveConversationId((current) => {
-        if (current) return current;
-        return summaries[0]?.id ?? null;
-      });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Khong the tai danh sach hoi thoai";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "Khong the tai danh sach hoi thoai");
     } finally {
       setIsLoadingHistory(false);
     }
   }
 
   async function loadConversationDetail(threadId: string) {
-    if (!threadId || threadId.startsWith("local-")) return;
-
     try {
       const detail = await getAgentConversationDetail(threadId, 100);
       loadedConversationDetailRef.current.add(threadId);
       upsertConversation(detail);
+      if (activeConversationId === threadId) {
+        seedAgent(threadId, detail.messages);
+      }
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Khong the tai chi tiet hoi thoai";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "Khong the tai chi tiet hoi thoai");
     }
   }
-
-  useEffect(() => {
-    if (!activeConversationId || activeConversationId.startsWith("local-")) return;
-    if (loadedConversationDetailRef.current.has(activeConversationId)) return;
-    void loadConversationDetail(activeConversationId);
-  }, [activeConversationId]);
 
   function upsertConversation(conversation: AgentConversation) {
     setConversations((current) => {
@@ -273,9 +181,7 @@ function AgentPageContent({
   function renameConversationLocal(conversationId: string, title: string) {
     setConversations((current) =>
       current.map((conversation) =>
-        conversation.id === conversationId
-          ? { ...conversation, title, updatedAt: nowIso() }
-          : conversation,
+        conversation.id === conversationId ? { ...conversation, title, updatedAt: nowIso() } : conversation,
       ),
     );
   }
@@ -284,58 +190,7 @@ function AgentPageContent({
     setConversations((current) => current.filter((conversation) => conversation.id !== conversationId));
   }
 
-  function migrateConversationId(fromId: string, toId: string) {
-    if (fromId === toId) return;
-
-    setConversations((current) => {
-      const existing = current.find((item) => item.id === fromId);
-      if (!existing) return current;
-
-      const withoutFrom = current.filter((item) => item.id !== fromId && item.id !== toId);
-      return [
-        {
-          ...existing,
-          id: toId,
-          updatedAt: nowIso(),
-        },
-        ...withoutFrom,
-      ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    });
-
-    setActiveConversationId((current) => (current === fromId ? toId : current));
-    loadedConversationDetailRef.current.add(toId);
-  }
-
-  function updateMessage(
-    conversationId: string,
-    messageId: string,
-    updater: (message: AgentChatMessage) => AgentChatMessage,
-  ) {
-    setConversations((current) =>
-      current.map((conversation) => {
-        if (conversation.id !== conversationId) return conversation;
-        return {
-          ...conversation,
-          updatedAt: nowIso(),
-          messages: conversation.messages.map((message) =>
-            message.id === messageId ? updater(message) : message,
-          ),
-        };
-      }),
-    );
-  }
-
-  function createNewConversation() {
-    setActiveConversationId(null);
-    setMobileHistoryOpen(false);
-  }
-
   async function handleRenameConversation(conversationId: string) {
-    if (conversationId.startsWith("local-")) {
-      toast.info("Hoi thoai moi chua duoc luu tren server.");
-      return;
-    }
-
     const conversation = conversations.find((item) => item.id === conversationId);
     if (!conversation) return;
 
@@ -347,18 +202,11 @@ function AgentPageContent({
       renameConversationLocal(conversationId, nextTitle.trim());
       toast.success("Da cap nhat ten hoi thoai");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Khong the cap nhat ten hoi thoai";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "Khong the cap nhat ten hoi thoai");
     }
   }
 
   async function handleDeleteConversation(conversationId: string) {
-    if (conversationId.startsWith("local-")) {
-      removeConversationLocal(conversationId);
-      setActiveConversationId((current) => (current === conversationId ? null : current));
-      return;
-    }
-
     const conversation = conversations.find((item) => item.id === conversationId);
     if (!conversation) return;
 
@@ -371,340 +219,71 @@ function AgentPageContent({
       setActiveConversationId((current) => (current === conversationId ? null : current));
       toast.success("Da xoa hoi thoai");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Khong the xoa hoi thoai";
-      toast.error(message);
+      toast.error(error instanceof Error ? error.message : "Khong the xoa hoi thoai");
     }
   }
 
-  function ensureActiveConversation(prompt: string): AgentConversation {
-    if (activeConversation) return activeConversation;
-    const title = prompt.trim().slice(0, 40) || "Hoi thoai moi";
-    const nextConversation = createConversation(title);
-    upsertConversation(nextConversation);
-    setActiveConversationId(nextConversation.id);
-    return nextConversation;
-  }
-
-  function finalizeAssistantMessage(conversationId: string, messageId: string, patch?: Partial<AgentChatMessage>) {
-    updateMessage(conversationId, messageId, (message) => ({
-      ...message,
-      ...patch,
-      isStreaming: false,
-    }));
-  }
-
-  function upsertToolCallInAssistant(conversationId: string, messageId: string, toolCall: AgentToolCall) {
-    updateMessage(conversationId, messageId, (message) => {
-      const current = message.toolCalls ?? [];
-      const index = current.findIndex((item) => item.id === toolCall.id);
-      if (index < 0) {
-        return { ...message, toolCalls: [...current, toolCall] };
-      }
-      const next = [...current];
-      next[index] = toolCall;
-      return { ...message, toolCalls: next };
-    });
-  }
-
-  function appendUICard(conversationId: string, messageId: string, card: AgentUICard) {
-    updateMessage(conversationId, messageId, (message) => ({
-      ...message,
-      uiCards: [...(message.uiCards ?? []), card],
-    }));
-  }
-
-  async function handleHitlDecision(card: AgentUICard, decisionInput: AgentHitlDecisionInput) {
-    const payloadRecord = (card.payload ?? {}) as Record<string, unknown>;
-    const interruptRecord = (payloadRecord.interrupt ?? {}) as Record<string, unknown>;
-    const interruptValue = (interruptRecord.value ?? {}) as Record<string, unknown>;
-    const payload = (card.payload ?? {}) as Record<string, unknown>;
-    const threadIdFromPayload = typeof payload.threadId === "string" ? payload.threadId : undefined;
-    const nestedThreadId = typeof interruptValue.threadId === "string" ? interruptValue.threadId : undefined;
-    const threadId = threadIdFromPayload || nestedThreadId || activeConversationId;
-
-    if (!threadId || threadId.startsWith("local-")) {
-      toast.error("Khong tim thay threadId de resume HITL.");
-      return;
-    }
-
-    const decision = decisionInput.decision === "edited"
-      ? {
-          decision: "edited",
-          args: decisionInput.modifiedArgs ?? {},
-          reason: decisionInput.reason,
-        }
-      : decisionInput.decision;
-
-    try {
-      await resumeAgentRun(threadId, decision);
-      toast.success(`Da gui quyet dinh ${decisionInput.decision}.`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Khong the gui quyet dinh HITL";
-      toast.error(message);
-    }
-  }
-
-  async function streamAgentResponseAgui(prompt: string, conversationId: string, assistantMessageId: string) {
-    if (!aguiChat || !aguiChat.isReady) {
-      await streamAgentResponse(prompt, conversationId, assistantMessageId);
-      return;
-    }
-
-    setIsStreaming(true);
-    aguiRunRef.current = { conversationId, assistantMessageId, prompt };
-
-    try {
-      const turnResult = await aguiChat.sendMessage(prompt);
-
-      // Freeze the live AG-UI view into local state once the run finishes,
-      // so history/reload renders it the same way as any other message.
-      // Read from the resolved turnResult, not aguiChat — aguiChat's fields
-      // are memoized against the render this closure was created in and
-      // would be stale after the await.
-      finalizeAssistantMessage(conversationId, assistantMessageId, {
-        content: turnResult.text,
-        toolCalls: toPersistedToolCalls(turnResult.toolCalls),
-      });
-      void loadConversationSummaries();
-    } catch (error) {
-      const errorMessage = getAgentStreamErrorMessage(error);
-      updateMessage(conversationId, assistantMessageId, (message) => ({
-        ...message,
-        isStreaming: false,
-        errorMessage,
-        retryPrompt: prompt,
-      }));
-      toast.error(errorMessage);
-    } finally {
-      aguiRunRef.current = null;
-      setIsStreaming(false);
-    }
-  }
-
-  async function streamAgentResponse(prompt: string, conversationId: string, assistantMessageId: string) {
-    let streamConversationId = conversationId;
-    setIsStreaming(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    runTrackingRef.current = {};
-
-    try {
-      await startAgentRunStream(
-        {
-          message: prompt,
-          threadId: conversationId.startsWith("local-") ? undefined : conversationId,
-        },
-        {
-          onEvent: (event) => {
-            if (event.runId) {
-              runTrackingRef.current.runId = event.runId;
-            }
-
-            if (event.threadId) {
-              runTrackingRef.current.threadId = event.threadId;
-              if (streamConversationId !== event.threadId) {
-                migrateConversationId(streamConversationId, event.threadId);
-                streamConversationId = event.threadId;
-              }
-            }
-
-            if (event.name === "message.chunk") {
-              const delta = typeof event.data.content === "string" ? event.data.content : "";
-              if (!delta) return;
-
-              updateMessage(streamConversationId, assistantMessageId, (message) => ({
-                ...message,
-                content: `${message.content}${delta}`,
-              }));
-              return;
-            }
-
-            if (event.name === "tool.started" || event.name === "tool.completed" || event.name === "tool.error") {
-              const toolCall: AgentToolCall = {
-                id: (event.data.callId as string) || (event.data.id as string) || `tool-${Date.now()}`,
-                name:
-                  (event.data.toolName as string)
-                  || (event.data.name as string)
-                  || (event.data.tool as string)
-                  || "unknown_tool",
-                args: (event.data.args as Record<string, unknown>) || {},
-                state: event.name === "tool.started" ? "pending" : event.name === "tool.completed" ? "completed" : "error",
-                startedAt: event.timestamp,
-                finishedAt: event.name === "tool.started" ? undefined : event.timestamp,
-                errorMessage:
-                  typeof event.data.errorMessage === "string"
-                    ? event.data.errorMessage
-                    : typeof event.data.message === "string"
-                      ? event.data.message
-                      : undefined,
-                statusCode: typeof event.data.statusCode === "number" ? event.data.statusCode : undefined,
-                result: event.data.result ?? event.data.output ?? event.data.data,
-                error: event.data.error,
-                completedAt: event.name === "tool.started" ? undefined : event.timestamp,
-              };
-
-              upsertToolCallInAssistant(streamConversationId, assistantMessageId, toolCall);
-              return;
-            }
-
-            if (event.name === "hitl.interrupt") {
-              const card: AgentUICard = {
-                id: `hitl-${Date.now()}`,
-                type: "hitl",
-                title: "Human Approval Required",
-                description: "Agent dang cho phe duyet thao tac HITL.",
-                payload: event.data,
-              };
-
-              appendUICard(streamConversationId, assistantMessageId, card);
-              return;
-            }
-
-            if (event.name === "run.error") {
-              const errorText = typeof event.data.message === "string"
-                ? event.data.message
-                : "Co loi xay ra trong qua trinh xu ly.";
-
-              updateMessage(streamConversationId, assistantMessageId, (message) => ({
-                ...message,
-                errorMessage: errorText,
-                retryPrompt: prompt,
-              }));
-            }
-          },
-        },
-        controller.signal,
-      );
-      finalizeAssistantMessage(streamConversationId, assistantMessageId);
-      void loadConversationSummaries();
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        updateMessage(streamConversationId, assistantMessageId, (message) => ({
-          ...message,
-          isStreaming: false,
-          content: message.content.trim()
-            ? `${message.content}\n\n_Stream cancelled by user._`
-            : "_Stream cancelled by user._",
-        }));
-      } else {
-        const errorMessage = getAgentStreamErrorMessage(error);
-        updateMessage(streamConversationId, assistantMessageId, (message) => ({
-          ...message,
-          isStreaming: false,
-          errorMessage,
-          retryPrompt: prompt,
-        }));
-        toast.error(errorMessage);
-      }
-    } finally {
-      abortRef.current = null;
-      runTrackingRef.current = {};
-      setIsStreaming(false);
-    }
-  }
-
-  async function sendAgentMessage(prompt: string, options: { clearDraft?: boolean } = {}) {
-    if (!prompt) return;
-
-    const conversation = ensureActiveConversation(prompt);
+  function selectConversation(conversationId: string) {
+    setActiveConversationId(conversationId);
     setMobileHistoryOpen(false);
 
-    const userMessage: AgentChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: prompt,
-      createdAt: nowIso(),
-    };
+    const existing = conversations.find((item) => item.id === conversationId);
+    seedAgent(conversationId, existing?.messages ?? []);
 
-    const assistantMessage: AgentChatMessage = {
-      id: `assistant-${Date.now()}`,
-      role: "assistant",
-      content: "",
-      createdAt: nowIso(),
-      isStreaming: true,
-      retryPrompt: prompt,
-      toolCalls: [],
-      uiCards: [],
-    };
-
-    const title = conversation.messages.length === 0 ? prompt.slice(0, 40) : conversation.title;
-
-    upsertConversation({
-      ...conversation,
-      title,
-      updatedAt: nowIso(),
-      messages: [...conversation.messages, userMessage, assistantMessage],
-    });
-
-    if (options.clearDraft !== false) {
-      setDraft("");
+    if (!loadedConversationDetailRef.current.has(conversationId)) {
+      void loadConversationDetail(conversationId);
     }
-
-    if (copilotKitEnabled && aguiChat?.isReady) {
-      await streamAgentResponseAgui(prompt, conversation.id, assistantMessage.id);
-      return;
-    }
-
-    await streamAgentResponse(prompt, conversation.id, assistantMessage.id);
   }
 
-  async function handleSubmitOrCancel() {
-    if (isStreaming) {
-      if (copilotKitEnabled && aguiChat?.isReady) {
-        aguiChat.stopGeneration();
-        const pending = aguiRunRef.current;
-        if (pending) {
-          updateMessage(pending.conversationId, pending.assistantMessageId, (message) => ({
-            ...message,
-            isStreaming: false,
-            content: message.content.trim()
-              ? `${message.content}\n\n_Stream cancelled by user._`
-              : "_Stream cancelled by user._",
-          }));
-          aguiRunRef.current = null;
-        }
-        setIsStreaming(false);
-        return;
-      }
+  function createNewConversation() {
+    const conversationId = uuidv4();
+    const now = nowIso();
+    upsertConversation({ id: conversationId, title: "Hoi thoai moi", createdAt: now, updatedAt: now, messages: [] });
+    setActiveConversationId(conversationId);
+    setMobileHistoryOpen(false);
+    loadedConversationDetailRef.current.add(conversationId);
+    seedAgent(conversationId, []);
+  }
 
-      abortRef.current?.abort();
-      const runId = runTrackingRef.current.runId;
-      if (runId) {
-        void cancelAgentRun(runId).catch(() => undefined);
-      }
-      return;
-    }
-
+  async function handleSend() {
     const prompt = draft.trim();
-    await sendAgentMessage(prompt);
-  }
+    if (!prompt || !aguiChat.isReady) return;
 
-  async function handleRetryMessage(message: AgentChatMessage) {
-    if (isStreaming || !message.retryPrompt?.trim()) return;
-
-    const conversation = conversations.find((item) =>
-      item.messages.some((conversationMessage) => conversationMessage.id === message.id),
-    );
-    if (!conversation) {
-      toast.error("Khong tim thay hoi thoai de retry message nay.");
-      return;
+    let conversationId = activeConversationId;
+    if (!conversationId) {
+      conversationId = uuidv4();
+      const now = nowIso();
+      upsertConversation({ id: conversationId, title: prompt.slice(0, 40), createdAt: now, updatedAt: now, messages: [] });
+      setActiveConversationId(conversationId);
+      loadedConversationDetailRef.current.add(conversationId);
+      seedAgent(conversationId, []);
+    } else if (seededConversationIdRef.current !== conversationId) {
+      seedAgent(conversationId, activeConversation?.messages ?? []);
     }
 
-    setMobileHistoryOpen(false);
-    setActiveConversationId(conversation.id);
-    updateMessage(conversation.id, message.id, (currentMessage) => ({
-      ...currentMessage,
-      content: "",
-      errorMessage: undefined,
-      isStreaming: true,
-      retryPrompt: message.retryPrompt,
-      toolCalls: [],
-      uiCards: [],
-    }));
-
-    await streamAgentResponse(message.retryPrompt.trim(), conversation.id, message.id);
+    setDraft("");
+    setIsSending(true);
+    try {
+      await aguiChat.sendMessage(prompt);
+      void loadConversationSummaries();
+    } catch (error) {
+      toast.error(getAgentErrorMessage(error));
+    } finally {
+      setIsSending(false);
+    }
   }
+
+  function handleSubmitOrCancel() {
+    if (isRunning) {
+      aguiChat.stopGeneration();
+      setIsSending(false);
+      return;
+    }
+    void handleSend();
+  }
+
+  const isRunning = Boolean(aguiChat.isReady && aguiChat.agent.isRunning) || isSending;
+  const hasActiveConversation = Boolean(activeConversationId);
 
   function renderEmptyState() {
     return (
@@ -719,7 +298,7 @@ function AgentPageContent({
     );
   }
 
-  const content = (
+  return (
     <Layout fixed>
       <Layout.Body className="h-full px-0 py-0 md:px-0">
         <div className="flex h-full min-h-0 flex-col md:flex-row">
@@ -728,11 +307,7 @@ function AgentPageContent({
               conversations={sortedSummaries}
               activeConversationId={activeConversationId}
               onCreateConversation={createNewConversation}
-              onSelectConversation={(conversationId) => {
-                setActiveConversationId(conversationId);
-                setMobileHistoryOpen(false);
-                void loadConversationDetail(conversationId);
-              }}
+              onSelectConversation={selectConversation}
               isCollapsed={isHistoryCollapsed}
               onToggleCollapsed={() => setIsHistoryCollapsed((value) => !value)}
               onRenameConversation={handleRenameConversation}
@@ -751,135 +326,31 @@ function AgentPageContent({
               </button>
               <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <IconSparkles size={14} />
-                {copilotKitEnabled ? "AG-UI mode" : "SSE fallback"}
+                AG-UI
               </div>
             </div>
 
-            <ScrollArea className="min-h-0 flex-1">
-              <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-4">
-                {isLoadingHistory && (
-                  <p className="text-xs text-muted-foreground">Dang tai conversation history...</p>
-                )}
-                {!activeConversation || activeConversation.messages.length === 0
-                  ? renderEmptyState()
-                  : activeConversation.messages.map((message) => {
-                    // While this message is the in-flight AG-UI turn, render
-                    // live from aguiChat (reactive — updates as the stream
-                    // progresses) instead of the local snapshot, which is
-                    // only written once the turn finishes.
-                    const isLiveAgui = message.id === activeAguiMessageId;
-                    const displayContent = isLiveAgui ? aguiChat?.latestAssistantText ?? "" : message.content;
-                    const displayIsStreaming = isLiveAgui ? Boolean(aguiChat?.isLoading) : Boolean(message.isStreaming);
-                    const liveToolCalls = isLiveAgui ? aguiChat?.toolCalls ?? [] : null;
-                    const streamingIndicatorToolCalls: StreamingToolCall[] = liveToolCalls
-                      ? liveToolCalls.map((toolCall) => ({ id: toolCall.id, name: toolCall.name, state: toolCall.state }))
-                      : (message.toolCalls ?? []).map((toolCall) => ({ id: toolCall.id, name: toolCall.name, state: toolCall.state }));
+            {isLoadingHistory && (
+              <p className="px-4 pt-2 text-xs text-muted-foreground">Dang tai conversation history...</p>
+            )}
 
-                    return (
-                    <article
-                      key={message.id}
-                      className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[86%] rounded-xl border px-3 py-2 md:max-w-[74%]",
-                          message.role === "user"
-                            ? "border-primary/30 bg-primary text-primary-foreground"
-                            : "border-border bg-card",
-                        )}
-                      >
-                        {message.role === "assistant" && displayContent.trim() ? (
-                          <AgentMarkdown content={displayContent} />
-                        ) : message.role === "assistant" && displayIsStreaming ? (
-                          <AgentStreamingIndicator toolCalls={streamingIndicatorToolCalls} />
-                        ) : message.role === "user" ? (
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
-                        ) : null}
-
-                        {message.role === "assistant" && displayIsStreaming && displayContent.trim() && (
-                          <div className="mt-3 border-t border-border/70 pt-2">
-                            <AgentStreamingIndicator toolCalls={streamingIndicatorToolCalls} />
-                          </div>
-                        )}
-
-                        {message.role === "assistant" && message.errorMessage && (
-                          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                            <div className="flex items-start gap-2">
-                              <IconAlertTriangle size={16} className="mt-0.5 shrink-0" />
-                              <div className="min-w-0 flex-1">
-                                <p className="font-medium">Khong the nhan phan hoi tu agent</p>
-                                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed">
-                                  {message.errorMessage}
-                                </p>
-                              </div>
-                            </div>
-                            {message.retryPrompt && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="mt-3 border-destructive/40 bg-background text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                disabled={isStreaming}
-                                leftSection={<IconRefresh size={14} />}
-                                onClick={() => void handleRetryMessage(message)}
-                              >
-                                Thu lai message nay
-                              </Button>
-                            )}
-                          </div>
-                        )}
-
-                        {liveToolCalls && liveToolCalls.length > 0 ? (
-                          <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
-                            <div className="text-xs font-medium text-muted-foreground">Tools used</div>
-                            {liveToolCalls.map((toolCall) => (
-                              <div key={toolCall.id} className="space-y-1">
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <span
-                                    className={cn(
-                                      "h-1.5 w-1.5 shrink-0 rounded-full",
-                                      toolCall.state === "pending" && "animate-pulse bg-primary",
-                                      toolCall.state === "completed" && "bg-emerald-600",
-                                      toolCall.state === "error" && "bg-destructive",
-                                    )}
-                                  />
-                                  <span className="font-medium text-foreground">{toolCall.name}</span>
-                                  <span>{getToolStateLabel(toolCall.state)}</span>
-                                </div>
-                                {toolCall.element}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          message.role === "assistant" && message.toolCalls && message.toolCalls.length > 0 && (
-                            <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
-                              <div className="text-xs font-medium text-muted-foreground">Tools used</div>
-                              {message.toolCalls.map((toolCall) => (
-                                <AgentToolCallCard key={toolCall.id} toolCall={toolCall} />
-                              ))}
-                            </div>
-                          )
-                        )}
-
-                        {message.role === "assistant" && message.uiCards && message.uiCards.length > 0 && (
-                          <div className="mt-3 space-y-2 border-t border-border/70 pt-2">
-                            <div className="text-xs font-medium text-muted-foreground">Generated components</div>
-                            {message.uiCards.map((card) => (
-                              <AgentUICardView key={card.id} card={card} onHitlDecision={handleHitlDecision} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                    );
-                  })}
-                <div ref={messagesEndRef} />
+            {!aguiChat.isReady ? (
+              <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                Khong the ket noi agent service. Vui long tai lai trang.
               </div>
-            </ScrollArea>
+            ) : !hasActiveConversation ? (
+              renderEmptyState()
+            ) : (
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="mx-auto w-full max-w-5xl px-4 py-4">
+                  <CopilotChatMessageView messages={aguiChat.agent.messages} isRunning={isRunning} />
+                </div>
+              </ScrollArea>
+            )}
 
             <AgentComposer
               value={draft}
-              isStreaming={isStreaming}
+              isStreaming={isRunning}
               onChange={setDraft}
               onSubmitOrCancel={handleSubmitOrCancel}
             />
@@ -888,44 +359,35 @@ function AgentPageContent({
       </Layout.Body>
     </Layout>
   );
-
-  return content;
-}
-
-function AgentPageAguiContent({ copilotKitEnabled }: { copilotKitEnabled: boolean }) {
-  const agui = useAgentChat();
-
-  return (
-    <AgentPageContent
-      copilotKitEnabled={copilotKitEnabled}
-      aguiChat={agui}
-    />
-  );
 }
 
 export default function AgentPage() {
   const backendBaseUrl = (import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
   const configuredRuntimeUrl = (import.meta.env.VITE_COPILOTKIT_RUNTIME_URL || "").trim();
   const runtimeUrl = configuredRuntimeUrl || `${backendBaseUrl}/api/v1/agent/copilotkit`;
-  const useAguiFlag = String(import.meta.env.VITE_USE_AGUI ?? "true").toLowerCase() !== "false";
   const accessToken = getAccessToken();
-  const aguiEnabled = useAguiFlag && Boolean(accessToken);
 
   const agent = useMemo(() => {
-    if (!aguiEnabled) return null;
+    if (!accessToken) return null;
     return new LangGraphHttpAgent({
       url: runtimeUrl,
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+      headers: { Authorization: `Bearer ${accessToken}` },
     });
-  }, [aguiEnabled, runtimeUrl, accessToken]);
+  }, [runtimeUrl, accessToken]);
 
-  if (!aguiEnabled || !agent) {
-    return <AgentPageContent copilotKitEnabled={false} aguiChat={null} />;
+  if (!agent) {
+    return (
+      <Layout fixed>
+        <Layout.Body className="flex h-full items-center justify-center">
+          <p className="text-sm text-muted-foreground">Phien dang nhap khong hop le. Vui long dang nhap lai.</p>
+        </Layout.Body>
+      </Layout>
+    );
   }
 
   return (
     <CopilotKitProvider selfManagedAgents={{ [AGENT_ID]: agent }} renderToolCalls={AGENT_TOOL_CALL_RENDERERS}>
-      <AgentPageAguiContent copilotKitEnabled />
+      <AgentPageContent />
     </CopilotKitProvider>
   );
 }
