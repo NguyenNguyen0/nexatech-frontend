@@ -6,6 +6,7 @@ import { Layout } from "@/components/custom/layout";
 import { Button } from "@/components/custom/button";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { useAgentChat, type RenderedToolCall } from "@/features/agent/hooks/use-agent-chat";
+import { AGENT_TOOL_CALL_RENDERERS } from "@/features/agent/hooks/agent-generative-ui-renderers";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
 import { AgentMarkdown } from "@/features/agent/components/agent-markdown";
@@ -887,7 +888,7 @@ export default function AgentPage() {
   }
 
   return (
-    <CopilotKitProvider selfManagedAgents={{ [AGENT_ID]: agent }}>
+    <CopilotKitProvider selfManagedAgents={{ [AGENT_ID]: agent }} renderToolCalls={AGENT_TOOL_CALL_RENDERERS}>
       <AgentPageAguiContent copilotKitEnabled />
     </CopilotKitProvider>
   );
