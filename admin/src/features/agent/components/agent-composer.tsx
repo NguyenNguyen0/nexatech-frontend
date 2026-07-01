@@ -18,7 +18,7 @@ export function AgentComposer({ value, onChange, isStreaming, onSubmitOrCancel }
         <Textarea
           value={value}
           placeholder="Nhap prompt cho NexaTech Agent..."
-          className="min-h-14 resize-none"
+          className="min-h-14 max-h-40 resize-none overflow-y-auto"
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
