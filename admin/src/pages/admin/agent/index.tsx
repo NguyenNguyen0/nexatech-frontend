@@ -9,6 +9,7 @@ import { Layout } from "@/components/custom/layout";
 import useLocalStorage from "@/hooks/use-local-storage";
 import { useAgentChat } from "@/features/agent/hooks/use-agent-chat";
 import { AGENT_TOOL_CALL_RENDERERS } from "@/features/agent/hooks/agent-generative-ui-renderers";
+import { AgentAssistantMessage } from "@/features/agent/components/agent-tool-calls-view";
 import { AgentComposer } from "@/features/agent/components/agent-composer";
 import { AgentConversationList } from "@/features/agent/components/agent-conversation-list";
 import {
@@ -343,7 +344,11 @@ function AgentPageContent() {
             ) : (
               <ScrollArea className="min-h-0 flex-1">
                 <div className="mx-auto w-full max-w-5xl px-4 py-4">
-                  <CopilotChatMessageView messages={aguiChat.agent.messages} isRunning={isRunning} />
+                  <CopilotChatMessageView
+                    messages={aguiChat.agent.messages}
+                    isRunning={isRunning}
+                    assistantMessage={AgentAssistantMessage}
+                  />
                 </div>
               </ScrollArea>
             )}
